@@ -93,6 +93,10 @@ const (
 )
 
 const (
+	NoPiece = iota
+)
+
+const (
 	Normal MoveType = iota
 	Promotion
 	Castling

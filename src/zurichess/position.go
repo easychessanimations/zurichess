@@ -81,11 +81,15 @@ func (pi Piece) PieceType() PieceType {
 	return PieceType(pi & 7)
 }
 
-// String returns the piece as a string.
-func (pi Piece) String() string {
+// Symbol returns the piece as a string.
+func (pi Piece) Symbol() string {
 	co := pi.Color()
 	pt := pi.PieceType()
 	return PieceName[co][pt : pt+1]
+}
+
+func (pi Piece) String() string {
+	return pi.Color().String() + " " + pi.PieceType().String()
 }
 
 // A birboard 8x8.
@@ -94,10 +98,9 @@ type Bitboard uint64
 type MoveType int
 
 type Move struct {
-	From, To      Square
-	MoveType      MoveType
-	CapturedColor Color
-	CapturedPiece Piece
+	From, To Square
+	MoveType MoveType
+	Captured Piece
 }
 
 type Position struct {
@@ -180,6 +183,11 @@ func (pos *Position) PutPiece(sq Square, pi Piece) {
 	pos.byPieceType[pi.PieceType()] |= sq.Bitboard()
 }
 
+func (pos *Position) RemovePiece(sq Square, pi Piece) {
+	pos.byColor[pi.Color()] &= ^sq.Bitboard()
+	pos.byPieceType[pi.PieceType()] &= ^sq.Bitboard()
+}
+
 // GetPiece returns the piece at sq.
 func (pos *Position) GetPiece(sq Square) Piece {
 	var co Color
@@ -190,16 +198,19 @@ func (pos *Position) GetPiece(sq Square) Piece {
 			break
 		}
 	}
+	if co == ColorMaxValue {
+		return ColorPiece(NoColor, NoPieceType)
+	}
 
 	for pt = PieceTypeMinValue; pt < PieceTypeMaxValue; pt++ {
 		if pos.byPieceType[pt]&sq.Bitboard() != 0 {
 			break
 		}
 	}
-
-	if co == ColorMaxValue || pt == PieceTypeMaxValue {
-		return ColorPiece(NoColor, NoPieceType)
+	if pt == PieceTypeMaxValue {
+		panic("expected piece, got nothing")
 	}
+
 	return ColorPiece(co, pt)
 }
 
@@ -208,7 +219,7 @@ func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
 		line := ""
 		for f := 7; f >= 0; f-- {
-			line += pos.GetPiece(RankFile(r, f)).String()
+			line += pos.GetPiece(RankFile(r, f)).Symbol()
 		}
 		if r == 7 && pos.toMove == Black {
 			line += " *"
@@ -219,4 +230,21 @@ func (pos *Position) PrettyPrint() {
 		log.Println(line)
 	}
 
+}
+
+// DoMove performs a move.
+// Expects the move to be valid.
+func (pos *Position) DoMove(mo Move) {
+	piece := pos.GetPiece(mo.From)
+	if piece.Color() != pos.toMove {
+		panic(fmt.Sprintf("%v cannot move a %v", pos.toMove, piece))
+	}
+
+	capture := pos.GetPiece(mo.To)
+	if capture.Color() == pos.toMove {
+		panic(fmt.Sprintf("%v cannot capture a %v", pos.toMove, piece))
+	}
+
+	pos.RemovePiece(mo.To, capture)
+	pos.PutPiece(mo.To, piece)
 }

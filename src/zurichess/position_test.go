@@ -12,7 +12,7 @@ func checkPiece(t *testing.T, pi Piece, co Color, pt PieceType) {
 
 // TestPiece verifies Piece functionality.
 func TestPiece(t *testing.T) {
-	checkPiece(t, Piece(0), NoColor, NoPieceType)
+	checkPiece(t, NoPiece, NoColor, NoPieceType)
 	for co := ColorMinValue; co < ColorMaxValue; co++ {
 		for pt := PieceTypeMinValue; pt < PieceTypeMaxValue; pt++ {
 			checkPiece(t, ColorPiece(co, pt), co, pt)
@@ -31,4 +31,8 @@ func TestPutGetPiece(t *testing.T) {
 	pos.PutPiece(SquareA3, ColorPiece(White, Pawn))
 	pi = pos.GetPiece(SquareA3)
 	checkPiece(t, pi, White, Pawn)
+
+	pos.PutPiece(SquareH7, ColorPiece(Black, King))
+	pi = pos.GetPiece(SquareH7)
+	checkPiece(t, pi, Black, King)
 }
