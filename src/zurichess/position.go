@@ -29,17 +29,38 @@ func (sq Square) File() int {
 // PieceType represents a colorless piece
 type PieceType uint
 
+func (pt PieceType) String() string {
+	switch pt {
+	case NoPieceType:
+		return "(nopiecetype)"
+	case Pawn:
+		return "Pawn"
+	case Knight:
+		return "Knight"
+	case Bishop:
+		return "Bishop"
+	case Rock:
+		return "Rock"
+	case Queen:
+		return "Queen"
+	case King:
+		return "King"
+	default:
+		return "(badpiecetype)"
+	}
+}
+
 // Color represents a color.
 type Color uint
 
 func (co Color) String() string {
 	switch co {
+	case NoColor:
+		return "(nocolor)"
 	case White:
 		return "White"
 	case Black:
 		return "Block"
-	case NoColor:
-		return "(nocolor)"
 	default:
 		return "(badcolor)"
 	}
