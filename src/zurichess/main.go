@@ -11,8 +11,8 @@ import (
 
 func init() {
 	log.SetOutput(os.Stdout)
-	log.SetPrefix("info ")
-	log.SetFlags(log.Ltime | log.Lshortfile)
+	log.SetPrefix("info debug ")
+	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 }
 
@@ -50,6 +50,7 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
+			pos.PrettyPrint()
 			continue
 		case "go":
 			// TODO

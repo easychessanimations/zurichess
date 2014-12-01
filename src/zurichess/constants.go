@@ -67,26 +67,39 @@ const (
 	SquareH8
 
 	SquareMaxValue
+	SquareMinValue = SquareA1
 )
 
 const (
-	PiecePawn Piece = iota
-	PieceKnight
-	PieceBishop
-	PieceRock
-	PieceQueen
-	PieceKing
+	NoPieceType PieceType = iota
+	Pawn
+	Knight
+	Bishop
+	Rock
+	Queen
+	King
 
-	PieceMaxValue
+	PieceTypeMaxValue
+	PieceTypeMinValue = Pawn
 )
 
 const (
-	ColorWhite Color = iota
-	ColorBlack
+	NoColor Color = iota
+	White
+	Black
 
 	ColorMaxValue
+	ColorMinValue = White
 )
 
 const (
-	FENStartPos string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	Normal MoveType = iota
+	Promotion
+	Castling
+	Enpassant
+)
+
+var (
+	FENStartPos string   = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	PieceName   []string = []string{"       ", " PNBRQK", " pnbrqk "}
 )
