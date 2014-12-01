@@ -65,6 +65,8 @@ const (
 	SquareH6
 	SquareH7
 	SquareH8
+
+	SquareMaxValue
 )
 
 const (
@@ -74,9 +76,17 @@ const (
 	PieceRock
 	PieceQueen
 	PieceKing
+
+	PieceMaxValue
 )
 
 const (
 	ColorWhite Color = iota
 	ColorBlack
+
+	ColorMaxValue
+)
+
+const (
+	FENStartPos string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 )

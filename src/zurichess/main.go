@@ -17,6 +17,9 @@ func init() {
 }
 
 func main() {
+	var pos *Position
+	_ = pos
+
 	bio := bufio.NewReader(os.Stdin)
 	for {
 		line, _, err := bio.ReadLine()
@@ -38,10 +41,15 @@ func main() {
 		case "isready":
 			fmt.Println("readyok")
 		case "ucinewgame":
-			// TODO
 			continue
 		case "position":
-			// TODO
+			if cmd[1] != "startpos" {
+				log.Fatalln("expected 'startpos', got'", cmd[1])
+			}
+			pos, err = PositionFromFEN(FENStartPos)
+			if err != nil {
+				log.Fatalln(err)
+			}
 			continue
 		case "go":
 			// TODO
