@@ -22,6 +22,10 @@ func (sq Square) Bitboard() Bitboard {
 	return 1 << uint(sq)
 }
 
+func (sq Square) Relative(dr, df int) Square {
+	return sq + Square(dr*8+df)
+}
+
 // Rank returns a number 0...7 representing the rank of the square.
 func (sq Square) Rank() int {
 	return int(sq / 8)
@@ -116,7 +120,9 @@ type MoveType int
 
 type Move struct {
 	From, To Square
-	Capture  Piece
+	// If MoveType == Normal, target is the captured piece.
+	// If MoveType == Promotion, target is the piece promoted to.
+	Target   Piece
 	MoveType MoveType
 }
 
@@ -204,9 +210,15 @@ func (pos *Position) PutPiece(sq Square, pi Piece) {
 	pos.byPieceType[pi.PieceType()] |= sq.Bitboard()
 }
 
+// RemovePiece removes a piece from the table.
 func (pos *Position) RemovePiece(sq Square, pi Piece) {
 	pos.byColor[pi.Color()] &= ^sq.Bitboard()
 	pos.byPieceType[pi.PieceType()] &= ^sq.Bitboard()
+}
+
+// IsEmpty returns true if there is no piece at sq.
+func (pos *Position) IsEmpty(sq Square) bool {
+	return (pos.byColor[White]|pos.byColor[Black])&sq.Bitboard() == 0
 }
 
 // GetPiece returns the piece at sq.
@@ -260,7 +272,7 @@ func (pos *Position) ParseMove(s string) Move {
 	return Move{
 		From:     from,
 		To:       to,
-		Capture:  pos.GetPiece(to),
+		Target:   pos.GetPiece(to),
 		MoveType: Normal, // TODO
 	}
 }
@@ -272,7 +284,7 @@ func (pos *Position) DoMove(mo Move) {
 	// log.Println("Playing", mo)
 	piece := pos.GetPiece(mo.From)
 	pos.RemovePiece(mo.From, piece)
-	pos.RemovePiece(mo.To, mo.Capture)
+	pos.RemovePiece(mo.To, mo.Target)
 	pos.PutPiece(mo.To, piece)
 	pos.toMove = pos.toMove.Other()
 }
@@ -285,7 +297,7 @@ func (pos *Position) UndoMove(mo Move) {
 	piece := pos.GetPiece(mo.To)
 	pos.RemovePiece(mo.To, piece)
 	pos.PutPiece(mo.From, piece)
-	pos.PutPiece(mo.To, mo.Capture)
+	pos.PutPiece(mo.To, mo.Target)
 	pos.toMove = pos.toMove.Other()
 }
 
@@ -296,6 +308,49 @@ var (
 	}
 )
 
+// genPawnMoves generates pawn moves around from.
+func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
+	if pi.PieceType() != Pawn {
+		panic(fmt.Sprintf("cannot move a %v, expected a %v", pi, Knight))
+	}
+
+	advance, pawnRank, backRank := 1, 1, 0
+	if pi.Color() == Black {
+		advance, pawnRank, backRank = -1, 7, 8
+	}
+
+	pr := from.Rank()
+	f1 := from.Relative(advance, 0)
+
+	// Enpassant.
+	if pr == pawnRank {
+		f2 := from.Relative(advance*2, 0)
+
+		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
+			moves = append(moves, Move{
+				From:     from,
+				To:       f2,
+				MoveType: Enpassant,
+			})
+		}
+	}
+
+	// Forward
+	if pr != backRank {
+		if pos.IsEmpty(f1) {
+			moves = append(moves, Move{
+				From: from,
+				To:   f1,
+			})
+		}
+	}
+
+	// TODO attack
+
+	return moves
+}
+
+// genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
 	if pi.PieceType() != Knight {
 		panic(fmt.Sprintf("cannot move a %v, expected a %v", pi, Knight))
@@ -318,7 +373,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 		moves = append(moves, Move{
 			From:     from,
 			To:       to,
-			Capture:  capture,
+			Target:   capture,
 			MoveType: Normal,
 		})
 	}
@@ -334,9 +389,9 @@ func (pos *Position) GenerateMoves() []Move {
 		}
 
 		switch pi.PieceType() {
+		case Pawn:
+			moves = pos.genPawnMoves(sq, pi, moves)
 		case Knight:
-			log.Println("Found knight at", sq)
-			pos.PrettyPrint()
 			moves = pos.genKnightMoves(sq, pi, moves)
 		}
 	}

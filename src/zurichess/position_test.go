@@ -93,6 +93,19 @@ func TestStartPosition(t *testing.T) {
 			}
 		}
 	}
+
+	for r := 0; r < 7; r++ {
+		for f := 0; f < 7; f++ {
+			sq := RankFile(r, f)
+			if (r <= 1 || r >= 6) && pos.IsEmpty(sq) {
+				t.Errorf("expected piece at %v", sq)
+			}
+			if (r > 1 && r < 6) && !pos.IsEmpty(sq) {
+				t.Errorf("expected no piece at %v", sq)
+
+			}
+		}
+	}
 }
 
 func testMoves(t *testing.T, moves []Move, expected []string) {
