@@ -6,7 +6,7 @@ import (
 )
 
 // Square identifies the location on the board.
-type Square uint
+type Square int
 
 func RankFile(r, f int) Square {
 	return Square(r*8 + f)
@@ -24,6 +24,13 @@ func (sq Square) Rank() int {
 // File returns a number 0...7 representing the file of the square.
 func (sq Square) File() int {
 	return int(sq % 8)
+}
+
+func (sq Square) String() string {
+	return string([]byte{
+		uint8(sq.File() + 'a'),
+		uint8(sq.Rank() + '1'),
+	})
 }
 
 // PieceType represents a colorless piece
@@ -99,8 +106,12 @@ type MoveType int
 
 type Move struct {
 	From, To Square
+	Capture  Piece
 	MoveType MoveType
-	Captured Piece
+}
+
+func (mo *Move) String() string {
+	return mo.From.String() + mo.To.String()
 }
 
 type Position struct {
@@ -247,4 +258,56 @@ func (pos *Position) DoMove(mo Move) {
 
 	pos.RemovePiece(mo.To, capture)
 	pos.PutPiece(mo.To, piece)
+}
+
+var (
+	knightJump = [8][2]int{
+		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
+		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
+	}
+)
+
+func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
+	if pi.PieceType() != Knight {
+		panic(fmt.Sprintf("Cannot move a %v, expected a %v", pi, Knight))
+	}
+	for _, e := range knightJump {
+		r, f := from.Rank()+e[0], from.File()+e[1]
+		if 0 > r || r >= 8 || 0 > f || f >= 8 {
+			// Cannot jump out of the table.
+			continue
+		}
+		to := RankFile(r, f)
+
+		capture := pos.GetPiece(to)
+		if capture.Color() == pi.Color() {
+			// Cannot capture same color.
+			continue
+		}
+
+		// Found a valid Knight move.
+		moves = append(moves, Move{
+			From:     from,
+			To:       to,
+			Capture:  capture,
+			MoveType: Normal,
+		})
+	}
+	return moves
+}
+
+func (pos *Position) GenMoves() []Move {
+	moves := make([]Move, 0, 8)
+	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+		pi := pos.GetPiece(sq)
+		if pi.Color() != pos.toMove {
+			continue
+		}
+
+		switch pi.PieceType() {
+		case Knight:
+			moves = pos.genKnightMoves(sq, pi, moves)
+		}
+	}
+	return moves
 }

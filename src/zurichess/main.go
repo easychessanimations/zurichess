@@ -11,7 +11,7 @@ import (
 
 func init() {
 	log.SetOutput(os.Stdout)
-	log.SetPrefix("info debug ")
+	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 }
@@ -50,9 +50,11 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			pos.PrettyPrint()
 			continue
 		case "go":
+			moves := pos.GenMoves()
+			fmt.Printf("bestmove %s%s\n", moves[0].From, moves[0].To)
+
 			// TODO
 			continue
 
