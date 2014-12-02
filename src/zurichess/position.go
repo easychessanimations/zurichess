@@ -317,18 +317,11 @@ func (pos *Position) UndoMove(mo Move) {
 	pos.toMove = pos.toMove.Other()
 }
 
-var (
-	knightJump = [8][2]int{
-		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
-		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
-	}
-)
-
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
-	advance, pawnRank, lastRank := 1, 1, 7
+	advance, pawnRank, lastRank := 1, 1, 6
 	if pi.Color() == Black {
-		advance, pawnRank, lastRank = -1, 6, 0
+		advance, pawnRank, lastRank = -1, 6, 1
 	}
 
 	pr := from.Rank()
@@ -347,7 +340,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		}
 	}
 
-	// Forward
+	// Move forward.
 	if pr != lastRank {
 		if pos.IsEmpty(f1) {
 			moves = append(moves, Move{
@@ -357,10 +350,41 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		}
 	}
 
-	// TODO attack
+	// Attack left.
+	if pr != lastRank && from.File() != 0 {
+		to := from.Relative(0, -1)
+		c := pos.GetPiece(to)
+		if c.Color() == pi.Color().Other() {
+			moves = append(moves, Move{
+				From:   from,
+				To:     to,
+				Target: c,
+			})
+		}
+	}
+
+	// Attack right.
+	if pr != lastRank && from.File() != 7 {
+		to := from.Relative(0, +1)
+		c := pos.GetPiece(to)
+		if c.Color() == pi.Color().Other() {
+			moves = append(moves, Move{
+				From:   from,
+				To:     to,
+				Target: c,
+			})
+		}
+	}
 
 	return moves
 }
+
+var (
+	knightJump = [8][2]int{
+		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
+		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
+	}
+)
 
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
@@ -389,52 +413,96 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 	return moves
 }
 
-// genRookMoves generates rook moves around from.
-func (pos *Position) genRookMoves(from Square, pi Piece, moves []Move) []Move {
-	delta := [4]int{-1, 1, -1, 1}
-	limit := [4]int{-1, 8, -1, 8}
+func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []Move) []Move {
+	r, f := from.Rank(), from.File()
+	lr := (9*dr + 7) / 2 // lr == -1 if dr == -1, lr == 8 if dr == +1
+	lf := (9*df + 7) / 2
 
-	// Up/down/left/right.
-	for i := 0; i < 4; i++ {
-		sr := i >> 1 // sr is 1 if rook changes rank
-		sf := 1 - sr // sf is 1 if rook changes file
+	for {
+		r, f = r+dr, f+df
+		if r == lr || f == lf {
+			// Stop when outside board.
+			break
+		}
+		to := RankFile(r, f)
 
-		p := from.Rank()*sr + from.File()*sf
-		to := from
+		// Check the captured piece.
+		capture := pos.GetPiece(to)
+		if pi.Color() == capture.Color() {
+			break
+		}
 
-		for {
-			// Updates position.
-			p += delta[i]
-			to = to.Relative(delta[i]*sr, delta[i]*sf)
-			if p == limit[i] {
-				break
-			}
+		moves = append(moves, Move{
+			From:   from,
+			To:     to,
+			Target: pos.GetPiece(to),
+		})
 
-			// Checks the captured piece.
-			capture := pos.GetPiece(to)
-			if pi.Color() == capture.Color() {
-				break
-			}
-
-			moves = append(moves, Move{
-				From:   from,
-				To:     to,
-				Target: pos.GetPiece(to),
-			})
-
-			// Stops if there a piece in the way.
-			if capture.Color() != NoColor {
-				break
-			}
+		// Stop if there a piece in the way.
+		if capture.Color() != NoColor {
+			break
 		}
 	}
 
 	return moves
 }
 
-// genQueenMoves generates queen moves around from.
+func (pos *Position) genRookMoves(from Square, pi Piece, moves []Move) []Move {
+	moves = pos.genSlidingMoves(from, pi, +1, 0, moves)
+	moves = pos.genSlidingMoves(from, pi, -1, 0, moves)
+	moves = pos.genSlidingMoves(from, pi, 0, +1, moves)
+	moves = pos.genSlidingMoves(from, pi, 0, -1, moves)
+	return moves
+}
+
+func (pos *Position) genBishopMoves(from Square, pi Piece, moves []Move) []Move {
+	moves = pos.genSlidingMoves(from, pi, +1, -1, moves)
+	moves = pos.genSlidingMoves(from, pi, -1, -1, moves)
+	moves = pos.genSlidingMoves(from, pi, +1, +1, moves)
+	moves = pos.genSlidingMoves(from, pi, -1, +1, moves)
+	return moves
+}
+
 func (pos *Position) genQueenMoves(from Square, pi Piece, moves []Move) []Move {
 	moves = pos.genRookMoves(from, pi, moves)
+	moves = pos.genBishopMoves(from, pi, moves)
+	return moves
+}
+
+var (
+	kingDRank = [8]int{+1, +1, +1, +0, -1, -1, -1, +0}
+	kingDFile = [8]int{-1, +0, +1, +1, +1, +0, -1, -1}
+)
+
+func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
+	for i := 0; i < 8; i++ {
+		dr := kingDRank[i]
+		df := kingDRank[i]
+
+		r, f := from.Rank()+dr, from.File()+df
+		if r == -1 || r == 8 || f == -1 || f == 8 {
+			// Stop when outside board.
+			break
+		}
+		to := RankFile(r, f)
+
+		// Check the captured piece.
+		capture := pos.GetPiece(to)
+		if pi.Color() == capture.Color() {
+			break
+		}
+
+		moves = append(moves, Move{
+			From:   from,
+			To:     to,
+			Target: pos.GetPiece(to),
+		})
+
+		// Stop if there a piece in the way.
+		if capture.Color() != NoColor {
+			break
+		}
+	}
 	return moves
 }
 
@@ -455,6 +523,8 @@ func (pos *Position) GenerateMoves() []Move {
 			moves = pos.genRookMoves(sq, pi, moves)
 		case Queen:
 			moves = pos.genQueenMoves(sq, pi, moves)
+		case King:
+			moves = pos.genKingMoves(sq, pi, moves)
 		}
 	}
 	return moves
