@@ -56,8 +56,8 @@ func (pt PieceType) String() string {
 		return "Knight"
 	case Bishop:
 		return "Bishop"
-	case Rock:
-		return "Rock"
+	case Rook:
+		return "Rook"
 	case Queen:
 		return "Queen"
 	case King:
@@ -119,11 +119,27 @@ type Bitboard uint64
 type MoveType int
 
 type Move struct {
-	From, To Square
 	// If MoveType == Normal, target is the captured piece.
 	// If MoveType == Promotion, target is the piece promoted to.
-	Target   Piece
 	MoveType MoveType
+	From, To Square
+	Target   Piece
+}
+
+// Capture returns captured piece if any.
+func (mo *Move) Capture() Piece {
+	if mo.MoveType == Normal {
+		return mo.Target
+	}
+	return NoPiece
+}
+
+// Promotion returns the promoted to piece if any.
+func (mo *Move) Promotion() Piece {
+	if mo.MoveType == Promotion {
+		return mo.Target
+	}
+	return NoPiece
 }
 
 func (mo *Move) String() string {
@@ -150,7 +166,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 			case 'b':
 				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Bishop))
 			case 'r':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Rock))
+				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Rook))
 			case 'q':
 				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Queen))
 			case 'k':
@@ -163,7 +179,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 			case 'B':
 				pos.PutPiece(RankFile(r, f), ColorPiece(White, Bishop))
 			case 'R':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Rock))
+				pos.PutPiece(RankFile(r, f), ColorPiece(White, Rook))
 			case 'Q':
 				pos.PutPiece(RankFile(r, f), ColorPiece(White, Queen))
 			case 'K':
@@ -310,13 +326,9 @@ var (
 
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
-	if pi.PieceType() != Pawn {
-		panic(fmt.Sprintf("cannot move a %v, expected a %v", pi, Knight))
-	}
-
-	advance, pawnRank, backRank := 1, 1, 0
+	advance, pawnRank, lastRank := 1, 1, 7
 	if pi.Color() == Black {
-		advance, pawnRank, backRank = -1, 7, 8
+		advance, pawnRank, lastRank = -1, 6, 0
 	}
 
 	pr := from.Rank()
@@ -336,7 +348,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	}
 
 	// Forward
-	if pr != backRank {
+	if pr != lastRank {
 		if pos.IsEmpty(f1) {
 			moves = append(moves, Move{
 				From: from,
@@ -352,9 +364,6 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
-	if pi.PieceType() != Knight {
-		panic(fmt.Sprintf("cannot move a %v, expected a %v", pi, Knight))
-	}
 	for _, e := range knightJump {
 		r, f := from.Rank()+e[0], from.File()+e[1]
 		if 0 > r || r >= 8 || 0 > f || f >= 8 {
@@ -380,6 +389,55 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 	return moves
 }
 
+// genRookMoves generates rook moves around from.
+func (pos *Position) genRookMoves(from Square, pi Piece, moves []Move) []Move {
+	delta := [4]int{-1, 1, -1, 1}
+	limit := [4]int{-1, 8, -1, 8}
+
+	// Up/down/left/right.
+	for i := 0; i < 4; i++ {
+		sr := i >> 1 // sr is 1 if rook changes rank
+		sf := 1 - sr // sf is 1 if rook changes file
+
+		p := from.Rank()*sr + from.File()*sf
+		to := from
+
+		for {
+			// Updates position.
+			p += delta[i]
+			to = to.Relative(delta[i]*sr, delta[i]*sf)
+			if p == limit[i] {
+				break
+			}
+
+			// Checks the captured piece.
+			capture := pos.GetPiece(to)
+			if pi.Color() == capture.Color() {
+				break
+			}
+
+			moves = append(moves, Move{
+				From:   from,
+				To:     to,
+				Target: pos.GetPiece(to),
+			})
+
+			// Stops if there a piece in the way.
+			if capture.Color() != NoColor {
+				break
+			}
+		}
+	}
+
+	return moves
+}
+
+// genQueenMoves generates queen moves around from.
+func (pos *Position) genQueenMoves(from Square, pi Piece, moves []Move) []Move {
+	moves = pos.genRookMoves(from, pi, moves)
+	return moves
+}
+
 func (pos *Position) GenerateMoves() []Move {
 	moves := make([]Move, 0, 8)
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
@@ -393,6 +451,10 @@ func (pos *Position) GenerateMoves() []Move {
 			moves = pos.genPawnMoves(sq, pi, moves)
 		case Knight:
 			moves = pos.genKnightMoves(sq, pi, moves)
+		case Rook:
+			moves = pos.genRookMoves(sq, pi, moves)
+		case Queen:
+			moves = pos.genQueenMoves(sq, pi, moves)
 		}
 	}
 	return moves
