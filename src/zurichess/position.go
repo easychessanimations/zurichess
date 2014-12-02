@@ -267,29 +267,26 @@ func (pos *Position) ParseMove(s string) Move {
 
 // DoMove performs a move.
 // Expects the move to be valid.
+// TODO: castling, promotion
 func (pos *Position) DoMove(mo Move) {
-	log.Println("Play", mo)
-
+	// log.Println("Playing", mo)
 	piece := pos.GetPiece(mo.From)
-	if piece.Color() != pos.toMove {
-		panic(fmt.Sprintf("%v cannot move a %v from %v to %v",
-			pos.toMove, piece, mo.From, mo.To))
-	}
-
-	capture := pos.GetPiece(mo.To)
-	if capture.Color() == pos.toMove {
-		panic(fmt.Sprintf("%v cannot capture a %v from %v to %v",
-			pos.toMove, piece, mo.From, mo.To))
-	}
-
 	pos.RemovePiece(mo.From, piece)
-	pos.RemovePiece(mo.To, capture)
+	pos.RemovePiece(mo.To, mo.Capture)
 	pos.PutPiece(mo.To, piece)
 	pos.toMove = pos.toMove.Other()
 }
 
+// UndoMove takes back a move.
+// Expects the move to be valid.
+// TODO: castling, promotion
 func (pos *Position) UndoMove(mo Move) {
-	log.Println("Takeback", mo)
+	// log.Println("Takeing back", mo)
+	piece := pos.GetPiece(mo.To)
+	pos.RemovePiece(mo.To, piece)
+	pos.PutPiece(mo.From, piece)
+	pos.PutPiece(mo.To, mo.Capture)
+	pos.toMove = pos.toMove.Other()
 }
 
 var (
