@@ -2,68 +2,68 @@ package main
 
 const (
 	SquareA1 Square = iota
-	SquareA2
-	SquareA3
-	SquareA4
-	SquareA5
-	SquareA6
-	SquareA7
-	SquareA8
 	SquareB1
-	SquareB2
-	SquareB3
-	SquareB4
-	SquareB5
-	SquareB6
-	SquareB7
-	SquareB8
 	SquareC1
-	SquareC2
-	SquareC3
-	SquareC4
-	SquareC5
-	SquareC6
-	SquareC7
-	SquareC8
 	SquareD1
-	SquareD2
-	SquareD3
-	SquareD4
-	SquareD5
-	SquareD6
-	SquareD7
-	SquareD8
 	SquareE1
-	SquareE2
-	SquareE3
-	SquareE4
-	SquareE5
-	SquareE6
-	SquareE7
-	SquareE8
 	SquareF1
-	SquareF2
-	SquareF3
-	SquareF4
-	SquareF5
-	SquareF6
-	SquareF7
-	SquareF8
 	SquareG1
-	SquareG2
-	SquareG3
-	SquareG4
-	SquareG5
-	SquareG6
-	SquareG7
-	SquareG8
 	SquareH1
+	SquareA2
+	SquareB2
+	SquareC2
+	SquareD2
+	SquareE2
+	SquareF2
+	SquareG2
 	SquareH2
+	SquareA3
+	SquareB3
+	SquareC3
+	SquareD3
+	SquareE3
+	SquareF3
+	SquareG3
 	SquareH3
+	SquareA4
+	SquareB4
+	SquareC4
+	SquareD4
+	SquareE4
+	SquareF4
+	SquareG4
 	SquareH4
+	SquareA5
+	SquareB5
+	SquareC5
+	SquareD5
+	SquareE5
+	SquareF5
+	SquareG5
 	SquareH5
+	SquareA6
+	SquareB6
+	SquareC6
+	SquareD6
+	SquareE6
+	SquareF6
+	SquareG6
 	SquareH6
+	SquareA7
+	SquareB7
+	SquareC7
+	SquareD7
+	SquareE7
+	SquareF7
+	SquareG7
 	SquareH7
+	SquareA8
+	SquareB8
+	SquareC8
+	SquareD8
+	SquareE8
+	SquareF8
+	SquareG8
 	SquareH8
 
 	SquareMaxValue

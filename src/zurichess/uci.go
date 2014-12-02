@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 )
 
@@ -33,8 +34,9 @@ func (uci *UCI) Execute(line string) error {
 	case "position":
 		err = uci.position(args)
 	case "go":
-		moves := uci.pos.GenMoves()
-		fmt.Printf("bestmove %s%s\n", moves[0].From, moves[0].To)
+		moves := uci.pos.GenerateMoves()
+		move := moves[rand.Intn(len(moves))]
+		fmt.Printf("bestmove %s%s\n", move.From, move.To)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -82,7 +84,11 @@ func (uci *UCI) position(args []string) error {
 		return fmt.Errorf("expected 'moves', got '%s'", args[1])
 	}
 
-	// TODO: implement moves
+	for _, m := range args[2:] {
+		move := uci.pos.ParseMove(m)
+		uci.pos.DoMove(move)
+	}
 
+	uci.pos.PrettyPrint()
 	return nil
 }

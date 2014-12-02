@@ -12,6 +12,12 @@ func RankFile(r, f int) Square {
 	return Square(r*8 + f)
 }
 
+func SquareFromString(s string) Square {
+	r := int(s[1] - '1')
+	f := int(s[0] - 'a')
+	return RankFile(r, f)
+}
+
 func (sq Square) Bitboard() Bitboard {
 	return 1 << uint(sq)
 }
@@ -60,6 +66,10 @@ func (pt PieceType) String() string {
 // Color represents a color.
 type Color uint
 
+func (co Color) Other() Color {
+	return White + Black - co
+}
+
 func (co Color) String() string {
 	switch co {
 	case NoColor:
@@ -67,7 +77,7 @@ func (co Color) String() string {
 	case White:
 		return "White"
 	case Black:
-		return "Block"
+		return "Black"
 	default:
 		return "(badcolor)"
 	}
@@ -243,21 +253,43 @@ func (pos *Position) PrettyPrint() {
 
 }
 
+func (pos *Position) ParseMove(s string) Move {
+	from := SquareFromString(s[0:2])
+	to := SquareFromString(s[2:4])
+
+	return Move{
+		From:     from,
+		To:       to,
+		Capture:  pos.GetPiece(to),
+		MoveType: Normal, // TODO
+	}
+}
+
 // DoMove performs a move.
 // Expects the move to be valid.
 func (pos *Position) DoMove(mo Move) {
+	log.Println("Play", mo)
+
 	piece := pos.GetPiece(mo.From)
 	if piece.Color() != pos.toMove {
-		panic(fmt.Sprintf("%v cannot move a %v", pos.toMove, piece))
+		panic(fmt.Sprintf("%v cannot move a %v from %v to %v",
+			pos.toMove, piece, mo.From, mo.To))
 	}
 
 	capture := pos.GetPiece(mo.To)
 	if capture.Color() == pos.toMove {
-		panic(fmt.Sprintf("%v cannot capture a %v", pos.toMove, piece))
+		panic(fmt.Sprintf("%v cannot capture a %v from %v to %v",
+			pos.toMove, piece, mo.From, mo.To))
 	}
 
+	pos.RemovePiece(mo.From, piece)
 	pos.RemovePiece(mo.To, capture)
 	pos.PutPiece(mo.To, piece)
+	pos.toMove = pos.toMove.Other()
+}
+
+func (pos *Position) UndoMove(mo Move) {
+	log.Println("Takeback", mo)
 }
 
 var (
@@ -296,7 +328,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 	return moves
 }
 
-func (pos *Position) GenMoves() []Move {
+func (pos *Position) GenerateMoves() []Move {
 	moves := make([]Move, 0, 8)
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
 		pi := pos.GetPiece(sq)
@@ -306,6 +338,8 @@ func (pos *Position) GenMoves() []Move {
 
 		switch pi.PieceType() {
 		case Knight:
+			log.Println("Found knight at", sq)
+			pos.PrettyPrint()
 			moves = pos.genKnightMoves(sq, pi, moves)
 		}
 	}
