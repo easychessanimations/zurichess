@@ -104,6 +104,5 @@ const (
 )
 
 var (
-	FENStartPos string   = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	PieceName   []string = []string{"       ", " PNBRQK", " pnbrqk "}
+	FENStartPos string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 )

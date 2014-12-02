@@ -36,6 +36,8 @@ func (uci *UCI) Execute(line string) error {
 	case "go":
 		moves := uci.pos.GenerateMoves()
 		move := moves[rand.Intn(len(moves))]
+		log.Println("selected", move, uci.pos.GetPiece(move.From), uci.pos.GetPiece(SquareE3), SquareE3)
+		uci.pos.PrettyPrint()
 		fmt.Printf("bestmove %s%s\n", move.From, move.To)
 	case "quit":
 		err = ErrQuit

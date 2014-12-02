@@ -102,11 +102,15 @@ func (pi Piece) PieceType() PieceType {
 	return PieceType(pi & 7)
 }
 
+var (
+	pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
+)
+
 // Symbol returns the piece as a string.
 func (pi Piece) Symbol() string {
 	co := pi.Color()
 	pt := pi.PieceType()
-	return PieceName[co][pt : pt+1]
+	return pieceSymbol[co][pt : pt+1]
 }
 
 func (pi Piece) String() string {
@@ -157,7 +161,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 	l := 0
 
 	for r := 7; r >= 0; r-- {
-		for f := 7; f >= 0; f-- {
+		for f := 0; f < 8; f++ {
 			switch fen[l] {
 			case 'p':
 				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Pawn))
@@ -186,7 +190,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 				pos.PutPiece(RankFile(r, f), ColorPiece(White, King))
 
 			case '1', '2', '3', '4', '5', '6', '7', '8':
-				f -= int(fen[l]) - int('0') - 1
+				f += int(fen[l]) - int('0') - 1
 
 			default:
 				return nil, fmt.Errorf("unhandled '%c' at %d", fen[l], l)
@@ -267,7 +271,7 @@ func (pos *Position) GetPiece(sq Square) Piece {
 func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
 		line := ""
-		for f := 7; f >= 0; f-- {
+		for f := 0; f < 8; f++ {
 			line += pos.GetPiece(RankFile(r, f)).Symbol()
 		}
 		if r == 7 && pos.toMove == Black {
@@ -352,7 +356,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 
 	// Attack left.
 	if pr != lastRank && from.File() != 0 {
-		to := from.Relative(0, -1)
+		to := from.Relative(advance, -1)
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
@@ -365,7 +369,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 
 	// Attack right.
 	if pr != lastRank && from.File() != 7 {
-		to := from.Relative(0, +1)
+		to := from.Relative(advance, +1)
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
@@ -375,6 +379,8 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 			})
 		}
 	}
+
+	// TODO promote
 
 	return moves
 }
@@ -519,6 +525,8 @@ func (pos *Position) GenerateMoves() []Move {
 			moves = pos.genPawnMoves(sq, pi, moves)
 		case Knight:
 			moves = pos.genKnightMoves(sq, pi, moves)
+		case Bishop:
+			moves = pos.genBishopMoves(sq, pi, moves)
 		case Rook:
 			moves = pos.genRookMoves(sq, pi, moves)
 		case Queen:

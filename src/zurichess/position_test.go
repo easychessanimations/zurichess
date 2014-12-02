@@ -106,6 +106,23 @@ func TestStartPosition(t *testing.T) {
 			}
 		}
 	}
+
+	pieces := []struct {
+		square Square
+		piece  Piece
+	}{
+		{SquareD1, ColorPiece(White, Queen)},
+		{SquareE1, ColorPiece(White, King)},
+		{SquareD8, ColorPiece(Black, Queen)},
+		{SquareE8, ColorPiece(Black, King)},
+	}
+	for _, p := range pieces {
+		actual := pos.GetPiece(p.square)
+		if actual != p.piece {
+			t.Errorf("expected %v at %v, got %v", p.piece, p.square, actual)
+		}
+	}
+
 }
 
 func testMoves(t *testing.T, moves []Move, expected []string) {
