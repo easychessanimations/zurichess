@@ -269,7 +269,7 @@ var (
 
 func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
 	if pi.PieceType() != Knight {
-		panic(fmt.Sprintf("Cannot move a %v, expected a %v", pi, Knight))
+		panic(fmt.Sprintf("cannot move a %v, expected a %v", pi, Knight))
 	}
 	for _, e := range knightJump {
 		r, f := from.Rank()+e[0], from.File()+e[1]
