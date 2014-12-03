@@ -195,3 +195,39 @@ func TestGenKingMoves(t *testing.T) {
 	expected = []string{"a2b3", "a2b1", "a2a1"}
 	testMoves(t, moves, expected)
 }
+
+func TestGenBishopMoves(t *testing.T) {
+	bs := ColorPiece(White, Bishop)
+	pos := &Position{}
+	pos.PutPiece(SquareB1, ColorPiece(Black, Rook))
+	pos.PutPiece(SquareD1, ColorPiece(White, Queen))
+	pos.PutPiece(SquareE1, ColorPiece(White, King))
+	pos.PutPiece(SquareG1, ColorPiece(White, Knight))
+	pos.PutPiece(SquareC2, ColorPiece(White, Knight))
+	pos.PutPiece(SquareF2, ColorPiece(White, Knight))
+	pos.PutPiece(SquareE3, ColorPiece(White, Knight))
+	pos.PutPiece(SquareF3, bs)
+	pos.PutPiece(SquareD5, ColorPiece(Black, Rook))
+
+	moves := pos.genBishopMoves(SquareF3, bs, nil)
+	expected := []string{"f3e2", "f3e4", "f3d5", "f3g2", "f3h1", "f3g4", "f3h5"}
+	testMoves(t, moves, expected)
+}
+
+func TestGenQueenMoves(t *testing.T) {
+	qn := ColorPiece(White, Queen)
+	pos := &Position{}
+	pos.PutPiece(SquareB1, ColorPiece(Black, Rook))
+	pos.PutPiece(SquareD1, qn)
+	pos.PutPiece(SquareE1, ColorPiece(White, King))
+	pos.PutPiece(SquareG1, ColorPiece(White, Knight))
+	pos.PutPiece(SquareC2, ColorPiece(White, Knight))
+	pos.PutPiece(SquareF2, ColorPiece(White, Knight))
+	pos.PutPiece(SquareE3, ColorPiece(White, Knight))
+	pos.PutPiece(SquareF3, ColorPiece(White, Bishop))
+	pos.PutPiece(SquareD5, ColorPiece(Black, Rook))
+
+	moves := pos.genBishopMoves(SquareD1, qn, nil)
+	expected := []string{"d1b1", "d1c1", "d1d2", "d1d3", "d1d4", "d1d5", "d1e2"}
+	testMoves(t, moves, expected)
+}

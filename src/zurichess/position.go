@@ -419,10 +419,12 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 	return moves
 }
 
+var limit = [3]int{-1, -1, 8}
+
 func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []Move) []Move {
 	r, f := from.Rank(), from.File()
-	lr := (9*dr + 7) / 2 // lr == -1 if dr == -1, lr == 8 if dr == +1
-	lf := (9*df + 7) / 2
+	lr := limit[dr+1]
+	lf := limit[df+1]
 
 	for {
 		r, f = r+dr, f+df
