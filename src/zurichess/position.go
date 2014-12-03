@@ -483,19 +483,19 @@ var (
 func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 	for i := 0; i < 8; i++ {
 		dr := kingDRank[i]
-		df := kingDRank[i]
+		df := kingDFile[i]
 
 		r, f := from.Rank()+dr, from.File()+df
 		if r == -1 || r == 8 || f == -1 || f == 8 {
 			// Stop when outside board.
-			break
+			continue
 		}
 		to := RankFile(r, f)
 
 		// Check the captured piece.
 		capture := pos.GetPiece(to)
 		if pi.Color() == capture.Color() {
-			break
+			continue
 		}
 
 		moves = append(moves, Move{
@@ -503,11 +503,6 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 			To:     to,
 			Target: pos.GetPiece(to),
 		})
-
-		// Stop if there a piece in the way.
-		if capture.Color() != NoColor {
-			break
-		}
 	}
 	return moves
 }

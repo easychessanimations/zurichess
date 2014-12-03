@@ -126,6 +126,8 @@ func TestStartPosition(t *testing.T) {
 }
 
 func testMoves(t *testing.T, moves []Move, expected []string) {
+	t.Logf("expected = %v", expected)
+	t.Logf("actual = %v", moves)
 	seen := make(map[string]bool)
 	for _, e := range expected {
 		seen[e] = false
@@ -147,20 +149,49 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 }
 
 func TestGenKnightMoves(t *testing.T) {
-	var moves []Move
-	var expected []string
-	pos := &Position{}
 	kn := ColorPiece(White, Knight)
-
+	pos := &Position{}
 	pos.PutPiece(SquareB2, kn)
 	pos.PutPiece(SquareE4, kn)
 	pos.PutPiece(SquareC4, ColorPiece(White, Pawn))
 
-	moves = pos.genKnightMoves(SquareB2, kn, nil)
-	expected = []string{"b2d1", "b2d3", "b2a4"}
+	moves := pos.genKnightMoves(SquareB2, kn, nil)
+	expected := []string{"b2d1", "b2d3", "b2a4"}
 	testMoves(t, moves, expected)
 
 	moves = pos.genKnightMoves(SquareF4, kn, nil)
 	expected = []string{"f4d3", "f4d5", "f4e6", "f4g6", "f4h5", "f4h3", "f4g2", "f4e2"}
+	testMoves(t, moves, expected)
+}
+
+func TestGenRookMoves(t *testing.T) {
+	rk := ColorPiece(White, Rook)
+	pos := &Position{}
+	pos.PutPiece(SquareB2, rk)
+	pos.PutPiece(SquareF2, ColorPiece(White, King))
+	pos.PutPiece(SquareB6, ColorPiece(Black, King))
+
+	moves := pos.genRookMoves(SquareB2, rk, nil)
+	expected := []string{"b2b1", "b2b3", "b2b4", "b2b5", "b2b6", "b2a2", "b2c2", "b2d2", "b2e2"}
+	testMoves(t, moves, expected)
+}
+
+func TestGenKingMoves(t *testing.T) {
+	// King is alone.
+	kg := ColorPiece(White, Rook)
+	pos := &Position{}
+	pos.PutPiece(SquareA2, kg)
+
+	moves := pos.genKingMoves(SquareA2, kg, nil)
+	expected := []string{"a2a3", "a2b3", "a2b2", "a2b1", "a2a1"}
+	testMoves(t, moves, expected)
+
+	// King is surrounded by black and white pieces.
+	pos.PutPiece(SquareA3, ColorPiece(White, Pawn))
+	pos.PutPiece(SquareB3, ColorPiece(Black, Knight))
+	pos.PutPiece(SquareB2, ColorPiece(White, Queen))
+
+	moves = pos.genKingMoves(SquareA2, kg, nil)
+	expected = []string{"a2b3", "a2b1", "a2a1"}
 	testMoves(t, moves, expected)
 }
