@@ -92,13 +92,13 @@ const (
 	ColorMinValue = White
 )
 
+// Piece constants must stay in sync with ColorPiece
 const (
 	NoPiece Piece = iota
 )
 
-// These constants must stay in sync with ColorPiece
 const (
-	WhitePawn Piece = iota<<2 + Piece(White)
+	WhitePawn Piece = Piece(iota+Pawn)<<2 + Piece(White)
 	WhiteKnight
 	WhiteBishop
 	WhiteRook
@@ -106,9 +106,8 @@ const (
 	WhiteKing
 )
 
-// These constants must stay in sync with ColorPiece
 const (
-	BlackPawn Piece = iota<<2 + Piece(Black)
+	BlackPawn Piece = Piece(iota+Pawn)<<2 + Piece(Black)
 	BlackKnight
 	BlackBishop
 	BlackRook
