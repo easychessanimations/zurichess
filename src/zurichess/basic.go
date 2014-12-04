@@ -110,6 +110,9 @@ func (pi Piece) Symbol() string {
 }
 
 func (pi Piece) String() string {
+	if pi == NoPiece {
+		return "(nopiece)"
+	}
 	return pi.Color().String() + " " + pi.PieceType().String()
 }
 
