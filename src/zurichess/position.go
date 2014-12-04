@@ -1,5 +1,9 @@
 package main
 
+import "log"
+
+var _ = log.Println
+
 // Position encodes the chess board.
 type Position struct {
 	byPieceType [PieceTypeMaxValue]Bitboard
@@ -96,6 +100,34 @@ func (pos *Position) ParseMove(s string) Move {
 func (pos *Position) DoMove(mo Move) {
 	// log.Println("Playing", mo)
 	piece := pos.GetPiece(mo.From)
+
+	// Update castling rights.
+	if piece == WhiteRook {
+		if mo.From == SquareA1 {
+			pos.castle &= ^WhiteOOO
+		}
+		if mo.From == SquareH1 {
+			pos.castle &= ^WhiteOO
+		}
+	}
+	if piece == WhiteKing {
+		pos.castle &= ^(WhiteOO | WhiteOOO)
+	}
+	if piece == BlackRook {
+		if mo.From == SquareA8 {
+			pos.castle &= ^BlackOOO
+		}
+		if mo.From == SquareH8 {
+			pos.castle &= ^BlackOO
+		}
+	}
+	if piece == BlackKing {
+		pos.castle &= ^(BlackOO | BlackOOO)
+	}
+
+	log.Println("new rights", pos.castle)
+
+	// Modify the chess board.
 	pos.RemovePiece(mo.From, piece)
 	pos.RemovePiece(mo.To, mo.Capture)
 	pos.PutPiece(mo.To, piece)

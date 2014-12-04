@@ -141,6 +141,27 @@ func TestGenKingMoves(t *testing.T) {
 	testMoves(t, moves, expected)
 }
 
+type castleTestData struct {
+	castle   Castle   // castle rights, 255 to ignore
+	expected []string // expected moves
+}
+
+func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
+	if pos.GetPiece(SquareE1) != WhiteKing {
+		t.Errorf("expected %v on %v, got %v",
+			WhiteKing, SquareE1, pos.GetPiece(SquareE1))
+		return
+	}
+
+	for _, d := range data {
+		if d.castle != 255 {
+			pos.castle = d.castle
+		}
+		moves := pos.genKingMoves(SquareE1, WhiteKing, nil)
+		testMoves(t, moves, d.expected)
+	}
+}
+
 func TestCastle(t *testing.T) {
 	pos := &Position{}
 	pos.PutPiece(SquareD2, WhitePawn)
@@ -150,13 +171,8 @@ func TestCastle(t *testing.T) {
 	pos.PutPiece(SquareA1, WhiteRook)
 	pos.PutPiece(SquareA8, WhiteRook)
 
-	type testData struct {
-		castle   Castle   // castle rights
-		expected []string // expected moves
-	}
-
 	// Simple.
-	data := []testData{
+	testCastleHelper(t, pos, []castleTestData{
 		// No castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
 		// Castle rights for black.
@@ -167,16 +183,11 @@ func TestCastle(t *testing.T) {
 		{WhiteOOO, []string{"e1d1", "e1f1", "e1c1"}},
 		// Castle on both sides.
 		{WhiteOO | WhiteOOO, []string{"e1d1", "e1f1", "e1g1", "e1c1"}},
-	}
-	for _, d := range data {
-		pos.castle = d.castle
-		moves := pos.genKingMoves(SquareE1, WhiteKing, nil)
-		testMoves(t, moves, d.expected)
-	}
+	})
 
 	// Put a piece to block castling on OOO
 	pos.PutPiece(SquareC1, WhiteBishop)
-	data = []testData{
+	testCastleHelper(t, pos, []castleTestData{
 		// No castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
 		// Castle rights for black.
@@ -187,12 +198,45 @@ func TestCastle(t *testing.T) {
 		{WhiteOOO, []string{"e1d1", "e1f1"}},
 		// Castle on both sides.
 		{WhiteOO | WhiteOOO, []string{"e1d1", "e1f1", "e1g1"}},
+	})
+}
+
+func TestCastleMoves(t *testing.T) {
+	pos := &Position{}
+	pos.PutPiece(SquareD2, WhitePawn)
+	pos.PutPiece(SquareE2, WhitePawn)
+	pos.PutPiece(SquareF2, WhitePawn)
+	pos.PutPiece(SquareE1, WhiteKing)
+	pos.PutPiece(SquareA1, WhiteRook)
+	pos.castle = WhiteOOO
+
+	good := []castleTestData{
+		{255, []string{"e1d1", "e1f1", "e1c1"}},
 	}
-	for _, d := range data {
-		pos.castle = d.castle
-		moves := pos.genKingMoves(SquareE1, WhiteKing, nil)
-		testMoves(t, moves, d.expected)
+	fail := []castleTestData{
+		{255, []string{"e1d1", "e1f1"}},
 	}
+
+	// Check that king can castle queen side.
+	testCastleHelper(t, pos, good)
+
+	// Move rook.
+	m1 := pos.ParseMove("a1a8")
+	pos.DoMove(m1)
+	testCastleHelper(t, pos, fail)
+
+	// Move rook back.
+	m2 := pos.ParseMove("a8a1")
+	pos.DoMove(m2)
+	testCastleHelper(t, pos, fail)
+
+	// Undo second move (rook on a8 now).
+	// pos.UndoMove(m2)
+	// testCastleHelper(t, pos, fail)
+
+	// Undo first move (rook on a1 now). Original position.
+	// pos.UndoMove(m1)
+	// testCastleHelper(t, pos, good)
 }
 
 func TestGenBishopMoves(t *testing.T) {
