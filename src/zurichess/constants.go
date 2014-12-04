@@ -96,6 +96,26 @@ const (
 	NoPiece Piece = iota
 )
 
+// These constants must stay in sync with ColorPiece
+const (
+	WhitePawn Piece = iota<<2 + Piece(White)
+	WhiteKnight
+	WhiteBishop
+	WhiteRook
+	WhiteQueen
+	WhiteKing
+)
+
+// These constants must stay in sync with ColorPiece
+const (
+	BlackPawn Piece = iota<<2 + Piece(Black)
+	BlackKnight
+	BlackBishop
+	BlackRook
+	BlackQueen
+	BlackKing
+)
+
 const (
 	Normal MoveType = iota
 	Promotion
@@ -104,7 +124,8 @@ const (
 )
 
 const (
-	WhiteOO Castle = 1 << iota
+	NoCastle Castle = 0
+	WhiteOO  Castle = 1 << iota
 	WhiteOOO
 	BlackOO
 	BlackOOO

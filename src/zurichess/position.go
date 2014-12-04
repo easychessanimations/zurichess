@@ -275,6 +275,7 @@ var (
 )
 
 func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
+	// King moves around.
 	for i := 0; i < 8; i++ {
 		dr := kingDRank[i]
 		df := kingDFile[i]
@@ -298,6 +299,39 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 			Capture: pos.GetPiece(to),
 		})
 	}
+
+	// King castles.
+	// TODO: verify checks
+	oo, ooo, rank := WhiteOO, WhiteOOO, 0
+	if pi.Color() == Black {
+		oo, ooo, rank = BlackOO, BlackOOO, 7
+	}
+
+	// Castle king side.
+	if pos.castle&oo != 0 {
+		if pos.IsEmpty(RankFile(rank, 5)) &&
+			pos.IsEmpty(RankFile(rank, 6)) {
+			moves = append(moves, Move{
+				From:     from,
+				To:       RankFile(rank, 6),
+				MoveType: Castling,
+			})
+		}
+	}
+
+	// Castle queen side.
+	if pos.castle&ooo != 0 {
+		if pos.IsEmpty(RankFile(rank, 3)) &&
+			pos.IsEmpty(RankFile(rank, 2)) &&
+			pos.IsEmpty(RankFile(rank, 1)) {
+			moves = append(moves, Move{
+				From:     from,
+				To:       RankFile(rank, 2),
+				MoveType: Castling,
+			})
+		}
+	}
+
 	return moves
 }
 

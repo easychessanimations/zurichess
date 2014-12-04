@@ -87,15 +87,15 @@ func (co Color) String() string {
 type Piece uint
 
 func ColorPiece(co Color, pt PieceType) Piece {
-	return Piece(co<<3) + Piece(pt)
+	return Piece(pt<<2) + Piece(co)
 }
 
 func (pi Piece) Color() Color {
-	return Color(pi >> 3)
+	return Color(pi & 3)
 }
 
 func (pi Piece) PieceType() PieceType {
-	return PieceType(pi & 7)
+	return PieceType(pi >> 2)
 }
 
 var (
