@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"strings"
 )
 
 // Square identifies the location on the board.
@@ -18,6 +18,7 @@ func SquareFromString(s string) Square {
 	return RankFile(r, f)
 }
 
+// Bitboard returns a bitboard that has sq set.
 func (sq Square) Bitboard() Bitboard {
 	return 1 << uint(sq)
 }
@@ -117,34 +118,25 @@ func (pi Piece) String() string {
 	return pi.Color().String() + " " + pi.PieceType().String()
 }
 
-// A birboard 8x8.
+// An 8x8 bitboard.
 type Bitboard uint64
+
+func (bb Bitboard) LSB() Square {
+	return Square(bb & (-bb))
+}
 
 type MoveType int
 
 type Move struct {
 	// If MoveType == Normal, target is the captured piece.
 	// If MoveType == Promotion, target is the piece promoted to.
-	MoveType MoveType
-	From, To Square
-	Target   Piece
+	MoveType  MoveType
+	From, To  Square
+	Capture   Piece
+	Promotion Piece
 }
 
-// Capture returns captured piece if any.
-func (mo *Move) Capture() Piece {
-	if mo.MoveType == Normal {
-		return mo.Target
-	}
-	return NoPiece
-}
-
-// Promotion returns the promoted to piece if any.
-func (mo *Move) Promotion() Piece {
-	if mo.MoveType == Promotion {
-		return mo.Target
-	}
-	return NoPiece
-}
+type Castle int
 
 func (mo *Move) String() string {
 	return mo.From.String() + mo.To.String()
@@ -154,72 +146,96 @@ type Position struct {
 	byPieceType [PieceTypeMaxValue]Bitboard
 	byColor     [ColorMaxValue]Bitboard
 	toMove      Color
+	castle      Castle
+	enpassant   Square
 }
 
 func PositionFromFEN(fen string) (*Position, error) {
-	pos := &Position{}
-	l := 0
+	fld := strings.Fields(fen)
+	if len(fld) < 4 {
+		return nil, fmt.Errorf("expected at least 4 fields, got %d", len(fld))
+	}
 
-	for r := 7; r >= 0; r-- {
-		for f := 0; f < 8; f++ {
-			switch fen[l] {
+	pos := &Position{}
+
+	// Parse position.
+	ranks := strings.Split(fld[0], "/")
+	if len(ranks) != 8 {
+		return nil, fmt.Errorf("expected 8 rows, got %d", len(ranks))
+	}
+	for r := range ranks {
+		sq := RankFile(7-r, 0) // FEN describes the table from 8th rank.
+		for _, p := range ranks[r] {
+			pi := NoPiece
+			switch p {
 			case 'p':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Pawn))
+				pi = ColorPiece(Black, Pawn)
 			case 'n':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Knight))
+				pi = ColorPiece(Black, Knight)
 			case 'b':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Bishop))
+				pi = ColorPiece(Black, Bishop)
 			case 'r':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Rook))
+				pi = ColorPiece(Black, Rook)
 			case 'q':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, Queen))
+				pi = ColorPiece(Black, Queen)
 			case 'k':
-				pos.PutPiece(RankFile(r, f), ColorPiece(Black, King))
+				pi = ColorPiece(Black, King)
 
 			case 'P':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Pawn))
+				pi = ColorPiece(White, Pawn)
 			case 'N':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Knight))
+				pi = ColorPiece(White, Knight)
 			case 'B':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Bishop))
+				pi = ColorPiece(White, Bishop)
 			case 'R':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Rook))
+				pi = ColorPiece(White, Rook)
 			case 'Q':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, Queen))
+				pi = ColorPiece(White, Queen)
 			case 'K':
-				pos.PutPiece(RankFile(r, f), ColorPiece(White, King))
+				pi = ColorPiece(White, King)
 
 			case '1', '2', '3', '4', '5', '6', '7', '8':
-				f += int(fen[l]) - int('0') - 1
+				sq = sq.Relative(0, int(p)-int('0')-1)
 
 			default:
-				return nil, fmt.Errorf("unhandled '%c' at %d", fen[l], l)
+				return nil, fmt.Errorf("unhandled '%c'", p)
 			}
-			l++
+			pos.PutPiece(sq, pi)
+			sq = sq.Relative(0, 1)
 		}
-
-		expected := uint8('/')
-		if r == 0 {
-			expected = uint8(' ')
-		}
-		if fen[l] != expected {
-			return nil, fmt.Errorf("expected '%c', got '%c' at %d", expected, fen[l], l)
-		}
-		l++
 	}
 
-	switch fen[l] {
-	case 'w':
+	// Parse next to move.
+	switch fld[1] {
+	case "w":
 		pos.toMove = White
-	case 'l':
+	case "b":
 		pos.toMove = Black
 	default:
-		return nil, fmt.Errorf("unhandled %c at %d", fen[l], l)
+		return nil, fmt.Errorf("unknown color %s", fld[1])
 	}
-	l++
 
-	// TODO: castling, en passant, halfmove, fullmove
+	// Parse castling rights.
+	for _, p := range fld[2] {
+		switch p {
+		case 'K':
+			pos.castle |= WhiteOO
+		case 'Q':
+			pos.castle |= WhiteOOO
+		case 'k':
+			pos.castle |= BlackOO
+		case 'q':
+			pos.castle |= BlackOOO
+		}
+	}
 
+	// Parse enpassant.
+	// TODO: handle error
+	if fld[3] != "-" {
+		pos.enpassant = SquareFromString(fld[3])
+	}
+
+	// TODO: halfmove, fullmove
 	return pos, nil
 }
 
@@ -280,7 +296,6 @@ func (pos *Position) PrettyPrint() {
 		if r == 0 && pos.toMove == White {
 			line += " *"
 		}
-		log.Println(line)
 	}
 
 }
@@ -292,7 +307,7 @@ func (pos *Position) ParseMove(s string) Move {
 	return Move{
 		From:     from,
 		To:       to,
-		Target:   pos.GetPiece(to),
+		Capture:  pos.GetPiece(to),
 		MoveType: Normal, // TODO
 	}
 }
@@ -304,7 +319,7 @@ func (pos *Position) DoMove(mo Move) {
 	// log.Println("Playing", mo)
 	piece := pos.GetPiece(mo.From)
 	pos.RemovePiece(mo.From, piece)
-	pos.RemovePiece(mo.To, mo.Target)
+	pos.RemovePiece(mo.To, mo.Capture)
 	pos.PutPiece(mo.To, piece)
 	pos.toMove = pos.toMove.Other()
 }
@@ -317,7 +332,7 @@ func (pos *Position) UndoMove(mo Move) {
 	piece := pos.GetPiece(mo.To)
 	pos.RemovePiece(mo.To, piece)
 	pos.PutPiece(mo.From, piece)
-	pos.PutPiece(mo.To, mo.Target)
+	pos.PutPiece(mo.To, mo.Capture)
 	pos.toMove = pos.toMove.Other()
 }
 
@@ -331,19 +346,6 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	pr := from.Rank()
 	f1 := from.Relative(advance, 0)
 
-	// Enpassant.
-	if pr == pawnRank {
-		f2 := from.Relative(advance*2, 0)
-
-		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
-			moves = append(moves, Move{
-				From:     from,
-				To:       f2,
-				MoveType: Enpassant,
-			})
-		}
-	}
-
 	// Move forward.
 	if pr != lastRank {
 		if pos.IsEmpty(f1) {
@@ -354,15 +356,27 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		}
 	}
 
+	// Move forward 2x.
+	if pr == pawnRank {
+		f2 := from.Relative(advance*2, 0)
+
+		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
+			moves = append(moves, Move{
+				From: from,
+				To:   f2,
+			})
+		}
+	}
+
 	// Attack left.
 	if pr != lastRank && from.File() != 0 {
 		to := from.Relative(advance, -1)
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
-				From:   from,
-				To:     to,
-				Target: c,
+				From:    from,
+				To:      to,
+				Capture: c,
 			})
 		}
 	}
@@ -373,9 +387,9 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
-				From:   from,
-				To:     to,
-				Target: c,
+				From:    from,
+				To:      to,
+				Capture: c,
 			})
 		}
 	}
@@ -412,7 +426,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 		moves = append(moves, Move{
 			From:     from,
 			To:       to,
-			Target:   capture,
+			Capture:  capture,
 			MoveType: Normal,
 		})
 	}
@@ -441,9 +455,9 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 		}
 
 		moves = append(moves, Move{
-			From:   from,
-			To:     to,
-			Target: pos.GetPiece(to),
+			From:    from,
+			To:      to,
+			Capture: pos.GetPiece(to),
 		})
 
 		// Stop if there a piece in the way.
@@ -501,22 +515,24 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 		}
 
 		moves = append(moves, Move{
-			From:   from,
-			To:     to,
-			Target: pos.GetPiece(to),
+			From:    from,
+			To:      to,
+			Capture: pos.GetPiece(to),
 		})
 	}
 	return moves
 }
 
+// GenerateMoves generates pseudo-legal moves, i.e. doesn't
+// check for king check.
 func (pos *Position) GenerateMoves() []Move {
 	moves := make([]Move, 0, 8)
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
-		pi := pos.GetPiece(sq)
-		if pi.Color() != pos.toMove {
+		if pos.byColor[pos.toMove]&sq.Bitboard() == 0 {
 			continue
 		}
 
+		pi := pos.GetPiece(sq)
 		switch pi.PieceType() {
 		case Pawn:
 			moves = pos.genPawnMoves(sq, pi, moves)
