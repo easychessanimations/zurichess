@@ -106,13 +106,32 @@ var castleRights = map[Square]Castle{
 
 // DoMove performs a move.
 // Expects the move to be valid.
-// TODO: castling, promotion
+// TODO: promotion
 func (pos *Position) DoMove(move Move) {
 	// log.Println("Playing", move)
 
 	// Update castling rights.
 	pos.castle &= castleRights[move.To]
-	// TODO move rook when castling.
+
+	// Move rook on castling.
+	if move.MoveType == Castling {
+		if move.To == SquareC1 {
+			pos.RemovePiece(SquareA1, WhiteRook)
+			pos.PutPiece(SquareD1, WhiteRook)
+		}
+		if move.To == SquareG1 {
+			pos.RemovePiece(SquareH1, WhiteRook)
+			pos.PutPiece(SquareE1, WhiteRook)
+		}
+		if move.To == SquareC8 {
+			pos.RemovePiece(SquareA8, BlackRook)
+			pos.PutPiece(SquareD8, BlackRook)
+		}
+		if move.To == SquareG8 {
+			pos.RemovePiece(SquareH8, BlackRook)
+			pos.PutPiece(SquareE8, BlackRook)
+		}
+	}
 
 	// Modify the chess board.
 	pi := pos.GetPiece(move.From)
@@ -124,7 +143,7 @@ func (pos *Position) DoMove(move Move) {
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
-// TODO: castling, promotion
+// TODO: promotion
 func (pos *Position) UndoMove(move Move) {
 	// log.Println("Takeing back", move)
 
@@ -134,6 +153,26 @@ func (pos *Position) UndoMove(move Move) {
 	pos.PutPiece(move.From, pi)
 	pos.PutPiece(move.To, move.Capture)
 	pos.toMove = pos.toMove.Other()
+
+	// Move rook on castling.
+	if move.MoveType == Castling {
+		if move.To == SquareC1 {
+			pos.RemovePiece(SquareD1, WhiteRook)
+			pos.PutPiece(SquareA1, WhiteRook)
+		}
+		if move.To == SquareG1 {
+			pos.RemovePiece(SquareE1, WhiteRook)
+			pos.PutPiece(SquareH1, WhiteRook)
+		}
+		if move.To == SquareC8 {
+			pos.RemovePiece(SquareD8, BlackRook)
+			pos.PutPiece(SquareA8, BlackRook)
+		}
+		if move.To == SquareG8 {
+			pos.RemovePiece(SquareE8, BlackRook)
+			pos.PutPiece(SquareH8, BlackRook)
+		}
+	}
 
 	// Restore castling rights.
 	pos.castle = move.OldCastle

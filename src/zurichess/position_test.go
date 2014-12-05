@@ -141,6 +141,8 @@ func TestGenKingMoves(t *testing.T) {
 	testMoves(t, moves, expected)
 }
 
+var castleFEN = "r3k2r/3ppp2/1BB5/8/8/8/3PPP2/R3K2R w KQkq - 0 1"
+
 type castleTestData struct {
 	castle   Castle   // castle rights, 255 to ignore
 	expected []string // expected moves
@@ -163,13 +165,7 @@ func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
 }
 
 func TestCastle(t *testing.T) {
-	pos := &Position{}
-	pos.PutPiece(SquareD2, WhitePawn)
-	pos.PutPiece(SquareE2, WhitePawn)
-	pos.PutPiece(SquareF2, WhitePawn)
-	pos.PutPiece(SquareE1, WhiteKing)
-	pos.PutPiece(SquareA1, WhiteRook)
-	pos.PutPiece(SquareA8, WhiteRook)
+	pos, _ := PositionFromFEN(castleFEN)
 
 	// Simple.
 	testCastleHelper(t, pos, []castleTestData{
@@ -201,13 +197,57 @@ func TestCastle(t *testing.T) {
 	})
 }
 
+func testPiece(t *testing.T, pos *Position, sq Square, pi Piece) {
+	if pos.GetPiece(sq) != pi {
+		t.Errorf("expected %v at %v, got %v",
+			pi, sq, pos.GetPiece(sq))
+	}
+}
+
+func TestCastleMovesPieces(t *testing.T) {
+	pos, _ := PositionFromFEN(castleFEN)
+
+	// White
+	m1 := Move{
+		MoveType: Castling,
+		From:     SquareE1,
+		To:       SquareC1,
+	}
+
+	pos.DoMove(m1)
+	testPiece(t, pos, SquareA1, NoPiece)
+	testPiece(t, pos, SquareC1, WhiteKing)
+	testPiece(t, pos, SquareD1, WhiteRook)
+	testPiece(t, pos, SquareE1, NoPiece)
+
+	pos.UndoMove(m1)
+	testPiece(t, pos, SquareA1, WhiteRook)
+	testPiece(t, pos, SquareC1, NoPiece)
+	testPiece(t, pos, SquareD1, NoPiece)
+	testPiece(t, pos, SquareE1, WhiteKing)
+
+	// Black
+	m2 := Move{
+		MoveType: Castling,
+		From:     SquareE8,
+		To:       SquareC8,
+	}
+
+	pos.DoMove(m2)
+	testPiece(t, pos, SquareA8, NoPiece)
+	testPiece(t, pos, SquareC8, BlackKing)
+	testPiece(t, pos, SquareD8, BlackRook)
+	testPiece(t, pos, SquareE8, NoPiece)
+
+	pos.UndoMove(m2)
+	testPiece(t, pos, SquareA8, BlackRook)
+	testPiece(t, pos, SquareC8, NoPiece)
+	testPiece(t, pos, SquareD8, NoPiece)
+	testPiece(t, pos, SquareE8, BlackKing)
+}
+
 func TestCastleRightsAreUpdated(t *testing.T) {
-	pos := &Position{}
-	pos.PutPiece(SquareD2, WhitePawn)
-	pos.PutPiece(SquareE2, WhitePawn)
-	pos.PutPiece(SquareF2, WhitePawn)
-	pos.PutPiece(SquareE1, WhiteKing)
-	pos.PutPiece(SquareA1, WhiteRook)
+	pos, _ := PositionFromFEN(castleFEN)
 	pos.castle = WhiteOOO
 
 	good := []castleTestData{
