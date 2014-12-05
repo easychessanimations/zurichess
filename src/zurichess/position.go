@@ -94,40 +94,26 @@ func (pos *Position) ParseMove(s string) Move {
 	}
 }
 
+var castleRights = map[Square]Castle{
+	SquareA1: WhiteOOO,
+	SquareE1: WhiteOOO | WhiteOO,
+	SquareH1: WhiteOO,
+	SquareA8: BlackOOO,
+	SquareE8: BlackOOO | BlackOO,
+	SquareH8: BlackOO,
+}
+
 // DoMove performs a move.
 // Expects the move to be valid.
 // TODO: castling, promotion
 func (pos *Position) DoMove(mo Move) {
 	// log.Println("Playing", mo)
-	piece := pos.GetPiece(mo.From)
 
 	// Update castling rights.
-	if piece == WhiteRook {
-		if mo.From == SquareA1 {
-			pos.castle &= ^WhiteOOO
-		}
-		if mo.From == SquareH1 {
-			pos.castle &= ^WhiteOO
-		}
-	}
-	if piece == WhiteKing {
-		pos.castle &= ^(WhiteOO | WhiteOOO)
-	}
-	if piece == BlackRook {
-		if mo.From == SquareA8 {
-			pos.castle &= ^BlackOOO
-		}
-		if mo.From == SquareH8 {
-			pos.castle &= ^BlackOO
-		}
-	}
-	if piece == BlackKing {
-		pos.castle &= ^(BlackOO | BlackOOO)
-	}
-
-	log.Println("new rights", pos.castle)
+	pos.castle &= castleRights[mo.To]
 
 	// Modify the chess board.
+	piece := pos.GetPiece(mo.From)
 	pos.RemovePiece(mo.From, piece)
 	pos.RemovePiece(mo.To, mo.Capture)
 	pos.PutPiece(mo.To, piece)

@@ -98,9 +98,7 @@ func (pi Piece) PieceType() PieceType {
 	return PieceType(pi >> 2)
 }
 
-var (
-	pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
-)
+var pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
 
 // Symbol returns the piece as a string.
 func (pi Piece) Symbol() string {
