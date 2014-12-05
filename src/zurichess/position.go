@@ -87,10 +87,11 @@ func (pos *Position) ParseMove(s string) Move {
 	to := SquareFromString(s[2:4])
 
 	return Move{
-		From:     from,
-		To:       to,
-		Capture:  pos.GetPiece(to),
-		MoveType: Normal, // TODO
+		MoveType:  Normal, // TODO
+		From:      from,
+		To:        to,
+		Capture:   pos.GetPiece(to),
+		OldCastle: pos.castle,
 	}
 }
 
@@ -106,30 +107,36 @@ var castleRights = map[Square]Castle{
 // DoMove performs a move.
 // Expects the move to be valid.
 // TODO: castling, promotion
-func (pos *Position) DoMove(mo Move) {
-	// log.Println("Playing", mo)
+func (pos *Position) DoMove(move Move) {
+	// log.Println("Playing", move)
 
 	// Update castling rights.
-	pos.castle &= castleRights[mo.To]
+	pos.castle &= castleRights[move.To]
+	// TODO move rook when castling.
 
 	// Modify the chess board.
-	piece := pos.GetPiece(mo.From)
-	pos.RemovePiece(mo.From, piece)
-	pos.RemovePiece(mo.To, mo.Capture)
-	pos.PutPiece(mo.To, piece)
+	pi := pos.GetPiece(move.From)
+	pos.RemovePiece(move.From, pi)
+	pos.RemovePiece(move.To, move.Capture)
+	pos.PutPiece(move.To, pi)
 	pos.toMove = pos.toMove.Other()
 }
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
 // TODO: castling, promotion
-func (pos *Position) UndoMove(mo Move) {
-	// log.Println("Takeing back", mo)
-	piece := pos.GetPiece(mo.To)
-	pos.RemovePiece(mo.To, piece)
-	pos.PutPiece(mo.From, piece)
-	pos.PutPiece(mo.To, mo.Capture)
+func (pos *Position) UndoMove(move Move) {
+	// log.Println("Takeing back", move)
+
+	// Modify the chess board.
+	pi := pos.GetPiece(move.To)
+	pos.RemovePiece(move.To, pi)
+	pos.PutPiece(move.From, pi)
+	pos.PutPiece(move.To, move.Capture)
 	pos.toMove = pos.toMove.Other()
+
+	// Restore castling rights.
+	pos.castle = move.OldCastle
 }
 
 // genPawnMoves generates pawn moves around from.
@@ -146,8 +153,9 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	if pr != lastRank {
 		if pos.IsEmpty(f1) {
 			moves = append(moves, Move{
-				From: from,
-				To:   f1,
+				From:      from,
+				To:        f1,
+				OldCastle: pos.castle,
 			})
 		}
 	}
@@ -158,8 +166,9 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 
 		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
 			moves = append(moves, Move{
-				From: from,
-				To:   f2,
+				From:      from,
+				To:        f2,
+				OldCastle: pos.castle,
 			})
 		}
 	}
@@ -170,9 +179,10 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
-				From:    from,
-				To:      to,
-				Capture: c,
+				From:      from,
+				To:        to,
+				Capture:   c,
+				OldCastle: pos.castle,
 			})
 		}
 	}
@@ -183,9 +193,10 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 		c := pos.GetPiece(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
-				From:    from,
-				To:      to,
-				Capture: c,
+				From:      from,
+				To:        to,
+				Capture:   c,
+				OldCastle: pos.castle,
 			})
 		}
 	}
@@ -220,10 +231,9 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 
 		// Found a valid Knight move.
 		moves = append(moves, Move{
-			From:     from,
-			To:       to,
-			Capture:  capture,
-			MoveType: Normal,
+			From:    from,
+			To:      to,
+			Capture: capture,
 		})
 	}
 	return moves
@@ -312,9 +322,10 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 		}
 
 		moves = append(moves, Move{
-			From:    from,
-			To:      to,
-			Capture: pos.GetPiece(to),
+			From:      from,
+			To:        to,
+			Capture:   pos.GetPiece(to),
+			OldCastle: pos.castle,
 		})
 	}
 
@@ -330,9 +341,10 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 		if pos.IsEmpty(RankFile(rank, 5)) &&
 			pos.IsEmpty(RankFile(rank, 6)) {
 			moves = append(moves, Move{
-				From:     from,
-				To:       RankFile(rank, 6),
-				MoveType: Castling,
+				MoveType:  Castling,
+				From:      from,
+				To:        RankFile(rank, 6),
+				OldCastle: pos.castle,
 			})
 		}
 	}
@@ -343,9 +355,10 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 			pos.IsEmpty(RankFile(rank, 2)) &&
 			pos.IsEmpty(RankFile(rank, 1)) {
 			moves = append(moves, Move{
-				From:     from,
-				To:       RankFile(rank, 2),
-				MoveType: Castling,
+				MoveType:  Castling,
+				From:      from,
+				To:        RankFile(rank, 2),
+				OldCastle: pos.castle,
 			})
 		}
 	}

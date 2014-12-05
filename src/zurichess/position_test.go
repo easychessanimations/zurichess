@@ -201,7 +201,7 @@ func TestCastle(t *testing.T) {
 	})
 }
 
-func TestCastleMoves(t *testing.T) {
+func TestCastleRightsAreUpdated(t *testing.T) {
 	pos := &Position{}
 	pos.PutPiece(SquareD2, WhitePawn)
 	pos.PutPiece(SquareE2, WhitePawn)
@@ -225,18 +225,34 @@ func TestCastleMoves(t *testing.T) {
 	pos.DoMove(m1)
 	testCastleHelper(t, pos, fail)
 
-	// Move rook back.
 	m2 := pos.ParseMove("a8a1")
 	pos.DoMove(m2)
 	testCastleHelper(t, pos, fail)
 
-	// Undo second move (rook on a8 now).
-	// pos.UndoMove(m2)
-	// testCastleHelper(t, pos, fail)
+	// Undo rook's moves.
+	pos.UndoMove(m2)
+	testCastleHelper(t, pos, fail)
 
-	// Undo first move (rook on a1 now). Original position.
-	// pos.UndoMove(m1)
-	// testCastleHelper(t, pos, good)
+	pos.UndoMove(m1)
+	testCastleHelper(t, pos, good)
+
+	// Move king.
+	m3 := pos.ParseMove("e1d1")
+	pos.DoMove(m3)
+	moves := pos.genKingMoves(SquareD1, WhiteKing, nil)
+	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
+
+	m4 := pos.ParseMove("d1e1")
+	pos.DoMove(m4)
+	testCastleHelper(t, pos, fail)
+
+	// Undo king's move.
+	pos.UndoMove(m4)
+	moves = pos.genKingMoves(SquareD1, WhiteKing, nil)
+	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
+
+	pos.UndoMove(m3)
+	testCastleHelper(t, pos, good)
 }
 
 func TestGenBishopMoves(t *testing.T) {
