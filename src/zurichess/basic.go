@@ -147,6 +147,10 @@ var castleSymbol = map[Castle]byte{
 }
 
 func (ca Castle) String() string {
+	if ca == 0 {
+		return "-"
+	}
+
 	var r []byte
 	for k, v := range castleSymbol {
 		if ca&k != 0 {
