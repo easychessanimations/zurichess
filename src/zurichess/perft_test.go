@@ -54,6 +54,10 @@ func perft(pos *Position, depth int) counters {
 
 func testHelper(t *testing.T, fen string, testData []counters) {
 	for depth, expected := range testData {
+		if testing.Short() && expected.nodes > 200000 {
+			return
+		}
+
 		pos, err := PositionFromFEN(fen)
 		if err != nil {
 			t.Errorf("invalid FEN: %s", fen)
@@ -74,7 +78,7 @@ func TestPerftInitial(t *testing.T) {
 		{400, 0, 0, 0},
 		{8902, 34, 0, 0},
 		{197281, 1576, 0, 0},
-		// {4865609, 82719, 0, 0},
+		{4865609, 82719, 0, 0},
 		// {119060324, 2812008, 5248, 0},
 	})
 
@@ -86,7 +90,7 @@ func TestPerftKiwipete(t *testing.T) {
 		{48, 8, 0, 2},
 		{2039, 351, 1, 91},
 		{97862, 17102, 45, 3162},
-		// {4085603, 757163, 1929, 128013},
+		{4085603, 757163, 1929, 128013},
 		// {193690690, 35043416, 73365, 4993637},
 	})
 }
@@ -99,7 +103,7 @@ func TestPerftDuplain(t *testing.T) {
 		{191, 14, 0, 0},
 		{2812, 209, 2, 0},
 		{43238, 3348, 123, 0},
-		// {674624, 52051, 1165, 0},
+		{674624, 52051, 1165, 0},
 		// {11030083, 940350, 33325, 0},
 		// {178633661, 14519036, 294874, 0},
 	})
