@@ -187,9 +187,9 @@ func (pos *Position) UndoMove(move Move) {
 }
 
 // genPawnMoves generates pawn moves around from.
-func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
+func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	advance, pawnRank, lastRank := 1, 1, 6
-	if pi.Color() == Black {
+	if pos.toMove == Black {
 		advance, pawnRank, lastRank = -1, 6, 1
 	}
 
@@ -224,7 +224,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	if pr != lastRank && from.File() != 0 {
 		to := from.Relative(advance, -1)
 		c := pos.Get(to)
-		if c.Color() == pi.Color().Other() {
+		if c.Color() == pos.toMove.Other() {
 			moves = append(moves, Move{
 				From:      from,
 				To:        to,
@@ -238,7 +238,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	if pr != lastRank && from.File() != 7 {
 		to := from.Relative(advance, +1)
 		c := pos.Get(to)
-		if c.Color() == pi.Color().Other() {
+		if c.Color() == pos.toMove.Other() {
 			moves = append(moves, Move{
 				From:      from,
 				To:        to,
@@ -261,7 +261,7 @@ var (
 )
 
 // genKnightMoves generates knight moves around from.
-func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move {
+func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
 	for _, e := range knightJump {
 		r, f := from.Rank()+e[0], from.File()+e[1]
 		if 0 > r || r >= 8 || 0 > f || f >= 8 {
@@ -271,7 +271,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 		to := RankFile(r, f)
 
 		capture := pos.Get(to)
-		if capture.Color() == pi.Color() {
+		if capture.Color() == pos.toMove {
 			// Cannot capture same color.
 			continue
 		}
@@ -289,7 +289,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 
 var limit = [3]int{-1, -1, 8}
 
-func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []Move) []Move {
+func (pos *Position) genSlidingMoves(from Square, dr, df int, moves []Move) []Move {
 	r, f := from.Rank(), from.File()
 	lr := limit[dr+1]
 	lf := limit[df+1]
@@ -304,7 +304,7 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 
 		// Check the captured piece.
 		capture := pos.Get(to)
-		if pi.Color() == capture.Color() {
+		if pos.toMove == capture.Color() {
 			break
 		}
 
@@ -324,25 +324,25 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 	return moves
 }
 
-func (pos *Position) genRookMoves(from Square, pi Piece, moves []Move) []Move {
-	moves = pos.genSlidingMoves(from, pi, +1, 0, moves)
-	moves = pos.genSlidingMoves(from, pi, -1, 0, moves)
-	moves = pos.genSlidingMoves(from, pi, 0, +1, moves)
-	moves = pos.genSlidingMoves(from, pi, 0, -1, moves)
+func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
+	moves = pos.genSlidingMoves(from, +1, 0, moves)
+	moves = pos.genSlidingMoves(from, -1, 0, moves)
+	moves = pos.genSlidingMoves(from, 0, +1, moves)
+	moves = pos.genSlidingMoves(from, 0, -1, moves)
 	return moves
 }
 
-func (pos *Position) genBishopMoves(from Square, pi Piece, moves []Move) []Move {
-	moves = pos.genSlidingMoves(from, pi, +1, -1, moves)
-	moves = pos.genSlidingMoves(from, pi, -1, -1, moves)
-	moves = pos.genSlidingMoves(from, pi, +1, +1, moves)
-	moves = pos.genSlidingMoves(from, pi, -1, +1, moves)
+func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
+	moves = pos.genSlidingMoves(from, +1, -1, moves)
+	moves = pos.genSlidingMoves(from, -1, -1, moves)
+	moves = pos.genSlidingMoves(from, +1, +1, moves)
+	moves = pos.genSlidingMoves(from, -1, +1, moves)
 	return moves
 }
 
-func (pos *Position) genQueenMoves(from Square, pi Piece, moves []Move) []Move {
-	moves = pos.genRookMoves(from, pi, moves)
-	moves = pos.genBishopMoves(from, pi, moves)
+func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
+	moves = pos.genRookMoves(from, moves)
+	moves = pos.genBishopMoves(from, moves)
 	return moves
 }
 
@@ -351,12 +351,7 @@ var (
 	kingDFile = [8]int{-1, +0, +1, +1, +1, +0, -1, -1}
 )
 
-func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
-	if pi.Color() != pos.toMove {
-		panic(fmt.Errorf("expected %v to move, got %v",
-			pos.toMove, pi.Color()))
-	}
-
+func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// King moves around.
 	for i := 0; i < 8; i++ {
 		dr := kingDRank[i]
@@ -371,7 +366,7 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 
 		// Check the captured piece.
 		capture := pos.Get(to)
-		if pi.Color() == capture.Color() {
+		if pos.toMove == capture.Color() {
 			continue
 		}
 
@@ -386,7 +381,7 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 	// King castles.
 	// TODO: verify checks
 	oo, ooo, rank := WhiteOO, WhiteOOO, 0
-	if pi.Color() == Black {
+	if pos.toMove == Black {
 		oo, ooo, rank = BlackOO, BlackOOO, 7
 	}
 
@@ -432,17 +427,17 @@ func (pos *Position) GenerateMoves() []Move {
 		pi := pos.Get(sq)
 		switch pi.Figure() {
 		case Pawn:
-			moves = pos.genPawnMoves(sq, pi, moves)
+			moves = pos.genPawnMoves(sq, moves)
 		case Knight:
-			moves = pos.genKnightMoves(sq, pi, moves)
+			moves = pos.genKnightMoves(sq, moves)
 		case Bishop:
-			moves = pos.genBishopMoves(sq, pi, moves)
+			moves = pos.genBishopMoves(sq, moves)
 		case Rook:
-			moves = pos.genRookMoves(sq, pi, moves)
+			moves = pos.genRookMoves(sq, moves)
 		case Queen:
-			moves = pos.genQueenMoves(sq, pi, moves)
+			moves = pos.genQueenMoves(sq, moves)
 		case King:
-			moves = pos.genKingMoves(sq, pi, moves)
+			moves = pos.genKingMoves(sq, moves)
 		}
 	}
 	return moves

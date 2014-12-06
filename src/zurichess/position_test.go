@@ -53,7 +53,6 @@ func TestPiece(t *testing.T) {
 	}
 }
 
-// TestPutGet tests Put and Get.
 func TestPutGet(t *testing.T) {
 	var pi Piece
 	pos := &Position{}
@@ -94,41 +93,37 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 }
 
 func TestGenKnightMoves(t *testing.T) {
-	kn := WhiteKnight
-	pos := &Position{}
-	pos.Put(SquareB2, kn)
-	pos.Put(SquareE4, kn)
+	pos := &Position{toMove: White}
+	pos.Put(SquareB2, WhiteKnight)
+	pos.Put(SquareE4, WhiteKnight)
 	pos.Put(SquareC4, WhitePawn)
 
-	moves := pos.genKnightMoves(SquareB2, kn, nil)
+	moves := pos.genKnightMoves(SquareB2, nil)
 	expected := []string{"b2d1", "b2d3", "b2a4"}
 	testMoves(t, moves, expected)
 
-	moves = pos.genKnightMoves(SquareF4, kn, nil)
+	moves = pos.genKnightMoves(SquareF4, nil)
 	expected = []string{"f4d3", "f4d5", "f4e6", "f4g6", "f4h5", "f4h3", "f4g2", "f4e2"}
 	testMoves(t, moves, expected)
 }
 
 func TestGenRookMoves(t *testing.T) {
-	rk := WhiteRook
-	pos := &Position{}
-	pos.Put(SquareB2, rk)
+	pos := &Position{toMove: White}
+	pos.Put(SquareB2, WhiteRook)
 	pos.Put(SquareF2, WhiteKing)
 	pos.Put(SquareB6, BlackKing)
 
-	moves := pos.genRookMoves(SquareB2, rk, nil)
+	moves := pos.genRookMoves(SquareB2, nil)
 	expected := []string{"b2b1", "b2b3", "b2b4", "b2b5", "b2b6", "b2a2", "b2c2", "b2d2", "b2e2"}
 	testMoves(t, moves, expected)
 }
 
 func TestGenKingMoves(t *testing.T) {
 	// King is alone.
-	kg := WhiteRook
-	pos := &Position{}
-	pos.Put(SquareA2, kg)
-	pos.toMove = White
+	pos := &Position{toMove: White}
+	pos.Put(SquareA2, WhiteKing)
 
-	moves := pos.genKingMoves(SquareA2, kg, nil)
+	moves := pos.genKingMoves(SquareA2, nil)
 	expected := []string{"a2a3", "a2b3", "a2b2", "a2b1", "a2a1"}
 	testMoves(t, moves, expected)
 
@@ -137,7 +132,7 @@ func TestGenKingMoves(t *testing.T) {
 	pos.Put(SquareB3, BlackKnight)
 	pos.Put(SquareB2, WhiteQueen)
 
-	moves = pos.genKingMoves(SquareA2, kg, nil)
+	moves = pos.genKingMoves(SquareA2, nil)
 	expected = []string{"a2b3", "a2b1", "a2a1"}
 	testMoves(t, moves, expected)
 }
@@ -160,7 +155,7 @@ func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
 		if d.castle != 255 {
 			pos.castle = d.castle
 		}
-		moves := pos.genKingMoves(SquareE1, WhiteKing, nil)
+		moves := pos.genKingMoves(SquareE1, nil)
 		testMoves(t, moves, d.expected)
 	}
 }
@@ -311,7 +306,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 	m3 := pos.ParseMove("e1d1")
 	pos.DoMove(m3)
 	pos.DoMove(b1)
-	moves := pos.genKingMoves(SquareD1, WhiteKing, nil)
+	moves := pos.genKingMoves(SquareD1, nil)
 	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
 
 	m4 := pos.ParseMove("d1e1")
@@ -322,7 +317,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 	// Undo king's move.
 	pos.UndoMove(b2)
 	pos.UndoMove(m4)
-	moves = pos.genKingMoves(SquareD1, WhiteKing, nil)
+	moves = pos.genKingMoves(SquareD1, nil)
 	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
 
 	pos.UndoMove(b1)
@@ -331,7 +326,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 }
 
 func TestGenBishopMoves(t *testing.T) {
-	pos := &Position{}
+	pos := &Position{toMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -342,13 +337,13 @@ func TestGenBishopMoves(t *testing.T) {
 	pos.Put(SquareF3, WhiteBishop)
 	pos.Put(SquareD5, BlackRook)
 
-	moves := pos.genBishopMoves(SquareF3, WhiteBishop, nil)
+	moves := pos.genBishopMoves(SquareF3, nil)
 	expected := []string{"f3e2", "f3e4", "f3d5", "f3g2", "f3h1", "f3g4", "f3h5"}
 	testMoves(t, moves, expected)
 }
 
 func TestGenQueenMoves(t *testing.T) {
-	pos := &Position{}
+	pos := &Position{toMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -359,7 +354,7 @@ func TestGenQueenMoves(t *testing.T) {
 	pos.Put(SquareF3, WhiteBishop)
 	pos.Put(SquareD5, BlackRook)
 
-	moves := pos.genQueenMoves(SquareD1, WhiteQueen, nil)
+	moves := pos.genQueenMoves(SquareD1, nil)
 	expected := []string{"d1b1", "d1c1", "d1d2", "d1d3", "d1d4", "d1d5", "d1e2"}
 	testMoves(t, moves, expected)
 }

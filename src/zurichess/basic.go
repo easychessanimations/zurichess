@@ -117,8 +117,14 @@ func (pi Piece) String() string {
 // An 8x8 bitboard.
 type Bitboard uint64
 
-func (bb Bitboard) LSB() Square {
-	return Square(bb & (-bb))
+// Picks a square in the board.
+func (bb Bitboard) LSB() Bitboard {
+	return Bitboard(LSB(uint64(bb)))
+}
+
+// If the bitboard has a single piece, returns the occupied square.
+func (bb Bitboard) AsSquare() Square {
+	return Square(LogN(uint64(bb)))
 }
 
 // Move type.
