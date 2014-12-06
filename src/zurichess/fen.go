@@ -26,30 +26,30 @@ func PositionFromFEN(fen string) (*Position, error) {
 			pi := NoPiece
 			switch p {
 			case 'p':
-				pi = ColorPiece(Black, Pawn)
+				pi = ColorFigure(Black, Pawn)
 			case 'n':
-				pi = ColorPiece(Black, Knight)
+				pi = ColorFigure(Black, Knight)
 			case 'b':
-				pi = ColorPiece(Black, Bishop)
+				pi = ColorFigure(Black, Bishop)
 			case 'r':
-				pi = ColorPiece(Black, Rook)
+				pi = ColorFigure(Black, Rook)
 			case 'q':
-				pi = ColorPiece(Black, Queen)
+				pi = ColorFigure(Black, Queen)
 			case 'k':
-				pi = ColorPiece(Black, King)
+				pi = ColorFigure(Black, King)
 
 			case 'P':
-				pi = ColorPiece(White, Pawn)
+				pi = ColorFigure(White, Pawn)
 			case 'N':
-				pi = ColorPiece(White, Knight)
+				pi = ColorFigure(White, Knight)
 			case 'B':
-				pi = ColorPiece(White, Bishop)
+				pi = ColorFigure(White, Bishop)
 			case 'R':
-				pi = ColorPiece(White, Rook)
+				pi = ColorFigure(White, Rook)
 			case 'Q':
-				pi = ColorPiece(White, Queen)
+				pi = ColorFigure(White, Queen)
 			case 'K':
-				pi = ColorPiece(White, King)
+				pi = ColorFigure(White, King)
 
 			case '1', '2', '3', '4', '5', '6', '7', '8':
 				sq = sq.Relative(0, int(p)-int('0')-1)
@@ -57,7 +57,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 			default:
 				return nil, fmt.Errorf("unhandled '%c'", p)
 			}
-			pos.PutPiece(sq, pi)
+			pos.Put(sq, pi)
 			sq = sq.Relative(0, 1)
 		}
 	}

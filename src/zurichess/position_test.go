@@ -37,36 +37,36 @@ func TestRankFile(t *testing.T) {
 	}
 }
 
-func checkPiece(t *testing.T, pi Piece, co Color, pt PieceType) {
-	if pi.Color() != co && pi.PieceType() != pt {
-		t.Errorf("expected %v %v, got %v %v", co, pt, pi.Color(), pi.PieceType())
+func checkPiece(t *testing.T, pi Piece, co Color, pt Figure) {
+	if pi.Color() != co && pi.Figure() != pt {
+		t.Errorf("expected %v %v, got %v %v", co, pt, pi.Color(), pi.Figure())
 	}
 }
 
 // TestPiece verifies Piece functionality.
 func TestPiece(t *testing.T) {
-	checkPiece(t, NoPiece, NoColor, NoPieceType)
+	checkPiece(t, NoPiece, NoColor, NoFigure)
 	for co := ColorMinValue; co < ColorMaxValue; co++ {
-		for pt := PieceTypeMinValue; pt < PieceTypeMaxValue; pt++ {
-			checkPiece(t, ColorPiece(co, pt), co, pt)
+		for pt := FigureMinValue; pt < FigureMaxValue; pt++ {
+			checkPiece(t, ColorFigure(co, pt), co, pt)
 		}
 	}
 }
 
-// TestPutGetPiece tests PutPiece and GetPiece.
-func TestPutGetPiece(t *testing.T) {
+// TestPutGet tests Put and Get.
+func TestPutGet(t *testing.T) {
 	var pi Piece
 	pos := &Position{}
 
-	pi = pos.GetPiece(SquareA3)
-	checkPiece(t, pi, NoColor, NoPieceType)
+	pi = pos.Get(SquareA3)
+	checkPiece(t, pi, NoColor, NoFigure)
 
-	pos.PutPiece(SquareA3, WhitePawn)
-	pi = pos.GetPiece(SquareA3)
+	pos.Put(SquareA3, WhitePawn)
+	pi = pos.Get(SquareA3)
 	checkPiece(t, pi, White, Pawn)
 
-	pos.PutPiece(SquareH7, BlackKing)
-	pi = pos.GetPiece(SquareH7)
+	pos.Put(SquareH7, BlackKing)
+	pi = pos.Get(SquareH7)
 	checkPiece(t, pi, Black, King)
 }
 
@@ -96,9 +96,9 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 func TestGenKnightMoves(t *testing.T) {
 	kn := WhiteKnight
 	pos := &Position{}
-	pos.PutPiece(SquareB2, kn)
-	pos.PutPiece(SquareE4, kn)
-	pos.PutPiece(SquareC4, WhitePawn)
+	pos.Put(SquareB2, kn)
+	pos.Put(SquareE4, kn)
+	pos.Put(SquareC4, WhitePawn)
 
 	moves := pos.genKnightMoves(SquareB2, kn, nil)
 	expected := []string{"b2d1", "b2d3", "b2a4"}
@@ -112,9 +112,9 @@ func TestGenKnightMoves(t *testing.T) {
 func TestGenRookMoves(t *testing.T) {
 	rk := WhiteRook
 	pos := &Position{}
-	pos.PutPiece(SquareB2, rk)
-	pos.PutPiece(SquareF2, WhiteKing)
-	pos.PutPiece(SquareB6, BlackKing)
+	pos.Put(SquareB2, rk)
+	pos.Put(SquareF2, WhiteKing)
+	pos.Put(SquareB6, BlackKing)
 
 	moves := pos.genRookMoves(SquareB2, rk, nil)
 	expected := []string{"b2b1", "b2b3", "b2b4", "b2b5", "b2b6", "b2a2", "b2c2", "b2d2", "b2e2"}
@@ -125,7 +125,7 @@ func TestGenKingMoves(t *testing.T) {
 	// King is alone.
 	kg := WhiteRook
 	pos := &Position{}
-	pos.PutPiece(SquareA2, kg)
+	pos.Put(SquareA2, kg)
 	pos.toMove = White
 
 	moves := pos.genKingMoves(SquareA2, kg, nil)
@@ -133,9 +133,9 @@ func TestGenKingMoves(t *testing.T) {
 	testMoves(t, moves, expected)
 
 	// King is surrounded by black and white pieces.
-	pos.PutPiece(SquareA3, WhitePawn)
-	pos.PutPiece(SquareB3, BlackKnight)
-	pos.PutPiece(SquareB2, WhiteQueen)
+	pos.Put(SquareA3, WhitePawn)
+	pos.Put(SquareB3, BlackKnight)
+	pos.Put(SquareB2, WhiteQueen)
 
 	moves = pos.genKingMoves(SquareA2, kg, nil)
 	expected = []string{"a2b3", "a2b1", "a2a1"}
@@ -150,9 +150,9 @@ type castleTestData struct {
 }
 
 func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
-	if pos.GetPiece(SquareE1) != WhiteKing {
+	if pos.Get(SquareE1) != WhiteKing {
 		t.Errorf("expected %v on %v, got %v",
-			WhiteKing, SquareE1, pos.GetPiece(SquareE1))
+			WhiteKing, SquareE1, pos.Get(SquareE1))
 		return
 	}
 
@@ -183,7 +183,7 @@ func TestCastle(t *testing.T) {
 	})
 
 	// Put a piece to block castling on OOO
-	pos.PutPiece(SquareC1, WhiteBishop)
+	pos.Put(SquareC1, WhiteBishop)
 	testCastleHelper(t, pos, []castleTestData{
 		// No castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
@@ -219,9 +219,9 @@ func TestCastleAfterUnrelatedMove(t *testing.T) {
 }
 
 func testPiece(t *testing.T, pos *Position, sq Square, pi Piece) {
-	if pos.GetPiece(sq) != pi {
+	if pos.Get(sq) != pi {
 		t.Errorf("expected %v at %v, got %v",
-			pi, sq, pos.GetPiece(sq))
+			pi, sq, pos.Get(sq))
 	}
 }
 
@@ -332,15 +332,15 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 
 func TestGenBishopMoves(t *testing.T) {
 	pos := &Position{}
-	pos.PutPiece(SquareB1, BlackRook)
-	pos.PutPiece(SquareD1, WhiteQueen)
-	pos.PutPiece(SquareE1, WhiteKing)
-	pos.PutPiece(SquareG1, WhiteKnight)
-	pos.PutPiece(SquareC2, WhiteKnight)
-	pos.PutPiece(SquareF2, WhiteKnight)
-	pos.PutPiece(SquareE3, WhiteKnight)
-	pos.PutPiece(SquareF3, WhiteBishop)
-	pos.PutPiece(SquareD5, BlackRook)
+	pos.Put(SquareB1, BlackRook)
+	pos.Put(SquareD1, WhiteQueen)
+	pos.Put(SquareE1, WhiteKing)
+	pos.Put(SquareG1, WhiteKnight)
+	pos.Put(SquareC2, WhiteKnight)
+	pos.Put(SquareF2, WhiteKnight)
+	pos.Put(SquareE3, WhiteKnight)
+	pos.Put(SquareF3, WhiteBishop)
+	pos.Put(SquareD5, BlackRook)
 
 	moves := pos.genBishopMoves(SquareF3, WhiteBishop, nil)
 	expected := []string{"f3e2", "f3e4", "f3d5", "f3g2", "f3h1", "f3g4", "f3h5"}
@@ -349,15 +349,15 @@ func TestGenBishopMoves(t *testing.T) {
 
 func TestGenQueenMoves(t *testing.T) {
 	pos := &Position{}
-	pos.PutPiece(SquareB1, BlackRook)
-	pos.PutPiece(SquareD1, WhiteQueen)
-	pos.PutPiece(SquareE1, WhiteKing)
-	pos.PutPiece(SquareG1, WhiteKnight)
-	pos.PutPiece(SquareC2, WhiteKnight)
-	pos.PutPiece(SquareF2, WhiteKnight)
-	pos.PutPiece(SquareE3, WhiteKnight)
-	pos.PutPiece(SquareF3, WhiteBishop)
-	pos.PutPiece(SquareD5, BlackRook)
+	pos.Put(SquareB1, BlackRook)
+	pos.Put(SquareD1, WhiteQueen)
+	pos.Put(SquareE1, WhiteKing)
+	pos.Put(SquareG1, WhiteKnight)
+	pos.Put(SquareC2, WhiteKnight)
+	pos.Put(SquareF2, WhiteKnight)
+	pos.Put(SquareE3, WhiteKnight)
+	pos.Put(SquareF3, WhiteBishop)
+	pos.Put(SquareD5, BlackRook)
 
 	moves := pos.genQueenMoves(SquareD1, WhiteQueen, nil)
 	expected := []string{"d1b1", "d1c1", "d1d2", "d1d3", "d1d4", "d1d5", "d1e2"}

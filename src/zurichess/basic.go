@@ -39,12 +39,12 @@ func (sq Square) String() string {
 	})
 }
 
-// PieceType represents a colorless piece
-type PieceType uint
+// Figure represents a colorless piece
+type Figure uint
 
-func (pt PieceType) String() string {
+func (pt Figure) String() string {
 	switch pt {
-	case NoPieceType:
+	case NoFigure:
 		return "(nopiecetype)"
 	case Pawn:
 		return "Pawn"
@@ -86,7 +86,7 @@ func (co Color) String() string {
 // Piece is a combination of piece type and color
 type Piece uint
 
-func ColorPiece(co Color, pt PieceType) Piece {
+func ColorFigure(co Color, pt Figure) Piece {
 	return Piece(pt<<2) + Piece(co)
 }
 
@@ -94,8 +94,8 @@ func (pi Piece) Color() Color {
 	return Color(pi & 3)
 }
 
-func (pi Piece) PieceType() PieceType {
-	return PieceType(pi >> 2)
+func (pi Piece) Figure() Figure {
+	return Figure(pi >> 2)
 }
 
 var pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
@@ -103,7 +103,7 @@ var pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
 // Symbol returns the piece as a string.
 func (pi Piece) Symbol() string {
 	co := pi.Color()
-	pt := pi.PieceType()
+	pt := pi.Figure()
 	return pieceSymbol[co][pt : pt+1]
 }
 
@@ -111,7 +111,7 @@ func (pi Piece) String() string {
 	if pi == NoPiece {
 		return "(nopiece)"
 	}
-	return pi.Color().String() + " " + pi.PieceType().String()
+	return pi.Color().String() + " " + pi.Figure().String()
 }
 
 // An 8x8 bitboard.

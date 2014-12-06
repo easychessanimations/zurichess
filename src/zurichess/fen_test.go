@@ -12,8 +12,8 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 	}
 
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
-		epi := expected.GetPiece(sq)
-		api := actual.GetPiece(sq)
+		epi := expected.Get(sq)
+		api := actual.Get(sq)
 		if epi != api {
 			t.Errorf("expected %v at %v, got %v", epi, sq, api)
 		}
@@ -32,27 +32,27 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 
 func TestFENStartPosition(t *testing.T) {
 	expected := &Position{}
-	expected.PutPiece(SquareA1, WhiteRook)
-	expected.PutPiece(SquareB1, WhiteKnight)
-	expected.PutPiece(SquareC1, WhiteBishop)
-	expected.PutPiece(SquareD1, WhiteQueen)
-	expected.PutPiece(SquareE1, WhiteKing)
-	expected.PutPiece(SquareF1, WhiteBishop)
-	expected.PutPiece(SquareG1, WhiteKnight)
-	expected.PutPiece(SquareH1, WhiteRook)
+	expected.Put(SquareA1, WhiteRook)
+	expected.Put(SquareB1, WhiteKnight)
+	expected.Put(SquareC1, WhiteBishop)
+	expected.Put(SquareD1, WhiteQueen)
+	expected.Put(SquareE1, WhiteKing)
+	expected.Put(SquareF1, WhiteBishop)
+	expected.Put(SquareG1, WhiteKnight)
+	expected.Put(SquareH1, WhiteRook)
 
-	expected.PutPiece(SquareA8, BlackRook)
-	expected.PutPiece(SquareB8, BlackKnight)
-	expected.PutPiece(SquareC8, BlackBishop)
-	expected.PutPiece(SquareD8, BlackQueen)
-	expected.PutPiece(SquareE8, BlackKing)
-	expected.PutPiece(SquareF8, BlackBishop)
-	expected.PutPiece(SquareG8, BlackKnight)
-	expected.PutPiece(SquareH8, BlackRook)
+	expected.Put(SquareA8, BlackRook)
+	expected.Put(SquareB8, BlackKnight)
+	expected.Put(SquareC8, BlackBishop)
+	expected.Put(SquareD8, BlackQueen)
+	expected.Put(SquareE8, BlackKing)
+	expected.Put(SquareF8, BlackBishop)
+	expected.Put(SquareG8, BlackKnight)
+	expected.Put(SquareH8, BlackRook)
 
 	for f := 0; f < 8; f++ {
-		expected.PutPiece(RankFile(1, f), WhitePawn)
-		expected.PutPiece(RankFile(6, f), BlackPawn)
+		expected.Put(RankFile(1, f), WhitePawn)
+		expected.Put(RankFile(6, f), BlackPawn)
 	}
 
 	expected.toMove = White
@@ -62,41 +62,41 @@ func TestFENStartPosition(t *testing.T) {
 
 func TestFENKiwipete(t *testing.T) {
 	expected := &Position{}
-	expected.PutPiece(SquareA1, WhiteRook)
-	expected.PutPiece(SquareC3, WhiteKnight)
-	expected.PutPiece(SquareD2, WhiteBishop)
-	expected.PutPiece(SquareF3, WhiteQueen)
-	expected.PutPiece(SquareE1, WhiteKing)
-	expected.PutPiece(SquareE2, WhiteBishop)
-	expected.PutPiece(SquareE5, WhiteKnight)
-	expected.PutPiece(SquareH1, WhiteRook)
+	expected.Put(SquareA1, WhiteRook)
+	expected.Put(SquareC3, WhiteKnight)
+	expected.Put(SquareD2, WhiteBishop)
+	expected.Put(SquareF3, WhiteQueen)
+	expected.Put(SquareE1, WhiteKing)
+	expected.Put(SquareE2, WhiteBishop)
+	expected.Put(SquareE5, WhiteKnight)
+	expected.Put(SquareH1, WhiteRook)
 
-	expected.PutPiece(SquareA8, BlackRook)
-	expected.PutPiece(SquareB6, BlackKnight)
-	expected.PutPiece(SquareA6, BlackBishop)
-	expected.PutPiece(SquareE7, BlackQueen)
-	expected.PutPiece(SquareE8, BlackKing)
-	expected.PutPiece(SquareG7, BlackBishop)
-	expected.PutPiece(SquareF6, BlackKnight)
-	expected.PutPiece(SquareH8, BlackRook)
+	expected.Put(SquareA8, BlackRook)
+	expected.Put(SquareB6, BlackKnight)
+	expected.Put(SquareA6, BlackBishop)
+	expected.Put(SquareE7, BlackQueen)
+	expected.Put(SquareE8, BlackKing)
+	expected.Put(SquareG7, BlackBishop)
+	expected.Put(SquareF6, BlackKnight)
+	expected.Put(SquareH8, BlackRook)
 
-	expected.PutPiece(SquareA2, WhitePawn)
-	expected.PutPiece(SquareB2, WhitePawn)
-	expected.PutPiece(SquareC2, WhitePawn)
-	expected.PutPiece(SquareD5, WhitePawn)
-	expected.PutPiece(SquareE4, WhitePawn)
-	expected.PutPiece(SquareF2, WhitePawn)
-	expected.PutPiece(SquareG2, WhitePawn)
-	expected.PutPiece(SquareH2, WhitePawn)
+	expected.Put(SquareA2, WhitePawn)
+	expected.Put(SquareB2, WhitePawn)
+	expected.Put(SquareC2, WhitePawn)
+	expected.Put(SquareD5, WhitePawn)
+	expected.Put(SquareE4, WhitePawn)
+	expected.Put(SquareF2, WhitePawn)
+	expected.Put(SquareG2, WhitePawn)
+	expected.Put(SquareH2, WhitePawn)
 
-	expected.PutPiece(SquareA7, BlackPawn)
-	expected.PutPiece(SquareB4, BlackPawn)
-	expected.PutPiece(SquareC7, BlackPawn)
-	expected.PutPiece(SquareD7, BlackPawn)
-	expected.PutPiece(SquareE6, BlackPawn)
-	expected.PutPiece(SquareF7, BlackPawn)
-	expected.PutPiece(SquareG6, BlackPawn)
-	expected.PutPiece(SquareH3, BlackPawn)
+	expected.Put(SquareA7, BlackPawn)
+	expected.Put(SquareB4, BlackPawn)
+	expected.Put(SquareC7, BlackPawn)
+	expected.Put(SquareD7, BlackPawn)
+	expected.Put(SquareE6, BlackPawn)
+	expected.Put(SquareF7, BlackPawn)
+	expected.Put(SquareG6, BlackPawn)
+	expected.Put(SquareH3, BlackPawn)
 
 	expected.toMove = White
 	expected.castle = AnyCastle

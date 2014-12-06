@@ -9,25 +9,25 @@ var _ = log.Println
 
 // Position encodes the chess board.
 type Position struct {
-	byPieceType [PieceTypeMaxValue]Bitboard
-	byColor     [ColorMaxValue]Bitboard
-	toMove      Color
-	castle      Castle
-	enpassant   Square
+	byFigure  [FigureMaxValue]Bitboard
+	byColor   [ColorMaxValue]Bitboard
+	toMove    Color
+	castle    Castle
+	enpassant Square
 }
 
-// PutPiece puts a piece on the board.
+// Put puts a piece on the board.
 // Does not validate input.
-func (pos *Position) PutPiece(sq Square, pi Piece) {
+func (pos *Position) Put(sq Square, pi Piece) {
 	pos.byColor[pi.Color()] |= sq.Bitboard()
-	pos.byPieceType[pi.PieceType()] |= sq.Bitboard()
+	pos.byFigure[pi.Figure()] |= sq.Bitboard()
 }
 
-// RemovePiece removes a piece from the table.
+// Remove removes a piece from the table.
 // Does not validate input.
-func (pos *Position) RemovePiece(sq Square, pi Piece) {
+func (pos *Position) Remove(sq Square, pi Piece) {
 	pos.byColor[pi.Color()] &= ^sq.Bitboard()
-	pos.byPieceType[pi.PieceType()] &= ^sq.Bitboard()
+	pos.byFigure[pi.Figure()] &= ^sq.Bitboard()
 }
 
 // IsEmpty returns true if there is no piece at sq.
@@ -47,23 +47,23 @@ func (pos *Position) GetColor(sq Square) Color {
 }
 
 // GetFigure returns the piece's type at sq.
-func (pos *Position) GetPieceType(sq Square) PieceType {
-	for pt := PieceTypeMinValue; pt < PieceTypeMaxValue; pt++ {
-		if pos.byPieceType[pt]&sq.Bitboard() != 0 {
+func (pos *Position) GetFigure(sq Square) Figure {
+	for pt := FigureMinValue; pt < FigureMaxValue; pt++ {
+		if pos.byFigure[pt]&sq.Bitboard() != 0 {
 			return pt
 		}
 	}
-	return NoPieceType
+	return NoFigure
 }
 
-// GetPiece returns the piece at sq.
-func (pos *Position) GetPiece(sq Square) Piece {
+// Get returns the piece at sq.
+func (pos *Position) Get(sq Square) Piece {
 	co := pos.GetColor(sq)
 	if co == NoColor {
 		return NoPiece
 	}
-	pt := pos.GetPieceType(sq)
-	return ColorPiece(co, pt)
+	pt := pos.GetFigure(sq)
+	return ColorFigure(co, pt)
 }
 
 // PrettyPrint pretty prints the current position.
@@ -71,7 +71,7 @@ func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
 		line := ""
 		for f := 0; f < 8; f++ {
-			line += pos.GetPiece(RankFile(r, f)).Symbol()
+			line += pos.Get(RankFile(r, f)).Symbol()
 		}
 		if r == 7 && pos.toMove == Black {
 			line += " *"
@@ -94,7 +94,7 @@ func (pos *Position) ParseMove(s string) Move {
 		MoveType:  Normal, // TODO
 		From:      from,
 		To:        to,
-		Capture:   pos.GetPiece(to),
+		Capture:   pos.Get(to),
 		OldCastle: pos.castle,
 	}
 }
@@ -112,12 +112,12 @@ var castleRights = map[Square]Castle{
 // Expects the move to be valid.
 // TODO: promotion
 func (pos *Position) DoMove(move Move) {
-	pi := pos.GetPiece(move.From)
+	pi := pos.Get(move.From)
 	if pi.Color() != pos.toMove {
 		panic(fmt.Errorf("expected %v piece at %v, got %v", pos.toMove, move.From, pi))
 	}
 
-	// log.Println(pos.GetPiece(move.From), "playing", move, "; castling rights", pos.castle)
+	// log.Println(pos.Get(move.From), "playing", move, "; castling rights", pos.castle)
 
 	// Update castling rights.
 	pos.castle &= ^castleRights[move.From]
@@ -125,27 +125,27 @@ func (pos *Position) DoMove(move Move) {
 	// Move rook on castling.
 	if move.MoveType == Castling {
 		if move.To == SquareC1 {
-			pos.RemovePiece(SquareA1, WhiteRook)
-			pos.PutPiece(SquareD1, WhiteRook)
+			pos.Remove(SquareA1, WhiteRook)
+			pos.Put(SquareD1, WhiteRook)
 		}
 		if move.To == SquareG1 {
-			pos.RemovePiece(SquareH1, WhiteRook)
-			pos.PutPiece(SquareF1, WhiteRook)
+			pos.Remove(SquareH1, WhiteRook)
+			pos.Put(SquareF1, WhiteRook)
 		}
 		if move.To == SquareC8 {
-			pos.RemovePiece(SquareA8, BlackRook)
-			pos.PutPiece(SquareD8, BlackRook)
+			pos.Remove(SquareA8, BlackRook)
+			pos.Put(SquareD8, BlackRook)
 		}
 		if move.To == SquareG8 {
-			pos.RemovePiece(SquareH8, BlackRook)
-			pos.PutPiece(SquareF8, BlackRook)
+			pos.Remove(SquareH8, BlackRook)
+			pos.Put(SquareF8, BlackRook)
 		}
 	}
 
 	// Modify the chess board.
-	pos.RemovePiece(move.From, pi)
-	pos.RemovePiece(move.To, move.Capture)
-	pos.PutPiece(move.To, pi)
+	pos.Remove(move.From, pi)
+	pos.Remove(move.To, move.Capture)
+	pos.Put(move.To, pi)
 	pos.toMove = pos.toMove.Other()
 }
 
@@ -156,29 +156,29 @@ func (pos *Position) UndoMove(move Move) {
 	// log.Println("Takeing back", move)
 
 	// Modify the chess board.
-	pi := pos.GetPiece(move.To)
-	pos.RemovePiece(move.To, pi)
-	pos.PutPiece(move.From, pi)
-	pos.PutPiece(move.To, move.Capture)
+	pi := pos.Get(move.To)
+	pos.Remove(move.To, pi)
+	pos.Put(move.From, pi)
+	pos.Put(move.To, move.Capture)
 	pos.toMove = pos.toMove.Other()
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
 		if move.To == SquareC1 {
-			pos.RemovePiece(SquareD1, WhiteRook)
-			pos.PutPiece(SquareA1, WhiteRook)
+			pos.Remove(SquareD1, WhiteRook)
+			pos.Put(SquareA1, WhiteRook)
 		}
 		if move.To == SquareG1 {
-			pos.RemovePiece(SquareF1, WhiteRook)
-			pos.PutPiece(SquareH1, WhiteRook)
+			pos.Remove(SquareF1, WhiteRook)
+			pos.Put(SquareH1, WhiteRook)
 		}
 		if move.To == SquareC8 {
-			pos.RemovePiece(SquareD8, BlackRook)
-			pos.PutPiece(SquareA8, BlackRook)
+			pos.Remove(SquareD8, BlackRook)
+			pos.Put(SquareA8, BlackRook)
 		}
 		if move.To == SquareG8 {
-			pos.RemovePiece(SquareF8, BlackRook)
-			pos.PutPiece(SquareH8, BlackRook)
+			pos.Remove(SquareF8, BlackRook)
+			pos.Put(SquareH8, BlackRook)
 		}
 	}
 
@@ -223,7 +223,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	// Attack left.
 	if pr != lastRank && from.File() != 0 {
 		to := from.Relative(advance, -1)
-		c := pos.GetPiece(to)
+		c := pos.Get(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
 				From:      from,
@@ -237,7 +237,7 @@ func (pos *Position) genPawnMoves(from Square, pi Piece, moves []Move) []Move {
 	// Attack right.
 	if pr != lastRank && from.File() != 7 {
 		to := from.Relative(advance, +1)
-		c := pos.GetPiece(to)
+		c := pos.Get(to)
 		if c.Color() == pi.Color().Other() {
 			moves = append(moves, Move{
 				From:      from,
@@ -270,7 +270,7 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 		}
 		to := RankFile(r, f)
 
-		capture := pos.GetPiece(to)
+		capture := pos.Get(to)
 		if capture.Color() == pi.Color() {
 			// Cannot capture same color.
 			continue
@@ -303,7 +303,7 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 		to := RankFile(r, f)
 
 		// Check the captured piece.
-		capture := pos.GetPiece(to)
+		capture := pos.Get(to)
 		if pi.Color() == capture.Color() {
 			break
 		}
@@ -311,7 +311,7 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 		moves = append(moves, Move{
 			From:      from,
 			To:        to,
-			Capture:   pos.GetPiece(to),
+			Capture:   pos.Get(to),
 			OldCastle: pos.castle,
 		})
 
@@ -370,7 +370,7 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 		to := RankFile(r, f)
 
 		// Check the captured piece.
-		capture := pos.GetPiece(to)
+		capture := pos.Get(to)
 		if pi.Color() == capture.Color() {
 			continue
 		}
@@ -378,7 +378,7 @@ func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
 		moves = append(moves, Move{
 			From:      from,
 			To:        to,
-			Capture:   pos.GetPiece(to),
+			Capture:   pos.Get(to),
 			OldCastle: pos.castle,
 		})
 	}
@@ -429,8 +429,8 @@ func (pos *Position) GenerateMoves() []Move {
 			continue
 		}
 
-		pi := pos.GetPiece(sq)
-		switch pi.PieceType() {
+		pi := pos.Get(sq)
+		switch pi.Figure() {
 		case Pawn:
 			moves = pos.genPawnMoves(sq, pi, moves)
 		case Knight:

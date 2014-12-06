@@ -71,7 +71,7 @@ const (
 )
 
 const (
-	NoPieceType PieceType = iota
+	NoFigure Figure = iota
 	Pawn
 	Knight
 	Bishop
@@ -79,8 +79,8 @@ const (
 	Queen
 	King
 
-	PieceTypeMaxValue
-	PieceTypeMinValue = Pawn
+	FigureMaxValue
+	FigureMinValue = Pawn
 )
 
 const (
@@ -92,7 +92,7 @@ const (
 	ColorMinValue = White
 )
 
-// Piece constants must stay in sync with ColorPiece
+// Piece constants must stay in sync with ColorFigure
 const (
 	NoPiece Piece = iota
 )
