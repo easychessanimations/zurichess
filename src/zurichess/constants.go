@@ -123,11 +123,13 @@ const (
 )
 
 const (
-	NoCastle Castle = 0
-	WhiteOO  Castle = 1 << iota
+	WhiteOO Castle = 1 << iota
 	WhiteOOO
 	BlackOO
 	BlackOOO
+
+	NoCastle  Castle = 0
+	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
 )
 
 var (
