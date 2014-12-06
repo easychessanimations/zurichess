@@ -123,9 +123,12 @@ func (pos *Position) DoMove(move Move) {
 		panic(fmt.Errorf("expected %v piece at %v, got %v", pos.toMove, move.From, pi))
 	}
 
-	// log.Println(pos.Get(move.From), "playing", move, "; castling rights", pos.castle)
+	log.Println(
+		pos.Get(move.From), "playing", move,
+		"; castling ", pos.castle,
+		"; enpassant", pos.enpassant)
 
-	// Update castling rights.
+	// Update castling rights based on the source square.
 	pos.castle &= ^castleRights[move.From]
 
 	// Move rook on castling.
@@ -146,6 +149,15 @@ func (pos *Position) DoMove(move Move) {
 			pos.Remove(SquareH8, BlackRook)
 			pos.Put(SquareF8, BlackRook)
 		}
+	}
+
+	// Set enpassant square for capturing.
+	if pi.Figure() == Pawn &&
+		move.From.Bitboard()&BbPawnStartRank != 0 &&
+		move.To.Bitboard()&BbPawnDoubleRank != 0 {
+		pos.enpassant = (move.From + move.To) / 2
+	} else {
+		pos.enpassant = SquareA1
 	}
 
 	// Modify the chess board.
@@ -192,6 +204,14 @@ func (pos *Position) UndoMove(move Move) {
 	pos.castle = move.OldCastle
 }
 
+var pawnAttack = []struct {
+	delta  int      // difference on delta
+	attack Bitboard // allowed start position for attack
+}{
+	{-1, BbPawnLeftAttack},
+	{+1, BbPawnRightAttack},
+}
+
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	advance, pawnRank, lastRank := 1, 1, 6
@@ -223,28 +243,32 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 		}
 	}
 
-	// Attack left.
-	if pr != lastRank && from.File() != 0 {
-		to := from.Relative(advance, -1)
-		capt := pos.Get(to)
-		if capt.Color() == pos.toMove.Other() {
-			moves = append(moves, pos.fix(Move{
-				From:    from,
-				To:      to,
-				Capture: capt,
-			}))
-		}
-	}
+	for _, pa := range pawnAttack {
+		if from.Bitboard()&pa.attack != 0 {
+			log.Println("enpassant from", from, "old", pos.enpassant)
 
-	// Attack right.
-	if pr != lastRank && from.File() != 7 {
-		to := from.Relative(advance, +1)
-		capt := pos.Get(to)
-		if capt.Color() == pos.toMove.Other() {
+			var mvtp MoveType
+			var capt Piece
+
+			to := from.Relative(advance, pa.delta)
+			if to == pos.enpassant {
+				// Captures en passant.
+				mvtp = Enpassant
+				capt = ColorFigure(pos.toMove.Other(), Pawn)
+			} else {
+				// Regular capture.
+				mvtp = Normal
+				capt = pos.Get(to)
+				if capt.Color() != pos.toMove.Other() {
+					continue
+				}
+			}
+
 			moves = append(moves, pos.fix(Move{
-				From:    from,
-				To:      to,
-				Capture: capt,
+				MoveType: mvtp,
+				From:     from,
+				To:       to,
+				Capture:  capt,
 			}))
 		}
 	}

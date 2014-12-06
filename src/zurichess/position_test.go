@@ -88,8 +88,6 @@ func TestGenKingMoves(t *testing.T) {
 	testMoves(t, moves, expected)
 }
 
-var castleFEN = "r3k2r/3ppp2/1BB5/8/8/8/3PPP2/R3K2R w KQkq - 0 1"
-
 type castleTestData struct {
 	castle   Castle   // castle rights, 255 to ignore
 	expected []string // expected moves
@@ -112,7 +110,7 @@ func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
 }
 
 func TestCastle(t *testing.T) {
-	pos, _ := PositionFromFEN(castleFEN)
+	pos, _ := PositionFromFEN(testBoard1)
 
 	// Simple.
 	testCastleHelper(t, pos, []castleTestData{
@@ -145,7 +143,7 @@ func TestCastle(t *testing.T) {
 }
 
 func TestCastleAfterUnrelatedMove(t *testing.T) {
-	pos, _ := PositionFromFEN(castleFEN)
+	pos, _ := PositionFromFEN(testBoard1)
 	pos.toMove = Black
 
 	// Move bishop which doesn't change castle rights.
@@ -172,7 +170,7 @@ func testPiece(t *testing.T, pos *Position, sq Square, pi Piece) {
 }
 
 func TestCastleMovesPieces(t *testing.T) {
-	pos, _ := PositionFromFEN(castleFEN)
+	pos, _ := PositionFromFEN(testBoard1)
 
 	// White
 	pos.toMove = White
@@ -218,7 +216,7 @@ func TestCastleMovesPieces(t *testing.T) {
 }
 
 func TestCastleRightsAreUpdated(t *testing.T) {
-	pos, _ := PositionFromFEN(castleFEN)
+	pos, _ := PositionFromFEN(testBoard1)
 	pos.castle = WhiteOOO
 
 	good := []castleTestData{
@@ -307,5 +305,44 @@ func TestGenQueenMoves(t *testing.T) {
 
 	moves := pos.genQueenMoves(SquareD1, nil)
 	expected := []string{"d1b1", "d1c1", "d1d2", "d1d3", "d1d4", "d1d5", "d1e2"}
+	testMoves(t, moves, expected)
+}
+
+func TestGenPawnMoves(t *testing.T) {
+	pos, _ := PositionFromFEN(testBoard1)
+
+	moves := pos.genPawnMoves(SquareE5, nil)
+	expected := []string{"e5e6"}
+	testMoves(t, moves, expected)
+
+	moves = pos.genPawnMoves(SquareE2, nil)
+	expected = []string{"e2e3", "e2e4", "e2f3"}
+	testMoves(t, moves, expected)
+}
+
+func TestPawnEnpassant(t *testing.T) {
+	pos, _ := PositionFromFEN(testBoard1)
+	pos.toMove = Black
+
+	m1 := pos.ParseMove("d7d5")
+	pos.DoMove(m1)
+	moves := pos.genPawnMoves(SquareE5, nil)
+	expected := []string{"e5e6", "e5d6"}
+	testMoves(t, moves, expected)
+
+	m2 := pos.ParseMove("e2e3")
+	pos.DoMove(m2)
+	m3 := pos.ParseMove("f7f5")
+	pos.DoMove(m3)
+	moves = pos.genPawnMoves(SquareE5, nil)
+	expected = []string{"e5e6", "e5f6"}
+	testMoves(t, moves, expected)
+
+	m4 := pos.ParseMove("e3e4")
+	pos.DoMove(m4)
+	m5 := pos.ParseMove("f3f4")
+	pos.DoMove(m5)
+	moves = pos.genPawnMoves(SquareE5, nil)
+	expected = []string{"e5e6"}
 	testMoves(t, moves, expected)
 }

@@ -132,6 +132,14 @@ const (
 	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
 )
 
+const (
+	BbEmpty           Bitboard = 0
+	BbPawnLeftAttack  Bitboard = 0x00fefefefefefe00
+	BbPawnRightAttack Bitboard = 0x007f7f7f7f7f7f00
+	BbPawnStartRank   Bitboard = 0x00ff00000000ff00
+	BbPawnDoubleRank  Bitboard = 0x000000ffff000000
+)
+
 var (
 	FENStartPos string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	FENKiwipete string = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
