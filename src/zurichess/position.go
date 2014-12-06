@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 var _ = log.Println
 
@@ -76,11 +79,12 @@ func (pos *Position) PrettyPrint() {
 		if r == 0 && pos.toMove == White {
 			line += " *"
 		}
+		log.Println(line)
 	}
 
 }
 
-// ParseMove parses a move given in standard algerbraic notation.
+// ParseMove parses a move given in standard algebraic notation.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
 func (pos *Position) ParseMove(s string) Move {
 	from := SquareFromString(s[0:2])
@@ -108,10 +112,15 @@ var castleRights = map[Square]Castle{
 // Expects the move to be valid.
 // TODO: promotion
 func (pos *Position) DoMove(move Move) {
-	// log.Println("Playing", move)
+	pi := pos.GetPiece(move.From)
+	if pi.Color() != pos.toMove {
+		panic(fmt.Errorf("expected %v piece at %v, got %v", pos.toMove, move.From, pi))
+	}
+
+	// log.Println(pos.GetPiece(move.From), "playing", move, "; castling rights", pos.castle)
 
 	// Update castling rights.
-	pos.castle &= castleRights[move.To]
+	pos.castle &= ^castleRights[move.From]
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -121,7 +130,7 @@ func (pos *Position) DoMove(move Move) {
 		}
 		if move.To == SquareG1 {
 			pos.RemovePiece(SquareH1, WhiteRook)
-			pos.PutPiece(SquareE1, WhiteRook)
+			pos.PutPiece(SquareF1, WhiteRook)
 		}
 		if move.To == SquareC8 {
 			pos.RemovePiece(SquareA8, BlackRook)
@@ -129,12 +138,11 @@ func (pos *Position) DoMove(move Move) {
 		}
 		if move.To == SquareG8 {
 			pos.RemovePiece(SquareH8, BlackRook)
-			pos.PutPiece(SquareE8, BlackRook)
+			pos.PutPiece(SquareF8, BlackRook)
 		}
 	}
 
 	// Modify the chess board.
-	pi := pos.GetPiece(move.From)
 	pos.RemovePiece(move.From, pi)
 	pos.RemovePiece(move.To, move.Capture)
 	pos.PutPiece(move.To, pi)
@@ -161,7 +169,7 @@ func (pos *Position) UndoMove(move Move) {
 			pos.PutPiece(SquareA1, WhiteRook)
 		}
 		if move.To == SquareG1 {
-			pos.RemovePiece(SquareE1, WhiteRook)
+			pos.RemovePiece(SquareF1, WhiteRook)
 			pos.PutPiece(SquareH1, WhiteRook)
 		}
 		if move.To == SquareC8 {
@@ -169,7 +177,7 @@ func (pos *Position) UndoMove(move Move) {
 			pos.PutPiece(SquareA8, BlackRook)
 		}
 		if move.To == SquareG8 {
-			pos.RemovePiece(SquareE8, BlackRook)
+			pos.RemovePiece(SquareF8, BlackRook)
 			pos.PutPiece(SquareH8, BlackRook)
 		}
 	}
@@ -270,9 +278,10 @@ func (pos *Position) genKnightMoves(from Square, pi Piece, moves []Move) []Move 
 
 		// Found a valid Knight move.
 		moves = append(moves, Move{
-			From:    from,
-			To:      to,
-			Capture: capture,
+			From:      from,
+			To:        to,
+			Capture:   capture,
+			OldCastle: pos.castle,
 		})
 	}
 	return moves
@@ -300,9 +309,10 @@ func (pos *Position) genSlidingMoves(from Square, pi Piece, dr, df int, moves []
 		}
 
 		moves = append(moves, Move{
-			From:    from,
-			To:      to,
-			Capture: pos.GetPiece(to),
+			From:      from,
+			To:        to,
+			Capture:   pos.GetPiece(to),
+			OldCastle: pos.castle,
 		})
 
 		// Stop if there a piece in the way.
@@ -342,6 +352,11 @@ var (
 )
 
 func (pos *Position) genKingMoves(from Square, pi Piece, moves []Move) []Move {
+	if pi.Color() != pos.toMove {
+		panic(fmt.Errorf("expected %v to move, got %v",
+			pos.toMove, pi.Color()))
+	}
+
 	// King moves around.
 	for i := 0; i < 8; i++ {
 		dr := kingDRank[i]

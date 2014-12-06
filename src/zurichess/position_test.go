@@ -126,6 +126,7 @@ func TestGenKingMoves(t *testing.T) {
 	kg := WhiteRook
 	pos := &Position{}
 	pos.PutPiece(SquareA2, kg)
+	pos.toMove = White
 
 	moves := pos.genKingMoves(SquareA2, kg, nil)
 	expected := []string{"a2a3", "a2b3", "a2b2", "a2b1", "a2a1"}
@@ -197,6 +198,26 @@ func TestCastle(t *testing.T) {
 	})
 }
 
+func TestCastleAfterUnrelatedMove(t *testing.T) {
+	pos, _ := PositionFromFEN(castleFEN)
+	pos.toMove = Black
+
+	// Move bishop which doesn't change castle rights.
+	m1 := Move{
+		From:      SquareF7,
+		To:        SquareF6,
+		OldCastle: pos.castle,
+	}
+
+	data := []castleTestData{
+		// Castle on both sides.
+		{255, []string{"e1d1", "e1f1", "e1g1", "e1c1"}},
+	}
+
+	pos.DoMove(m1)
+	testCastleHelper(t, pos, data)
+}
+
 func testPiece(t *testing.T, pos *Position, sq Square, pi Piece) {
 	if pos.GetPiece(sq) != pi {
 		t.Errorf("expected %v at %v, got %v",
@@ -208,10 +229,12 @@ func TestCastleMovesPieces(t *testing.T) {
 	pos, _ := PositionFromFEN(castleFEN)
 
 	// White
+	pos.toMove = White
 	m1 := Move{
-		MoveType: Castling,
-		From:     SquareE1,
-		To:       SquareC1,
+		MoveType:  Castling,
+		From:      SquareE1,
+		To:        SquareC1,
+		OldCastle: pos.castle,
 	}
 
 	pos.DoMove(m1)
@@ -227,10 +250,12 @@ func TestCastleMovesPieces(t *testing.T) {
 	testPiece(t, pos, SquareE1, WhiteKing)
 
 	// Black
+	pos.toMove = Black
 	m2 := Move{
-		MoveType: Castling,
-		From:     SquareE8,
-		To:       SquareC8,
+		MoveType:  Castling,
+		From:      SquareE8,
+		To:        SquareC8,
+		OldCastle: pos.castle,
 	}
 
 	pos.DoMove(m2)
@@ -261,36 +286,46 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 	testCastleHelper(t, pos, good)
 
 	// Move rook.
-	m1 := pos.ParseMove("a1a8")
+	m1 := pos.ParseMove("a1a4")
 	pos.DoMove(m1)
+	b1 := pos.ParseMove("a8a5")
+	pos.DoMove(b1)
 	testCastleHelper(t, pos, fail)
 
-	m2 := pos.ParseMove("a8a1")
+	m2 := pos.ParseMove("a4a1")
 	pos.DoMove(m2)
+	b2 := pos.ParseMove("a5a8")
+	pos.DoMove(b2)
 	testCastleHelper(t, pos, fail)
 
 	// Undo rook's moves.
+	pos.UndoMove(b2)
 	pos.UndoMove(m2)
 	testCastleHelper(t, pos, fail)
 
+	pos.UndoMove(b1)
 	pos.UndoMove(m1)
 	testCastleHelper(t, pos, good)
 
 	// Move king.
 	m3 := pos.ParseMove("e1d1")
 	pos.DoMove(m3)
+	pos.DoMove(b1)
 	moves := pos.genKingMoves(SquareD1, WhiteKing, nil)
 	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
 
 	m4 := pos.ParseMove("d1e1")
 	pos.DoMove(m4)
+	pos.DoMove(b2)
 	testCastleHelper(t, pos, fail)
 
 	// Undo king's move.
+	pos.UndoMove(b2)
 	pos.UndoMove(m4)
 	moves = pos.genKingMoves(SquareD1, WhiteKing, nil)
 	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
 
+	pos.UndoMove(b1)
 	pos.UndoMove(m3)
 	testCastleHelper(t, pos, good)
 }
