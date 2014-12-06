@@ -84,19 +84,25 @@ func (pos *Position) PrettyPrint() {
 
 }
 
+// fix updates move so that it can be undone.
+// Does not set capture.
+func (pos *Position) fix(move Move) Move {
+	move.OldCastle = pos.castle
+	return move
+}
+
 // ParseMove parses a move given in standard algebraic notation.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
 func (pos *Position) ParseMove(s string) Move {
 	from := SquareFromString(s[0:2])
 	to := SquareFromString(s[2:4])
 
-	return Move{
-		MoveType:  Normal, // TODO
-		From:      from,
-		To:        to,
-		Capture:   pos.Get(to),
-		OldCastle: pos.castle,
-	}
+	return pos.fix(Move{
+		MoveType: Normal, // TODO
+		From:     from,
+		To:       to,
+		Capture:  pos.Get(to),
+	})
 }
 
 var castleRights = map[Square]Castle{
@@ -194,57 +200,52 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	}
 
 	pr := from.Rank()
-	f1 := from.Relative(advance, 0)
 
 	// Move forward.
+	f1 := from.Relative(advance, 0)
 	if pr != lastRank {
 		if pos.IsEmpty(f1) {
-			moves = append(moves, Move{
-				From:      from,
-				To:        f1,
-				OldCastle: pos.castle,
-			})
+			moves = append(moves, pos.fix(Move{
+				From: from,
+				To:   f1,
+			}))
 		}
 	}
 
 	// Move forward 2x.
 	if pr == pawnRank {
 		f2 := from.Relative(advance*2, 0)
-
 		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
-			moves = append(moves, Move{
-				From:      from,
-				To:        f2,
-				OldCastle: pos.castle,
-			})
+			moves = append(moves, pos.fix(Move{
+				From: from,
+				To:   f2,
+			}))
 		}
 	}
 
 	// Attack left.
 	if pr != lastRank && from.File() != 0 {
 		to := from.Relative(advance, -1)
-		c := pos.Get(to)
-		if c.Color() == pos.toMove.Other() {
-			moves = append(moves, Move{
-				From:      from,
-				To:        to,
-				Capture:   c,
-				OldCastle: pos.castle,
-			})
+		capt := pos.Get(to)
+		if capt.Color() == pos.toMove.Other() {
+			moves = append(moves, pos.fix(Move{
+				From:    from,
+				To:      to,
+				Capture: capt,
+			}))
 		}
 	}
 
 	// Attack right.
 	if pr != lastRank && from.File() != 7 {
 		to := from.Relative(advance, +1)
-		c := pos.Get(to)
-		if c.Color() == pos.toMove.Other() {
-			moves = append(moves, Move{
-				From:      from,
-				To:        to,
-				Capture:   c,
-				OldCastle: pos.castle,
-			})
+		capt := pos.Get(to)
+		if capt.Color() == pos.toMove.Other() {
+			moves = append(moves, pos.fix(Move{
+				From:    from,
+				To:      to,
+				Capture: capt,
+			}))
 		}
 	}
 
@@ -277,12 +278,12 @@ func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
 		}
 
 		// Found a valid Knight move.
-		moves = append(moves, Move{
+		moves = append(moves, pos.fix(Move{
 			From:      from,
 			To:        to,
 			Capture:   capture,
 			OldCastle: pos.castle,
-		})
+		}))
 	}
 	return moves
 }
@@ -308,12 +309,11 @@ func (pos *Position) genSlidingMoves(from Square, dr, df int, moves []Move) []Mo
 			break
 		}
 
-		moves = append(moves, Move{
-			From:      from,
-			To:        to,
-			Capture:   pos.Get(to),
-			OldCastle: pos.castle,
-		})
+		moves = append(moves, pos.fix(Move{
+			From:    from,
+			To:      to,
+			Capture: pos.Get(to),
+		}))
 
 		// Stop if there a piece in the way.
 		if capture.Color() != NoColor {
@@ -370,12 +370,11 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 			continue
 		}
 
-		moves = append(moves, Move{
-			From:      from,
-			To:        to,
-			Capture:   pos.Get(to),
-			OldCastle: pos.castle,
-		})
+		moves = append(moves, pos.fix(Move{
+			From:    from,
+			To:      to,
+			Capture: pos.Get(to),
+		}))
 	}
 
 	// King castles.
@@ -389,12 +388,11 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	if pos.castle&oo != 0 {
 		if pos.IsEmpty(RankFile(rank, 5)) &&
 			pos.IsEmpty(RankFile(rank, 6)) {
-			moves = append(moves, Move{
-				MoveType:  Castling,
-				From:      from,
-				To:        RankFile(rank, 6),
-				OldCastle: pos.castle,
-			})
+			moves = append(moves, pos.fix(Move{
+				MoveType: Castling,
+				From:     from,
+				To:       RankFile(rank, 6),
+			}))
 		}
 	}
 
@@ -403,12 +401,11 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 		if pos.IsEmpty(RankFile(rank, 3)) &&
 			pos.IsEmpty(RankFile(rank, 2)) &&
 			pos.IsEmpty(RankFile(rank, 1)) {
-			moves = append(moves, Move{
-				MoveType:  Castling,
-				From:      from,
-				To:        RankFile(rank, 2),
-				OldCastle: pos.castle,
-			})
+			moves = append(moves, pos.fix(Move{
+				MoveType: Castling,
+				From:     from,
+				To:       RankFile(rank, 2),
+			}))
 		}
 	}
 
