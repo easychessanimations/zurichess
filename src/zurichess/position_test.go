@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+var testBoard1 = "r3k2r/3ppp2/1BB5/4P3/8/5b2/3PPP2/R3K2R w KQkq - 0 1"
+
 func TestPutGet(t *testing.T) {
 	var pi Piece
 	pos := &Position{}
