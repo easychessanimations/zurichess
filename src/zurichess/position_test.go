@@ -4,7 +4,38 @@ import (
 	"testing"
 )
 
-var testBoard1 = "r3k2r/3ppp2/1BB5/4P3/8/5b2/3PPP2/R3K2R w KQkq - 0 1"
+var (
+	testBoard1 = "r3k2r/3ppp2/1BB5/4P3/8/5b2/3PPP2/R3K2R w KQkq - 0 1"
+)
+
+// testEngine is an simple engine to simplify move testing.
+type testEngine struct {
+	T     *testing.T
+	Pos   *Position
+	moves []Move
+}
+
+func (te *testEngine) Move(m string) {
+	move := te.Pos.ParseMove(m)
+	te.moves = append(te.moves, move)
+	te.Pos.DoMove(move)
+}
+
+func (te *testEngine) Undo() {
+	l := len(te.moves) - 1
+	te.Pos.UndoMove(te.moves[l])
+	te.moves = te.moves[:l]
+}
+
+func (te *testEngine) King(sq Square, expected []string) {
+	actual := te.Pos.genKingMoves(sq, nil)
+	testMoves(te.T, actual, expected)
+}
+
+func (te *testEngine) Pawn(sq Square, expected []string) {
+	actual := te.Pos.genPawnMoves(sq, nil)
+	testMoves(te.T, actual, expected)
+}
 
 func TestPutGet(t *testing.T) {
 	var pi Piece
@@ -176,12 +207,7 @@ func TestCastleMovesPieces(t *testing.T) {
 
 	// White
 	pos.toMove = White
-	m1 := Move{
-		MoveType:  Castling,
-		From:      SquareE1,
-		To:        SquareC1,
-		OldCastle: pos.castle,
-	}
+	m1 := pos.ParseMove("e1c1")
 
 	pos.DoMove(m1)
 	testPiece(t, pos, SquareA1, NoPiece)
@@ -197,12 +223,7 @@ func TestCastleMovesPieces(t *testing.T) {
 
 	// Black
 	pos.toMove = Black
-	m2 := Move{
-		MoveType:  Castling,
-		From:      SquareE8,
-		To:        SquareC8,
-		OldCastle: pos.castle,
-	}
+	m1 := pos.ParseMove("e8c8")
 
 	pos.DoMove(m2)
 	testPiece(t, pos, SquareA8, NoPiece)
@@ -220,6 +241,10 @@ func TestCastleMovesPieces(t *testing.T) {
 func TestCastleRightsAreUpdated(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 	pos.castle = WhiteOOO
+	te := &testEngine{
+		T:   t,
+		Pos: pos,
+	}
 
 	good := []castleTestData{
 		{255, []string{"e1d1", "e1f1", "e1c1"}},
@@ -232,47 +257,39 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 	testCastleHelper(t, pos, good)
 
 	// Move rook.
-	m1 := pos.ParseMove("a1a4")
-	pos.DoMove(m1)
-	b1 := pos.ParseMove("a8a5")
-	pos.DoMove(b1)
+	te.Move("a1a4")
+	te.Move("a8a5")
 	testCastleHelper(t, pos, fail)
 
-	m2 := pos.ParseMove("a4a1")
-	pos.DoMove(m2)
-	b2 := pos.ParseMove("a5a8")
-	pos.DoMove(b2)
+	te.Move("a4a1")
+	te.Move("a5a8")
 	testCastleHelper(t, pos, fail)
 
 	// Undo rook's moves.
-	pos.UndoMove(b2)
-	pos.UndoMove(m2)
+	te.Undo()
+	te.Undo()
 	testCastleHelper(t, pos, fail)
 
-	pos.UndoMove(b1)
-	pos.UndoMove(m1)
+	te.Undo()
+	te.Undo()
 	testCastleHelper(t, pos, good)
 
 	// Move king.
-	m3 := pos.ParseMove("e1d1")
-	pos.DoMove(m3)
-	pos.DoMove(b1)
-	moves := pos.genKingMoves(SquareD1, nil)
-	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
+	te.Move("e1d1")
+	te.Move("a8a5")
+	te.King(SquareD1, []string{"d1c1", "d1c2", "d1e1"})
 
-	m4 := pos.ParseMove("d1e1")
-	pos.DoMove(m4)
-	pos.DoMove(b2)
+	te.Move("d1e1")
+	te.Move("a5a8")
 	testCastleHelper(t, pos, fail)
 
 	// Undo king's move.
-	pos.UndoMove(b2)
-	pos.UndoMove(m4)
-	moves = pos.genKingMoves(SquareD1, nil)
-	testMoves(t, moves, []string{"d1c1", "d1c2", "d1e1"})
+	te.Undo()
+	te.Undo()
+	te.King(SquareD1, []string{"d1c1", "d1c2", "d1e1"})
 
-	pos.UndoMove(b1)
-	pos.UndoMove(m3)
+	te.Undo()
+	te.Undo()
 	testCastleHelper(t, pos, good)
 }
 
@@ -312,39 +329,31 @@ func TestGenQueenMoves(t *testing.T) {
 
 func TestGenPawnMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
+	te := &testEngine{
+		T:   t,
+		Pos: pos,
+	}
 
-	moves := pos.genPawnMoves(SquareE5, nil)
-	expected := []string{"e5e6"}
-	testMoves(t, moves, expected)
-
-	moves = pos.genPawnMoves(SquareE2, nil)
-	expected = []string{"e2e3", "e2e4", "e2f3"}
-	testMoves(t, moves, expected)
+	te.Pawn(SquareE5, []string{"e5e6"})
+	te.Pawn(SquareE2, []string{"e2e3", "e2e4", "e2f3"})
 }
 
 func TestPawnEnpassant(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.toMove = Black
+	te := &testEngine{
+		T:   t,
+		Pos: pos,
+	}
 
-	m1 := pos.ParseMove("d7d5")
-	pos.DoMove(m1)
-	moves := pos.genPawnMoves(SquareE5, nil)
-	expected := []string{"e5e6", "e5d6"}
-	testMoves(t, moves, expected)
+	te.Move("a1d1")
+	te.Move("d7d5")
+	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
 
-	m2 := pos.ParseMove("e2e3")
-	pos.DoMove(m2)
-	m3 := pos.ParseMove("f7f5")
-	pos.DoMove(m3)
-	moves = pos.genPawnMoves(SquareE5, nil)
-	expected = []string{"e5e6", "e5f6"}
-	testMoves(t, moves, expected)
+	te.Move("e2e3")
+	te.Move("f7f5")
+	te.Pawn(SquareE5, []string{"e5e6", "e5f6"})
 
-	m4 := pos.ParseMove("e3e4")
-	pos.DoMove(m4)
-	m5 := pos.ParseMove("f3f4")
-	pos.DoMove(m5)
-	moves = pos.genPawnMoves(SquareE5, nil)
-	expected = []string{"e5e6"}
-	testMoves(t, moves, expected)
+	te.Move("e3e4")
+	te.Move("f3f4")
+	te.Pawn(SquareE5, []string{"e5e6"})
 }
