@@ -34,11 +34,7 @@ func (uci *UCI) Execute(line string) error {
 	case "position":
 		err = uci.position(args)
 	case "go":
-		moves := uci.pos.GenerateMoves()
-		move := moves[rand.Intn(len(moves))]
-		log.Println("selected", move, uci.pos.Get(move.From), uci.pos.Get(SquareE3), SquareE3)
-		uci.pos.PrettyPrint()
-		fmt.Printf("bestmove %s%s\n", move.From, move.To)
+		uci.go_(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -93,4 +89,22 @@ func (uci *UCI) position(args []string) error {
 
 	uci.pos.PrettyPrint()
 	return nil
+}
+
+func (uci *UCI) go_(args []string) {
+	moves := uci.pos.GenerateMoves()
+
+	var move Move
+	for {
+		move = moves[rand.Intn(len(moves))]
+		uci.pos.DoMove(move)
+		if !uci.pos.IsChecked(uci.pos.toMove.Other()) {
+			break
+		}
+		uci.pos.UndoMove(move)
+	}
+
+	uci.pos.PrettyPrint()
+	log.Printf("selected %+q; piece %v", move, uci.pos.Get(move.From))
+	fmt.Printf("bestmove %s%s\n", move.From, move.To)
 }

@@ -31,6 +31,15 @@ func (te *testEngine) Undo() {
 	te.moves = te.moves[:l]
 }
 
+func (te *testEngine) Attacked(sq Square, co Color, is bool) {
+	if is && !te.Pos.IsAttackedBy(sq, co) {
+		te.T.Errorf("expected %v to be attacked", sq)
+	}
+	if !is && te.Pos.IsAttackedBy(sq, co) {
+		te.T.Errorf("expected %v not to be attacked", sq)
+	}
+}
+
 func (te *testEngine) Piece(sq Square, expected Piece) {
 	if te.Pos.Get(sq) != expected {
 		te.T.Errorf("expected %v at %v, got %v",
@@ -386,4 +395,15 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
 	te.Piece(SquareD6, NoPiece)
 	te.Piece(SquareD5, BlackPawn)
+}
+
+func TestIsAttackedByKnight(t *testing.T) {
+	testBoard2 := "4K3/8/3n4/8/4N3/3n4/8/4k3 w - - 0 1"
+	pos, _ := PositionFromFEN(testBoard2)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Attacked(SquareE8, Black, true)
+	te.Attacked(SquareC4, Black, true)
+	te.Attacked(SquareE1, Black, true)
+	te.Attacked(SquareH8, Black, false)
 }

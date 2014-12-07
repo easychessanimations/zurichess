@@ -66,6 +66,12 @@ func (pos *Position) Get(sq Square) Piece {
 	return ColorFigure(co, pt)
 }
 
+// IsChecked returns true if co's king is checked.
+func (pos *Position) IsChecked(co Color) bool {
+	kingSq := (pos.byColor[co] & pos.byFigure[King]).AsSquare()
+	return pos.IsAttackedBy(kingSq, co.Other())
+}
+
 // PrettyPrint pretty prints the current position.
 func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
@@ -496,4 +502,13 @@ func (pos *Position) GenerateMoves() []Move {
 		}
 	}
 	return moves
+}
+
+// IsAttacked returns true if sq is under attacked by co.
+// TODO: Other pieces.
+func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
+	if knightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
+		return true
+	}
+	return false
 }
