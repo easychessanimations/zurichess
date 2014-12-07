@@ -88,20 +88,37 @@ func (pos *Position) PrettyPrint() {
 // Does not set capture.
 func (pos *Position) fix(move Move) Move {
 	move.OldCastle = pos.castle
+	move.OldEnpassant = pos.enpassant
 	return move
 }
 
 // ParseMove parses a move given in standard algebraic notation.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
+// TODO: promotion
 func (pos *Position) ParseMove(s string) Move {
 	from := SquareFromString(s[0:2])
 	to := SquareFromString(s[2:4])
 
+	mvtp := Normal
+	capt := pos.Get(to)
+
+	pi := pos.Get(from)
+	if pi.Figure() == Pawn && to == pos.enpassant {
+		mvtp = Enpassant
+		capt = ColorFigure(pos.toMove.Other(), Pawn)
+	}
+	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
+		mvtp = Castling
+	}
+	if pi == BlackKing && from == SquareE8 && (to == SquareC8 || to == SquareG8) {
+		mvtp = Castling
+	}
+
 	return pos.fix(Move{
-		MoveType: Normal, // TODO
+		MoveType: mvtp,
 		From:     from,
 		To:       to,
-		Capture:  pos.Get(to),
+		Capture:  capt,
 	})
 }
 
@@ -120,13 +137,16 @@ var castleRights = map[Square]Castle{
 func (pos *Position) DoMove(move Move) {
 	pi := pos.Get(move.From)
 	if pi.Color() != pos.toMove {
-		panic(fmt.Errorf("expected %v piece at %v, got %v", pos.toMove, move.From, pi))
+		panic(fmt.Errorf("bad move: expected %v piece at %v, got %v",
+			pos.toMove, move.From, pi))
 	}
 
-	log.Println(
-		pos.Get(move.From), "playing", move,
-		"; castling ", pos.castle,
-		"; enpassant", pos.enpassant)
+	/*
+		log.Println(
+			pos.Get(move.From), "playing", move,
+			"; castling ", pos.castle,
+			"; enpassant", pos.enpassant)
+	*/
 
 	// Update castling rights based on the source square.
 	pos.castle &= ^castleRights[move.From]
@@ -160,9 +180,20 @@ func (pos *Position) DoMove(move Move) {
 		pos.enpassant = SquareA1
 	}
 
+	// Capture pawn enpassant.
+	captSq := move.To
+	if move.MoveType == Enpassant {
+		captSq = RankFile(move.From.Rank(), move.To.File())
+	}
+
+	if move.Capture != NoPiece && pos.IsEmpty(captSq) {
+		panic(fmt.Errorf("invalid capture: expected %v at %v, got %v",
+			move.Capture, captSq, pos.Get(captSq)))
+	}
+
 	// Modify the chess board.
 	pos.Remove(move.From, pi)
-	pos.Remove(move.To, move.Capture)
+	pos.Remove(captSq, move.Capture)
 	pos.Put(move.To, pi)
 	pos.toMove = pos.toMove.Other()
 }
@@ -171,13 +202,18 @@ func (pos *Position) DoMove(move Move) {
 // Expects the move to be valid.
 // TODO: promotion
 func (pos *Position) UndoMove(move Move) {
-	// log.Println("Takeing back", move)
+	// log.Println("Taking back", move)
+
+	captSq := move.To
+	if move.MoveType == Enpassant {
+		captSq = RankFile(move.From.Rank(), move.To.File())
+	}
 
 	// Modify the chess board.
 	pi := pos.Get(move.To)
 	pos.Remove(move.To, pi)
 	pos.Put(move.From, pi)
-	pos.Put(move.To, move.Capture)
+	pos.Put(captSq, move.Capture)
 	pos.toMove = pos.toMove.Other()
 
 	// Move rook on castling.
@@ -200,8 +236,8 @@ func (pos *Position) UndoMove(move Move) {
 		}
 	}
 
-	// Restore castling rights.
 	pos.castle = move.OldCastle
+	pos.enpassant = move.OldEnpassant
 }
 
 var pawnAttack = []struct {
@@ -245,8 +281,6 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 
 	for _, pa := range pawnAttack {
 		if from.Bitboard()&pa.attack != 0 {
-			log.Println("enpassant from", from, "old", pos.enpassant)
-
 			var mvtp MoveType
 			var capt Piece
 

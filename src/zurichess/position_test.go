@@ -27,6 +27,10 @@ func (te *testEngine) Undo() {
 	te.moves = te.moves[:l]
 }
 
+func (te *testEngine) Piece(sq Square, expected Piece) {
+	testPiece(te.T, te.Pos, sq, expected)
+}
+
 func (te *testEngine) King(sq Square, expected []string) {
 	actual := te.Pos.genKingMoves(sq, nil)
 	testMoves(te.T, actual, expected)
@@ -223,7 +227,7 @@ func TestCastleMovesPieces(t *testing.T) {
 
 	// Black
 	pos.toMove = Black
-	m1 := pos.ParseMove("e8c8")
+	m2 := pos.ParseMove("e8c8")
 
 	pos.DoMove(m2)
 	testPiece(t, pos, SquareA8, NoPiece)
@@ -329,21 +333,15 @@ func TestGenQueenMoves(t *testing.T) {
 
 func TestGenPawnMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	te := &testEngine{
-		T:   t,
-		Pos: pos,
-	}
+	te := &testEngine{T: t, Pos: pos}
 
 	te.Pawn(SquareE5, []string{"e5e6"})
 	te.Pawn(SquareE2, []string{"e2e3", "e2e4", "e2f3"})
 }
 
-func TestPawnEnpassant(t *testing.T) {
+func TestPawnAttacksEnpassant(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	te := &testEngine{
-		T:   t,
-		Pos: pos,
-	}
+	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("a1d1")
 	te.Move("d7d5")
@@ -356,4 +354,32 @@ func TestPawnEnpassant(t *testing.T) {
 	te.Move("e3e4")
 	te.Move("f3f4")
 	te.Pawn(SquareE5, []string{"e5e6"})
+
+	te.Undo()
+	te.Undo()
+	te.Pawn(SquareE5, []string{"e5e6", "e5f6"})
+
+	te.Undo()
+	te.Undo()
+	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
+}
+
+func TestPawnTakesEnpassant(t *testing.T) {
+	pos, _ := PositionFromFEN(testBoard1)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("a1d1")
+	te.Move("d7d5")
+	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
+	te.Piece(SquareD6, NoPiece)
+	te.Piece(SquareD5, BlackPawn)
+
+	te.Move("e5d6")
+	te.Piece(SquareD6, WhitePawn)
+	te.Piece(SquareD5, NoPiece)
+
+	te.Undo()
+	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
+	te.Piece(SquareD6, NoPiece)
+	te.Piece(SquareD5, BlackPawn)
 }

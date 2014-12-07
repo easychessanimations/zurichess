@@ -131,11 +131,12 @@ func (bb Bitboard) AsSquare() Square {
 type MoveType uint
 
 type Move struct {
-	MoveType  MoveType
-	From, To  Square
-	Capture   Piece
-	Promotion Piece
-	OldCastle Castle
+	MoveType     MoveType
+	From, To     Square
+	Capture      Piece
+	Promotion    Piece
+	OldCastle    Castle
+	OldEnpassant Square
 }
 
 func (mo *Move) String() string {
