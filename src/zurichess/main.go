@@ -1,3 +1,5 @@
+//go:generate go run ../magic/knight.go -o knight_attack.go
+
 package main
 
 import (
