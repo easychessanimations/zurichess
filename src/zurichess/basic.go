@@ -117,7 +117,7 @@ func (pi Piece) String() string {
 // An 8x8 bitboard.
 type Bitboard uint64
 
-// Picks a square in the board.
+// LSB picks a square in the board.
 func (bb Bitboard) LSB() Bitboard {
 	return Bitboard(LSB(uint64(bb)))
 }
@@ -125,6 +125,13 @@ func (bb Bitboard) LSB() Bitboard {
 // If the bitboard has a single piece, returns the occupied square.
 func (bb Bitboard) AsSquare() Square {
 	return Square(LogN(uint64(bb)))
+}
+
+// Pop pops a set square from the bitboard.
+func (bb *Bitboard) Pop() Square {
+	sq := (*bb).LSB()
+	*bb -= sq
+	return sq.AsSquare()
 }
 
 // Move type.

@@ -320,28 +320,18 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
-	for _, e := range knightJump {
-		r, f := from.Rank()+e[0], from.File()+e[1]
-		if 0 > r || r >= 8 || 0 > f || f >= 8 {
-			// Cannot jump out of the table.
-			continue
-		}
-		to := RankFile(r, f)
+	bb := BbKnightAttack[from] & (^pos.byColor[pos.toMove])
 
-		capture := pos.Get(to)
-		if capture.Color() == pos.toMove {
-			// Cannot capture same color.
-			continue
-		}
-
-		// Found a valid Knight move.
+	for bb > 0 {
+		to := bb.Pop()
 		moves = append(moves, pos.fix(Move{
 			From:      from,
 			To:        to,
-			Capture:   capture,
+			Capture:   pos.Get(to),
 			OldCastle: pos.castle,
 		}))
 	}
+
 	return moves
 }
 
