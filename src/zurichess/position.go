@@ -318,13 +318,6 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	return moves
 }
 
-var (
-	knightJump = [8][2]int{
-		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
-		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
-	}
-)
-
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
 	for _, e := range knightJump {
@@ -507,7 +500,7 @@ func (pos *Position) GenerateMoves() []Move {
 // IsAttacked returns true if sq is under attacked by co.
 // TODO: Other pieces.
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
-	if knightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
+	if BbKnightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
 		return true
 	}
 	return false

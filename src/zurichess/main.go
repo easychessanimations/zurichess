@@ -1,5 +1,3 @@
-//go:generate go run ../magic/knight.go -o knight_attack.go
-
 package main
 
 import (
@@ -14,6 +12,8 @@ func init() {
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
+
+	initBbKnightAttack()
 }
 
 func main() {
