@@ -449,15 +449,24 @@ func (pos *Position) GenerateMoves() []Move {
 }
 
 // IsAttacked returns true if sq is under attacked by co.
-// TODO: Other pieces.
+// TODO: Pawn & king.
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
+	// Knight
 	if BbKnightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
 		return true
 	}
 
+	// Rook&Queen
 	ref := pos.byColor[White] | pos.byColor[Black]
 	att := RookMagic[sq].Attack(ref)
 	if att&pos.byColor[co]&(pos.byFigure[Rook]|pos.byFigure[Queen]) != 0 {
+		return true
+	}
+
+	// Bishop&Queen.
+	ref = pos.byColor[White] | pos.byColor[Black]
+	att = BishopMagic[sq].Attack(ref)
+	if att&pos.byColor[co]&(pos.byFigure[Bishop]|pos.byFigure[Queen]) != 0 {
 		return true
 	}
 
