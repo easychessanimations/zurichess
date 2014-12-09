@@ -318,21 +318,22 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	return moves
 }
 
-// genKnightMoves generates knight moves around from.
-func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
-	bb := BbKnightAttack[from] & (^pos.byColor[pos.toMove])
-
-	for bb > 0 {
-		to := bb.Pop()
+func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) []Move {
+	for att != 0 {
+		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
-			From:      from,
-			To:        to,
-			Capture:   pos.Get(to),
-			OldCastle: pos.castle,
+			From:    from,
+			To:      to,
+			Capture: pos.Get(to),
 		}))
 	}
-
 	return moves
+}
+
+// genKnightMoves generates knight moves around from.
+func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
+	att := BbKnightAttack[from] & (^pos.byColor[pos.toMove])
+	return pos.genBitboardMoves(from, att, moves)
 }
 
 var limit = [3]int{-1, -1, 8}
@@ -372,11 +373,9 @@ func (pos *Position) genSlidingMoves(from Square, dr, df int, moves []Move) []Mo
 }
 
 func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
-	moves = pos.genSlidingMoves(from, +1, 0, moves)
-	moves = pos.genSlidingMoves(from, -1, 0, moves)
-	moves = pos.genSlidingMoves(from, 0, +1, moves)
-	moves = pos.genSlidingMoves(from, 0, -1, moves)
-	return moves
+	ref := pos.byColor[White] | pos.byColor[Black]
+	att := RookMagic[from].Attack(ref) &^ pos.byColor[pos.toMove]
+	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
