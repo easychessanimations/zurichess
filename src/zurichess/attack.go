@@ -9,6 +9,7 @@ import (
 var (
 	BbKnightAttack [64]Bitboard
 	RookMagic      [64]magicInfo
+	BishopMagic    [64]magicInfo
 )
 
 func initBbKnightAttack() {
@@ -154,7 +155,7 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 
 		// Pick a good magic and test whether it gives a perfect hash.
 		var magic uint64
-		for Popcnt(uint64(mask)*magic>>(64-shift)) < 6 {
+		for Popcnt(uint64(mask)*magic) < 6 {
 			magic = randMagic()
 		}
 		if wiz.tryMagicNumber(magic, shift) {
@@ -172,15 +173,20 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 
 func (wiz *wizard) SearchMagics(mi []magicInfo) {
 	numEntries := uint(math.MaxUint32)
+	minShift := uint(math.MaxUint32)
 	for numEntries > wiz.MaxNumEntries {
 		numEntries = 0
 		for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
 			wiz.searchMagic(sq, &mi[sq])
 			numEntries += 1 << wiz.shifts[sq]
+			if minShift > wiz.shifts[sq] {
+				minShift = wiz.shifts[sq]
+			}
 		}
 	}
 	log.Println("numMagicTests =", wiz.numMagicTests,
-		"; numEntries =", numEntries)
+		"; numEntries =", numEntries,
+		"; minShift =", minShift)
 }
 
 func initRookMagic() {
@@ -188,8 +194,19 @@ func initRookMagic() {
 		Deltas:        [][2]int{{-1, +0}, {+1, +0}, {+0, -1}, {+0, +1}},
 		MinShift:      10,
 		MaxShift:      13,
-		MaxNumEntries: 150000,
+		MaxNumEntries: 160000,
 	}
 	wiz.SearchMagics(RookMagic[:])
 	log.Println("RookMagic initialized")
+}
+
+func initBishopMagic() {
+	wiz := &wizard{
+		Deltas:        [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}},
+		MinShift:      5,
+		MaxShift:      9,
+		MaxNumEntries: 7000,
+	}
+	wiz.SearchMagics(BishopMagic[:])
+	log.Println("BishopMagic initialized")
 }

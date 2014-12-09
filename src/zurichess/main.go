@@ -17,6 +17,7 @@ func init() {
 	rand.Seed(5)
 	initBbKnightAttack()
 	initRookMagic()
+	initBishopMagic()
 }
 
 func main() {
