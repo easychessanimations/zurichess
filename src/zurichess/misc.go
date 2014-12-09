@@ -16,3 +16,11 @@ var debrujin64 = [64]uint{
 func LogN(n uint64) uint {
 	return debrujin64[(n*0x218A392CD3D5DBF)>>58&0x3F]
 }
+
+// Popcnt counts number of bits set in n.
+func Popcnt(n uint64) (c uint) {
+	for ; n > 0; c++ {
+		n -= LSB(n)
+	}
+	return c
+}

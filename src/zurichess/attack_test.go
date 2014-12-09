@@ -1,0 +1,24 @@
+package main
+
+import (
+	"testing"
+)
+
+func TestRookAttack(t *testing.T) {
+	data := []struct {
+		sq  Square
+		occ Bitboard
+		att Bitboard
+	}{
+		{SquareB3, 0x0020441002800000, 0x0000000002fd0202},
+		{SquareF5, 0x002044d022a00000, 0x0020205020000000},
+		{SquareD2, 0x002044d022a00000, 0x080808080808f708},
+	}
+
+	for _, d := range data {
+		actual := RookMagic[d.sq].Attack(d.occ)
+		if actual != d.att {
+			t.Errorf("expected %d, got %d", d.att, actual)
+		}
+	}
+}

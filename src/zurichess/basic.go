@@ -173,3 +173,11 @@ func (ca Castle) String() string {
 	}
 	return string(r)
 }
+
+func RankBb(rank int) Bitboard {
+	return BbRank1 << uint(8*rank)
+}
+
+func FileBb(file int) Bitboard {
+	return BbFileA << uint(file)
+}

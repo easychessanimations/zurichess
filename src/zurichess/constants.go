@@ -134,10 +134,15 @@ const (
 
 const (
 	BbEmpty           Bitboard = 0
+	BbBorder          Bitboard = 0xff818181818181ff
 	BbPawnLeftAttack  Bitboard = 0x00fefefefefefe00
 	BbPawnRightAttack Bitboard = 0x007f7f7f7f7f7f00
 	BbPawnStartRank   Bitboard = 0x00ff00000000ff00
 	BbPawnDoubleRank  Bitboard = 0x000000ffff000000
+	BbFileA           Bitboard = 0x0101010101010101
+	BbFileH           Bitboard = 0x8080808080808080
+	BbRank1           Bitboard = 0x00000000000000ff
+	BbRank8           Bitboard = 0xff00000000000000
 )
 
 var (

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"log"
+	"math/rand"
 	"os"
 )
 
@@ -13,7 +14,9 @@ func init() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 
+	rand.Seed(5)
 	initBbKnightAttack()
+	initRookMagic()
 }
 
 func main() {
