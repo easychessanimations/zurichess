@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"strings"
+	"time"
 )
 
 var (
@@ -45,6 +46,7 @@ func (uci *UCI) Execute(line string) error {
 }
 
 func (uci *UCI) uci(args []string) error {
+	rand.Seed(time.Now().UnixNano())
 	fmt.Println("id name zurichess")
 	fmt.Println("id author Alexandru Moșoi")
 	fmt.Println("uciok")
