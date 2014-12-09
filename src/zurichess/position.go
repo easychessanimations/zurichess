@@ -336,42 +336,6 @@ func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
 	return pos.genBitboardMoves(from, att, moves)
 }
 
-var limit = [3]int{-1, -1, 8}
-
-func (pos *Position) genSlidingMoves(from Square, dr, df int, moves []Move) []Move {
-	r, f := from.Rank(), from.File()
-	lr := limit[dr+1]
-	lf := limit[df+1]
-
-	for {
-		r, f = r+dr, f+df
-		if r == lr || f == lf {
-			// Stop when outside board.
-			break
-		}
-		to := RankFile(r, f)
-
-		// Check the captured piece.
-		capture := pos.Get(to)
-		if pos.toMove == capture.Color() {
-			break
-		}
-
-		moves = append(moves, pos.fix(Move{
-			From:    from,
-			To:      to,
-			Capture: pos.Get(to),
-		}))
-
-		// Stop if there a piece in the way.
-		if capture.Color() != NoColor {
-			break
-		}
-	}
-
-	return moves
-}
-
 func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
 	ref := pos.byColor[White] | pos.byColor[Black]
 	att := RookMagic[from].Attack(ref) &^ pos.byColor[pos.toMove]
@@ -379,11 +343,9 @@ func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
 }
 
 func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
-	moves = pos.genSlidingMoves(from, +1, -1, moves)
-	moves = pos.genSlidingMoves(from, -1, -1, moves)
-	moves = pos.genSlidingMoves(from, +1, +1, moves)
-	moves = pos.genSlidingMoves(from, -1, +1, moves)
-	return moves
+	ref := pos.byColor[White] | pos.byColor[Black]
+	att := BishopMagic[from].Attack(ref) &^ pos.byColor[pos.toMove]
+	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
