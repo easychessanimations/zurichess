@@ -451,6 +451,36 @@ func (pos *Position) GenerateMoves() []Move {
 // IsAttacked returns true if sq is under attacked by co.
 // TODO: Pawn & king.
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
+	// WhitePawn
+	if co == White {
+		pawns := pos.byColor[White] & pos.byFigure[Pawn]
+		if sq.Bitboard()&(BbPawnLeftAttack<<7) != 0 {
+			if sq.Relative(-1, +1).Bitboard()&pawns != 0 {
+				return true
+			}
+		}
+		if sq.Bitboard()&(BbPawnRightAttack<<9) != 0 {
+			if sq.Relative(-1, -1).Bitboard()&pawns != 0 {
+				return true
+			}
+		}
+	}
+
+	// BlackPawn
+	if co == Black {
+		pawns := pos.byColor[Black] & pos.byFigure[Pawn]
+		if sq.Bitboard()&(BbPawnLeftAttack>>9) != 0 {
+			if sq.Relative(+1, +1).Bitboard()&pawns != 0 {
+				return true
+			}
+		}
+		if sq.Bitboard()&(BbPawnRightAttack>>7) != 0 {
+			if sq.Relative(+1, -1).Bitboard()&pawns != 0 {
+				return true
+			}
+		}
+	}
+
 	// Knight
 	if BbKnightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
 		return true

@@ -78,8 +78,8 @@ func (te *testEngine) King(sq Square, expected []string) {
 }
 
 func testMoves(t *testing.T, moves []Move, expected []string) {
-	t.Logf("expected = %v", expected)
-	t.Logf("actual = %v", moves)
+	// t.Logf("expected = %v", expected)
+	// t.Logf("actual = %v", moves)
 	seen := make(map[string]bool)
 	for _, e := range expected {
 		seen[e] = false
@@ -350,6 +350,37 @@ func TestGenPawnMoves(t *testing.T) {
 
 	te.Pawn(SquareE5, []string{"e5e6"})
 	te.Pawn(SquareE2, []string{"e2e3", "e2e4", "e2f3"})
+
+	pos, _ = PositionFromFEN(FENStartPos)
+	te.Pawn(SquareC2, []string{"c2c3", "c2c4"})
+}
+
+func TestPawnAttacks(t *testing.T) {
+	pos, _ := PositionFromFEN("3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K4 w - - 0 1")
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Attacked(SquareA4, White, true)
+	te.Attacked(SquareB4, White, true)
+	te.Attacked(SquareC4, White, true)
+	te.Attacked(SquareD4, White, true)
+	te.Attacked(SquareE4, White, false)
+	te.Attacked(SquareF4, White, true)
+	te.Attacked(SquareG4, White, false)
+	te.Attacked(SquareH4, White, false)
+	te.Attacked(SquareB6, White, true)
+	te.Attacked(SquareC6, White, false)
+	te.Attacked(SquareD6, White, true)
+
+	te.Attacked(SquareA1, Black, false)
+	te.Attacked(SquareB1, Black, false)
+	te.Attacked(SquareC1, Black, false)
+	te.Attacked(SquareD1, Black, false)
+	te.Attacked(SquareE1, Black, true)
+	te.Attacked(SquareF1, Black, true)
+	te.Attacked(SquareG1, Black, true)
+	te.Attacked(SquareH1, Black, true)
+	te.Attacked(SquareE4, Black, true)
+	te.Attacked(SquareG4, Black, true)
 }
 
 func TestPawnAttacksEnpassant(t *testing.T) {
