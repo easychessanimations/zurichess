@@ -35,17 +35,24 @@ func perft(pos *Position, depth int) counters {
 	co := counters{}
 	moves := pos.GenerateMoves()
 	for _, mo := range moves {
-		if mo.Capture != NoPiece {
-			co.captures++
-		}
-		if mo.MoveType == Enpassant {
-			co.enpassant++
-		}
-		if mo.MoveType == Castling {
-			co.castles++
+		pos.DoMove(mo)
+		if pos.IsChecked(pos.toMove.Other()) {
+			pos.UndoMove(mo)
+			continue
 		}
 
-		pos.DoMove(mo)
+		if depth == 1 { // count only leaf nodes
+			if mo.Capture != NoPiece {
+				co.captures++
+			}
+			if mo.MoveType == Enpassant {
+				co.enpassant++
+			}
+			if mo.MoveType == Castling {
+				co.castles++
+			}
+		}
+
 		co.Add(perft(pos, depth-1))
 		pos.UndoMove(mo)
 	}

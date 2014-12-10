@@ -407,3 +407,21 @@ func TestIsAttackedByKnight(t *testing.T) {
 	te.Attacked(SquareE1, Black, true)
 	te.Attacked(SquareH8, Black, false)
 }
+
+func TestIsAttackedByBishop(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("e2e4")
+	te.Move("d7d5")
+	te.Move("f1b5")
+	te.Attacked(SquareE8, White, true)
+
+	te.Move("e8d7")
+	te.Attacked(SquareD7, White, true)
+	te.Undo()
+
+	te.Move("c7c6")
+	te.Attacked(SquareE8, White, false)
+	te.Attacked(SquareC6, White, true)
+}
