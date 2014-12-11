@@ -100,9 +100,13 @@ func (pos *Position) fix(move Move) Move {
 
 var symbolToFigure = map[byte]Figure{
 	'N': Knight,
+	'n': Knight,
 	'B': Bishop,
+	'b': Bishop,
 	'R': Rook,
+	'r': Rook,
 	'Q': Queen,
+	'q': Queen,
 }
 
 // ParseMove parses a move given in standard algebraic notation.
@@ -400,9 +404,12 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	}
 
 	// Castle king side.
+	r5 := RankFile(rank, 5)
+	r6 := RankFile(rank, 6)
 	if pos.castle&oo != 0 {
-		if pos.IsEmpty(RankFile(rank, 5)) &&
-			pos.IsEmpty(RankFile(rank, 6)) {
+		if pos.IsEmpty(r5) && pos.IsEmpty(r6) &&
+			!pos.IsAttackedBy(r5, pos.toMove.Other()) &&
+			!pos.IsAttackedBy(r6, pos.toMove.Other()) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,
@@ -412,10 +419,13 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	}
 
 	// Castle queen side.
+	r3 := RankFile(rank, 3)
+	r2 := RankFile(rank, 2)
+	r1 := RankFile(rank, 1)
 	if pos.castle&ooo != 0 {
-		if pos.IsEmpty(RankFile(rank, 3)) &&
-			pos.IsEmpty(RankFile(rank, 2)) &&
-			pos.IsEmpty(RankFile(rank, 1)) {
+		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) &&
+			!pos.IsAttackedBy(r3, pos.toMove.Other()) &&
+			!pos.IsAttackedBy(r2, pos.toMove.Other()) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,
@@ -455,8 +465,7 @@ func (pos *Position) GenerateMoves() []Move {
 	return moves
 }
 
-// IsAttacked returns true if sq is under attacked by co.
-// TODO: Pawn & king.
+// IsAttackedBy returns true if sq is under attacked by co.
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	// WhitePawn
 	if co == White {

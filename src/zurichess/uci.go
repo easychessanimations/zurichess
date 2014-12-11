@@ -89,7 +89,6 @@ func (uci *UCI) position(args []string) error {
 		uci.pos.DoMove(move)
 	}
 
-	uci.pos.PrettyPrint()
 	return nil
 }
 

@@ -19,7 +19,8 @@ type testEngine struct {
 func (te *testEngine) Move(m string) {
 	move := te.Pos.ParseMove(m)
 	if te.Pos.toMove == move.Capture.Color() {
-		te.T.Errorf("%v cannot capture its own color (move %v)", te.Pos.toMove, move)
+		te.T.Errorf("%v cannot capture its own color (move %v)",
+			te.Pos.toMove, move)
 	}
 
 	te.moves = append(te.moves, move)
@@ -194,6 +195,22 @@ func TestCastle(t *testing.T) {
 
 	// Put a piece to block castling on OOO
 	pos.Put(SquareC1, WhiteBishop)
+	testCastleHelper(t, pos, []castleTestData{
+		// No castle rights.
+		{NoCastle, []string{"e1d1", "e1f1"}},
+		// Castle rights for black.
+		{BlackOO | BlackOOO, []string{"e1d1", "e1f1"}},
+		// Castle on king side.
+		{WhiteOO, []string{"e1d1", "e1f1", "e1g1"}},
+		// Castle on queen side.
+		{WhiteOOO, []string{"e1d1", "e1f1"}},
+		// Castle on both sides.
+		{WhiteOO | WhiteOOO, []string{"e1d1", "e1f1", "e1g1"}},
+	})
+
+	// Black bishop attacks one of the squares.
+	pos.Remove(SquareC1, WhiteBishop)
+	pos.Put(SquareA3, BlackBishop)
 	testCastleHelper(t, pos, []castleTestData{
 		// No castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
