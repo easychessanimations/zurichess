@@ -95,7 +95,6 @@ func (uci *UCI) position(args []string) error {
 
 func (uci *UCI) go_(args []string) {
 	moves := uci.pos.GenerateMoves()
-	rand.Seed(1)
 
 	var move Move
 	for {
@@ -107,7 +106,6 @@ func (uci *UCI) go_(args []string) {
 		uci.pos.UndoMove(move)
 	}
 
-	// uci.pos.PrettyPrint()
 	log.Printf("selected %q (%v); piece %v", move, move, uci.pos.Get(move.From))
 	fmt.Printf("bestmove %v\n", move)
 }
