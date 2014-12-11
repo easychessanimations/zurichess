@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"fmt"
@@ -11,9 +11,9 @@ var _ = log.Println
 type Position struct {
 	byFigure  [FigureMaxValue]Bitboard
 	byColor   [ColorMaxValue]Bitboard
-	toMove    Color
-	castle    Castle
-	enpassant Square
+	ToMove    Color
+	Castle    Castle
+	Enpassant Square
 }
 
 // Put puts a piece on the board.
@@ -79,10 +79,10 @@ func (pos *Position) PrettyPrint() {
 		for f := 0; f < 8; f++ {
 			line += pos.Get(RankFile(r, f)).Symbol()
 		}
-		if r == 7 && pos.toMove == Black {
+		if r == 7 && pos.ToMove == Black {
 			line += " *"
 		}
-		if r == 0 && pos.toMove == White {
+		if r == 0 && pos.ToMove == White {
 			line += " *"
 		}
 		log.Println(line)
@@ -93,8 +93,8 @@ func (pos *Position) PrettyPrint() {
 // fix updates move so that it can be undone.
 // Does not set capture.
 func (pos *Position) fix(move Move) Move {
-	move.OldCastle = pos.castle
-	move.OldEnpassant = pos.enpassant
+	move.OldCastle = pos.Castle
+	move.OldEnpassant = pos.Enpassant
 	return move
 }
 
@@ -120,9 +120,9 @@ func (pos *Position) ParseMove(s string) Move {
 	promo := NoPiece
 
 	pi := pos.Get(from)
-	if pi.Figure() == Pawn && pos.enpassant != SquareA1 && to == pos.enpassant {
+	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
 		mvtp = Enpassant
-		capt = ColorFigure(pos.toMove.Other(), Pawn)
+		capt = ColorFigure(pos.ToMove.Other(), Pawn)
 	}
 	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
 		mvtp = Castling
@@ -132,7 +132,7 @@ func (pos *Position) ParseMove(s string) Move {
 	}
 	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
 		mvtp = Promotion
-		promo = ColorFigure(pos.toMove, symbolToFigure[s[4]])
+		promo = ColorFigure(pos.ToMove, symbolToFigure[s[4]])
 	}
 
 	return pos.fix(Move{
@@ -144,7 +144,7 @@ func (pos *Position) ParseMove(s string) Move {
 	})
 }
 
-var castleRights = map[Square]Castle{
+var CastleRights = map[Square]Castle{
 	SquareA1: WhiteOOO,
 	SquareE1: WhiteOOO | WhiteOO,
 	SquareH1: WhiteOO,
@@ -158,20 +158,20 @@ var castleRights = map[Square]Castle{
 // TODO: promotion
 func (pos *Position) DoMove(move Move) {
 	pi := pos.Get(move.From)
-	if pi.Color() != pos.toMove {
+	if pi.Color() != pos.ToMove {
 		panic(fmt.Errorf("bad move: expected %v piece at %v, got %v",
-			pos.toMove, move.From, pi))
+			pos.ToMove, move.From, pi))
 	}
 
 	/*
 		log.Println(
 			pos.Get(move.From), "playing", move,
-			"; castling ", pos.castle,
-			"; enpassant", pos.enpassant)
+			"; castling ", pos.Castle,
+			"; Enpassant", pos.Enpassant)
 	*/
 
 	// Update castling rights based on the source square.
-	pos.castle &= ^castleRights[move.From]
+	pos.Castle &= ^CastleRights[move.From]
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -193,16 +193,16 @@ func (pos *Position) DoMove(move Move) {
 		}
 	}
 
-	// Set enpassant square for capturing.
+	// Set Enpassant square for capturing.
 	if pi.Figure() == Pawn &&
 		move.From.Bitboard()&BbPawnStartRank != 0 &&
 		move.To.Bitboard()&BbPawnDoubleRank != 0 {
-		pos.enpassant = (move.From + move.To) / 2
+		pos.Enpassant = (move.From + move.To) / 2
 	} else {
-		pos.enpassant = SquareA1
+		pos.Enpassant = SquareA1
 	}
 
-	// Capture pawn enpassant.
+	// Capture pawn Enpassant.
 	captSq := move.To
 	if move.MoveType == Enpassant {
 		captSq = RankFile(move.From.Rank(), move.To.File())
@@ -221,7 +221,7 @@ func (pos *Position) DoMove(move Move) {
 	} else {
 		pos.Put(move.To, move.Promotion)
 	}
-	pos.toMove = pos.toMove.Other()
+	pos.ToMove = pos.ToMove.Other()
 }
 
 // UndoMove takes back a move.
@@ -229,7 +229,7 @@ func (pos *Position) DoMove(move Move) {
 func (pos *Position) UndoMove(move Move) {
 	// log.Println("Taking back", move)
 
-	pos.toMove = pos.toMove.Other()
+	pos.ToMove = pos.ToMove.Other()
 
 	captSq := move.To
 	if move.MoveType == Enpassant {
@@ -242,7 +242,7 @@ func (pos *Position) UndoMove(move Move) {
 	if move.MoveType != Promotion {
 		pos.Put(move.From, pi)
 	} else {
-		pos.Put(move.From, ColorFigure(pos.toMove, Pawn))
+		pos.Put(move.From, ColorFigure(pos.ToMove, Pawn))
 	}
 	pos.Put(captSq, move.Capture)
 
@@ -266,8 +266,8 @@ func (pos *Position) UndoMove(move Move) {
 		}
 	}
 
-	pos.castle = move.OldCastle
-	pos.enpassant = move.OldEnpassant
+	pos.Castle = move.OldCastle
+	pos.Enpassant = move.OldEnpassant
 }
 
 var (
@@ -285,7 +285,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 	pr := to.Rank()
 	if pr != 0 && pr != 7 {
 		mvtp := Normal
-		if to == pos.enpassant {
+		if to == pos.Enpassant {
 			mvtp = Enpassant
 		}
 		moves = append(moves, pos.fix(Move{
@@ -301,7 +301,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 				From:      from,
 				To:        to,
 				Capture:   capt,
-				Promotion: ColorFigure(pos.toMove, promo),
+				Promotion: ColorFigure(pos.ToMove, promo),
 			}))
 		}
 	}
@@ -311,7 +311,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 	advance, pawnRank := 1, 1
-	if pos.toMove == Black {
+	if pos.ToMove == Black {
 		advance, pawnRank = -1, 6
 	}
 
@@ -338,13 +338,13 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 		if from.Bitboard()&pa.attack != 0 {
 			var capt Piece
 			to := from.Relative(advance, pa.delta)
-			if pos.enpassant != SquareA1 && to == pos.enpassant {
+			if pos.Enpassant != SquareA1 && to == pos.Enpassant {
 				// Captures en passant.
-				capt = ColorFigure(pos.toMove.Other(), Pawn)
+				capt = ColorFigure(pos.ToMove.Other(), Pawn)
 			} else {
 				// Regular capture.
 				capt = pos.Get(to)
-				if capt.Color() != pos.toMove.Other() {
+				if capt.Color() != pos.ToMove.Other() {
 					continue
 				}
 			}
@@ -369,19 +369,19 @@ func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) [
 
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
-	att := BbKnightAttack[from] & (^pos.byColor[pos.toMove])
+	att := BbKnightAttack[from] & (^pos.byColor[pos.ToMove])
 	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
 	ref := pos.byColor[White] | pos.byColor[Black]
-	att := RookMagic[from].Attack(ref) &^ pos.byColor[pos.toMove]
+	att := RookMagic[from].Attack(ref) &^ pos.byColor[pos.ToMove]
 	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
 	ref := pos.byColor[White] | pos.byColor[Black]
-	att := BishopMagic[from].Attack(ref) &^ pos.byColor[pos.toMove]
+	att := BishopMagic[from].Attack(ref) &^ pos.byColor[pos.ToMove]
 	return pos.genBitboardMoves(from, att, moves)
 }
 
@@ -393,23 +393,23 @@ func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
 
 func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// King moves around.
-	att := BbKingAttack[from] & (^pos.byColor[pos.toMove])
+	att := BbKingAttack[from] & (^pos.byColor[pos.ToMove])
 	moves = pos.genBitboardMoves(from, att, moves)
 
-	// King castles.
+	// King Castles.
 	// TODO: verify checks
 	oo, ooo, rank := WhiteOO, WhiteOOO, 0
-	if pos.toMove == Black {
+	if pos.ToMove == Black {
 		oo, ooo, rank = BlackOO, BlackOOO, 7
 	}
 
 	// Castle king side.
 	r5 := RankFile(rank, 5)
 	r6 := RankFile(rank, 6)
-	if pos.castle&oo != 0 {
+	if pos.Castle&oo != 0 {
 		if pos.IsEmpty(r5) && pos.IsEmpty(r6) &&
-			!pos.IsAttackedBy(r5, pos.toMove.Other()) &&
-			!pos.IsAttackedBy(r6, pos.toMove.Other()) {
+			!pos.IsAttackedBy(r5, pos.ToMove.Other()) &&
+			!pos.IsAttackedBy(r6, pos.ToMove.Other()) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,
@@ -422,10 +422,10 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	r3 := RankFile(rank, 3)
 	r2 := RankFile(rank, 2)
 	r1 := RankFile(rank, 1)
-	if pos.castle&ooo != 0 {
+	if pos.Castle&ooo != 0 {
 		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) &&
-			!pos.IsAttackedBy(r3, pos.toMove.Other()) &&
-			!pos.IsAttackedBy(r2, pos.toMove.Other()) {
+			!pos.IsAttackedBy(r3, pos.ToMove.Other()) &&
+			!pos.IsAttackedBy(r2, pos.ToMove.Other()) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,
@@ -442,7 +442,7 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 func (pos *Position) GenerateMoves() []Move {
 	moves := make([]Move, 0, 8)
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
-		if pos.byColor[pos.toMove]&sq.Bitboard() == 0 {
+		if pos.byColor[pos.ToMove]&sq.Bitboard() == 0 {
 			continue
 		}
 

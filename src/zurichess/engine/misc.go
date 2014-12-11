@@ -1,4 +1,4 @@
-package main
+package engine
 
 // LSB returns the least significant bit of n.
 func LSB(n uint64) uint64 {

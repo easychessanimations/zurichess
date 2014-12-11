@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"fmt"
@@ -99,7 +99,7 @@ func (uci *UCI) go_(args []string) {
 	for {
 		move = moves[rand.Intn(len(moves))]
 		uci.pos.DoMove(move)
-		if !uci.pos.IsChecked(uci.pos.toMove.Other()) {
+		if !uci.pos.IsChecked(uci.pos.ToMove.Other()) {
 			break
 		}
 		uci.pos.UndoMove(move)

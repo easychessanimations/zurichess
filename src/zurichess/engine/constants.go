@@ -1,4 +1,4 @@
-package main
+package engine
 
 const (
 	SquareA1 Square = iota

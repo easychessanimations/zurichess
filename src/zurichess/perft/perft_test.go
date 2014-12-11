@@ -4,6 +4,8 @@ package main
 
 import (
 	"testing"
+
+	"zurichess/engine"
 )
 
 type counters struct {
@@ -27,7 +29,7 @@ func (co *counters) Equal(ot counters) bool {
 		co.castles == ot.castles
 }
 
-func perft(pos *Position, depth int) counters {
+func perft(pos *engine.Position, depth int) counters {
 	if depth == 0 {
 		return counters{1, 0, 0, 0}
 	}
@@ -36,19 +38,19 @@ func perft(pos *Position, depth int) counters {
 	moves := pos.GenerateMoves()
 	for _, mo := range moves {
 		pos.DoMove(mo)
-		if pos.IsChecked(pos.toMove.Other()) {
+		if pos.IsChecked(pos.ToMove.Other()) {
 			pos.UndoMove(mo)
 			continue
 		}
 
 		if depth == 1 { // count only leaf nodes
-			if mo.Capture != NoPiece {
+			if mo.Capture != engine.NoPiece {
 				co.captures++
 			}
-			if mo.MoveType == Enpassant {
+			if mo.MoveType == engine.Enpassant {
 				co.enpassant++
 			}
-			if mo.MoveType == Castling {
+			if mo.MoveType == engine.Castling {
 				co.castles++
 			}
 		}
@@ -65,7 +67,7 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 			return
 		}
 
-		pos, err := PositionFromFEN(fen)
+		pos, err := engine.PositionFromFEN(fen)
 		if err != nil {
 			t.Errorf("invalid FEN: %s", fen)
 		}
@@ -79,7 +81,7 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 }
 
 func TestPerftInitial(t *testing.T) {
-	testHelper(t, FENStartPos, []counters{
+	testHelper(t, engine.FENStartPos, []counters{
 		{1, 0, 0, 0},
 		{20, 0, 0, 0},
 		{400, 0, 0, 0},
@@ -92,7 +94,7 @@ func TestPerftInitial(t *testing.T) {
 }
 
 func TestPerftKiwipete(t *testing.T) {
-	testHelper(t, FENKiwipete, []counters{
+	testHelper(t, engine.FENKiwipete, []counters{
 		{1, 0, 0, 0},
 		{48, 8, 0, 2},
 		{2039, 351, 1, 91},

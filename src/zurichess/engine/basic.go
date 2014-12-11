@@ -1,4 +1,4 @@
-package main
+package engine
 
 // Square identifies the location on the board.
 type Square int
@@ -158,7 +158,7 @@ func (mo Move) String() string {
 // Castle type
 type Castle uint
 
-var castleSymbol = map[Castle]byte{
+var CastleSymbol = map[Castle]byte{
 	WhiteOO:  'K',
 	WhiteOOO: 'Q',
 	BlackOO:  'k',
@@ -171,7 +171,7 @@ func (ca Castle) String() string {
 	}
 
 	var r []byte
-	for k, v := range castleSymbol {
+	for k, v := range CastleSymbol {
 		if ca&k != 0 {
 			r = append(r, v)
 		}

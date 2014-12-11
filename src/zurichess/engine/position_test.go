@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"testing"
@@ -18,9 +18,9 @@ type testEngine struct {
 
 func (te *testEngine) Move(m string) {
 	move := te.Pos.ParseMove(m)
-	if te.Pos.toMove == move.Capture.Color() {
+	if te.Pos.ToMove == move.Capture.Color() {
 		te.T.Errorf("%v cannot capture its own color (move %v)",
-			te.Pos.toMove, move)
+			te.Pos.ToMove, move)
 	}
 
 	te.moves = append(te.moves, move)
@@ -120,7 +120,7 @@ func TestPutGetRemove(t *testing.T) {
 }
 
 func TestGenKnightMoves(t *testing.T) {
-	pos := &Position{toMove: White}
+	pos := &Position{ToMove: White}
 	pos.Put(SquareB2, WhiteKnight)
 	pos.Put(SquareE4, WhiteKnight)
 	pos.Put(SquareC4, WhitePawn)
@@ -131,7 +131,7 @@ func TestGenKnightMoves(t *testing.T) {
 }
 
 func TestGenRookMoves(t *testing.T) {
-	pos := &Position{toMove: White}
+	pos := &Position{ToMove: White}
 	pos.Put(SquareB2, WhiteRook)
 	pos.Put(SquareF2, WhiteKing)
 	pos.Put(SquareB6, BlackKing)
@@ -142,7 +142,7 @@ func TestGenRookMoves(t *testing.T) {
 
 func TestGenKingMoves(t *testing.T) {
 	// King is alone.
-	pos := &Position{toMove: White}
+	pos := &Position{ToMove: White}
 	te := &testEngine{T: t, Pos: pos}
 
 	pos.Put(SquareA2, WhiteKing)
@@ -155,12 +155,12 @@ func TestGenKingMoves(t *testing.T) {
 	te.King(SquareA2, []string{"a2b3", "a2b1", "a2a1"})
 }
 
-type castleTestData struct {
-	castle   Castle   // castle rights, 255 to ignore
+type CastleTestData struct {
+	Castle   Castle   // Castle rights, 255 to ignore
 	expected []string // expected moves
 }
 
-func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
+func testCastleHelper(t *testing.T, pos *Position, data []CastleTestData) {
 	if pos.Get(SquareE1) != WhiteKing {
 		t.Errorf("expected %v on %v, got %v",
 			WhiteKing, SquareE1, pos.Get(SquareE1))
@@ -168,8 +168,8 @@ func testCastleHelper(t *testing.T, pos *Position, data []castleTestData) {
 	}
 
 	for _, d := range data {
-		if d.castle != 255 {
-			pos.castle = d.castle
+		if d.Castle != 255 {
+			pos.Castle = d.Castle
 		}
 		moves := pos.genKingMoves(SquareE1, nil)
 		testMoves(t, moves, d.expected)
@@ -180,8 +180,8 @@ func TestCastle(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
 	// Simple.
-	testCastleHelper(t, pos, []castleTestData{
-		// No castle rights.
+	testCastleHelper(t, pos, []CastleTestData{
+		// No Castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
 		// Castle rights for black.
 		{BlackOO | BlackOOO, []string{"e1d1", "e1f1"}},
@@ -195,8 +195,8 @@ func TestCastle(t *testing.T) {
 
 	// Put a piece to block castling on OOO
 	pos.Put(SquareC1, WhiteBishop)
-	testCastleHelper(t, pos, []castleTestData{
-		// No castle rights.
+	testCastleHelper(t, pos, []CastleTestData{
+		// No Castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
 		// Castle rights for black.
 		{BlackOO | BlackOOO, []string{"e1d1", "e1f1"}},
@@ -211,8 +211,8 @@ func TestCastle(t *testing.T) {
 	// Black bishop attacks one of the squares.
 	pos.Remove(SquareC1, WhiteBishop)
 	pos.Put(SquareA3, BlackBishop)
-	testCastleHelper(t, pos, []castleTestData{
-		// No castle rights.
+	testCastleHelper(t, pos, []CastleTestData{
+		// No Castle rights.
 		{NoCastle, []string{"e1d1", "e1f1"}},
 		// Castle rights for black.
 		{BlackOO | BlackOOO, []string{"e1d1", "e1f1"}},
@@ -227,16 +227,16 @@ func TestCastle(t *testing.T) {
 
 func TestCastleAfterUnrelatedMove(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.toMove = Black
+	pos.ToMove = Black
 
-	// Move bishop which doesn't change castle rights.
+	// Move bishop which doesn't change Castle rights.
 	m1 := Move{
 		From:      SquareF7,
 		To:        SquareF6,
-		OldCastle: pos.castle,
+		OldCastle: pos.Castle,
 	}
 
-	data := []castleTestData{
+	data := []CastleTestData{
 		// Castle on both sides.
 		{255, []string{"e1d1", "e1f1", "e1g1", "e1c1"}},
 	}
@@ -250,7 +250,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	// White
-	pos.toMove = White
+	pos.ToMove = White
 	te.Move("e1c1")
 	te.Piece(SquareA1, NoPiece)
 	te.Piece(SquareC1, WhiteKing)
@@ -264,7 +264,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te.Piece(SquareE1, WhiteKing)
 
 	// Black
-	pos.toMove = Black
+	pos.ToMove = Black
 	te.Move("e8c8")
 	te.Piece(SquareA8, NoPiece)
 	te.Piece(SquareC8, BlackKing)
@@ -280,17 +280,17 @@ func TestCastleMovesPieces(t *testing.T) {
 
 func TestCastleRightsAreUpdated(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.castle = WhiteOOO
+	pos.Castle = WhiteOOO
 	te := &testEngine{T: t, Pos: pos}
 
-	good := []castleTestData{
+	good := []CastleTestData{
 		{255, []string{"e1d1", "e1f1", "e1c1"}},
 	}
-	fail := []castleTestData{
+	fail := []CastleTestData{
 		{255, []string{"e1d1", "e1f1"}},
 	}
 
-	// Check that king can castle queen side.
+	// Check that king can Castle queen side.
 	testCastleHelper(t, pos, good)
 
 	// Move rook.
@@ -331,7 +331,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 }
 
 func TestGenBishopMoves(t *testing.T) {
-	pos := &Position{toMove: White}
+	pos := &Position{ToMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -347,7 +347,7 @@ func TestGenBishopMoves(t *testing.T) {
 }
 
 func TestGenQueenMoves(t *testing.T) {
-	pos := &Position{toMove: White}
+	pos := &Position{ToMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -402,7 +402,7 @@ func TestPawnAttacks(t *testing.T) {
 
 func TestPawnPromotions(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard2)
-	pos.toMove = Black
+	pos.ToMove = Black
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Pawn(SquareF2, []string{"f2f1N", "f2f1B", "f2f1R", "f2f1Q"})
@@ -471,9 +471,9 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	te.Piece(SquareD6, NoPiece)
 	te.Piece(SquareD5, BlackPawn)
 
-	// Makes sure that black pawn at A2/B2 doesn't take enpassant.
-	pos.toMove = Black
-	pos.enpassant = SquareA1
+	// Makes sure that black pawn at A2/B2 doesn't take Enpassant.
+	pos.ToMove = Black
+	pos.Enpassant = SquareA1
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
 	pos.Put(SquareB2, BlackPawn)

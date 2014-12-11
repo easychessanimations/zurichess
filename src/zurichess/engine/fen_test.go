@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"testing"
@@ -19,14 +19,14 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 		}
 	}
 
-	if expected.toMove != actual.toMove {
+	if expected.ToMove != actual.ToMove {
 		t.Errorf("expected to move %v, got %v",
-			expected.toMove, actual.toMove)
+			expected.ToMove, actual.ToMove)
 	}
 
-	if expected.castle != actual.castle {
-		t.Errorf("expected castle rights %v, got %v",
-			expected.castle, actual.castle)
+	if expected.Castle != actual.Castle {
+		t.Errorf("expected Castle rights %v, got %v",
+			expected.Castle, actual.Castle)
 	}
 }
 
@@ -55,8 +55,8 @@ func TestFENStartPosition(t *testing.T) {
 		expected.Put(RankFile(6, f), BlackPawn)
 	}
 
-	expected.toMove = White
-	expected.castle = AnyCastle
+	expected.ToMove = White
+	expected.Castle = AnyCastle
 	testFENHelper(t, expected, FENStartPos)
 }
 
@@ -98,7 +98,7 @@ func TestFENKiwipete(t *testing.T) {
 	expected.Put(SquareG6, BlackPawn)
 	expected.Put(SquareH3, BlackPawn)
 
-	expected.toMove = White
-	expected.castle = AnyCastle
+	expected.ToMove = White
+	expected.Castle = AnyCastle
 	testFENHelper(t, expected, FENKiwipete)
 }

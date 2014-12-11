@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"flag"
 	"log"
-	"math/rand"
 	"os"
+
+	"zurichess/engine"
 )
 
 func init() {
@@ -14,19 +15,11 @@ func init() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
 
-	rand.Seed(5)
-	initBbKnightAttack()
-	initBbKingAttack()
-	initRookMagic()
-	initBishopMagic()
 }
 
 func main() {
-	var pos *Position
-	_ = pos
-
 	bio := bufio.NewReader(os.Stdin)
-	uci := &UCI{}
+	uci := &engine.UCI{}
 
 	for {
 		line, _, err := bio.ReadLine()
@@ -35,7 +28,7 @@ func main() {
 			break
 		}
 		if err := uci.Execute(string(line)); err != nil {
-			if err != ErrQuit {
+			if err != engine.ErrQuit {
 				log.Println("error:", err)
 			}
 			break

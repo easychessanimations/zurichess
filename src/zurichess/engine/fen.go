@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"fmt"
@@ -65,9 +65,9 @@ func PositionFromFEN(fen string) (*Position, error) {
 	// Parse next to move.
 	switch fld[1] {
 	case "w":
-		pos.toMove = White
+		pos.ToMove = White
 	case "b":
-		pos.toMove = Black
+		pos.ToMove = Black
 	default:
 		return nil, fmt.Errorf("unknown color %s", fld[1])
 	}
@@ -76,20 +76,20 @@ func PositionFromFEN(fen string) (*Position, error) {
 	for _, p := range fld[2] {
 		switch p {
 		case 'K':
-			pos.castle |= WhiteOO
+			pos.Castle |= WhiteOO
 		case 'Q':
-			pos.castle |= WhiteOOO
+			pos.Castle |= WhiteOOO
 		case 'k':
-			pos.castle |= BlackOO
+			pos.Castle |= BlackOO
 		case 'q':
-			pos.castle |= BlackOOO
+			pos.Castle |= BlackOOO
 		}
 	}
 
-	// Parse enpassant.
+	// Parse Enpassant.
 	// TODO: handle error
 	if fld[3] != "-" {
-		pos.enpassant = SquareFromString(fld[3])
+		pos.Enpassant = SquareFromString(fld[3])
 	}
 
 	// TODO: halfmove, fullmove

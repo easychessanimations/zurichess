@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"log"
@@ -12,6 +12,14 @@ var (
 	RookMagic      [64]magicInfo
 	BishopMagic    [64]magicInfo
 )
+
+func init() {
+	rand.Seed(5)
+	initBbKnightAttack()
+	initBbKingAttack()
+	initRookMagic()
+	initBishopMagic()
+}
 
 func initJumpAttack(jump [][2]int, attack []Bitboard) {
 	for r := 0; r < 8; r++ {
