@@ -146,8 +146,13 @@ type Move struct {
 	OldEnpassant Square
 }
 
-func (mo *Move) String() string {
-	return mo.From.String() + mo.To.String()
+func (mo Move) String() string {
+	r := mo.From.String() + mo.To.String()
+	if mo.MoveType == Promotion {
+		s := mo.Promotion.Figure()
+		r += string(pieceSymbol[White][s : s+1])
+	}
+	return r
 }
 
 // Castle type
