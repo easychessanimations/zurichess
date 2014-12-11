@@ -387,36 +387,10 @@ func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
 	return moves
 }
 
-var (
-	kingDRank = [8]int{+1, +1, +1, +0, -1, -1, -1, +0}
-	kingDFile = [8]int{-1, +0, +1, +1, +1, +0, -1, -1}
-)
-
 func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// King moves around.
-	for i := 0; i < 8; i++ {
-		dr := kingDRank[i]
-		df := kingDFile[i]
-
-		r, f := from.Rank()+dr, from.File()+df
-		if r == -1 || r == 8 || f == -1 || f == 8 {
-			// Stop when outside board.
-			continue
-		}
-		to := RankFile(r, f)
-
-		// Check the captured piece.
-		capture := pos.Get(to)
-		if pos.toMove == capture.Color() {
-			continue
-		}
-
-		moves = append(moves, pos.fix(Move{
-			From:    from,
-			To:      to,
-			Capture: pos.Get(to),
-		}))
-	}
+	att := BbKingAttack[from] & (^pos.byColor[pos.toMove])
+	moves = pos.genBitboardMoves(from, att, moves)
 
 	// King castles.
 	// TODO: verify checks

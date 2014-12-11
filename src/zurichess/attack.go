@@ -8,29 +8,43 @@ import (
 
 var (
 	BbKnightAttack [64]Bitboard
+	BbKingAttack   [64]Bitboard
 	RookMagic      [64]magicInfo
 	BishopMagic    [64]magicInfo
 )
 
-func initBbKnightAttack() {
-	knightJump := [8][2]int{
-		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
-		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
-	}
+func initJumpAttack(jump [][2]int, attack []Bitboard) {
 	for r := 0; r < 8; r++ {
 		for f := 0; f < 8; f++ {
 			bb := Bitboard(0)
-			for _, d := range knightJump {
+			for _, d := range jump {
 				r_, f_ := r+d[0], f+d[1]
 				if 0 > r_ || r_ >= 8 || 0 > f_ || f_ >= 8 {
 					continue
 				}
 				bb |= RankFile(r_, f_).Bitboard()
 			}
-			BbKnightAttack[RankFile(r, f)] = bb
+			attack[RankFile(r, f)] = bb
 		}
 	}
+}
+
+func initBbKnightAttack() {
+	knightJump := [][2]int{
+		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
+		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
+	}
+	initJumpAttack(knightJump, BbKnightAttack[:])
 	log.Println("BbKnightAttack initialized")
+}
+
+func initBbKingAttack() {
+	kingJump := [][2]int{
+		{-1, -1}, {-1, +0}, {-1, +1}, {+0, +1},
+		{+1, +1}, {+1, +0}, {+1, -1}, {+0, -1},
+	}
+	initJumpAttack(kingJump, BbKingAttack[:])
+	log.Println("BbKingAttack initialized")
 }
 
 func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
