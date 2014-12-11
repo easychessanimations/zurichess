@@ -6,6 +6,7 @@ import (
 
 var (
 	testBoard1 = "r3k2r/3ppp2/1BB5/4P3/8/5b2/3PPP2/R3K2R w KQkq - 0 1"
+	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w KQkq - 0 1"
 )
 
 // testEngine is an simple engine to simplify move testing.
@@ -33,10 +34,10 @@ func (te *testEngine) Undo() {
 
 func (te *testEngine) Attacked(sq Square, co Color, is bool) {
 	if is && !te.Pos.IsAttackedBy(sq, co) {
-		te.T.Errorf("expected %v to be attacked", sq)
+		te.T.Errorf("expected %v to be attacked by %v", sq, co)
 	}
 	if !is && te.Pos.IsAttackedBy(sq, co) {
-		te.T.Errorf("expected %v not to be attacked", sq)
+		te.T.Errorf("expected %v not to be attacked by %v", sq, co)
 	}
 }
 
@@ -356,7 +357,7 @@ func TestGenPawnMoves(t *testing.T) {
 }
 
 func TestPawnAttacks(t *testing.T) {
-	pos, _ := PositionFromFEN("3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K4 w - - 0 1")
+	pos, _ := PositionFromFEN(testBoard2)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Attacked(SquareA4, White, true)
@@ -366,7 +367,6 @@ func TestPawnAttacks(t *testing.T) {
 	te.Attacked(SquareE4, White, false)
 	te.Attacked(SquareF4, White, true)
 	te.Attacked(SquareG4, White, false)
-	te.Attacked(SquareH4, White, false)
 	te.Attacked(SquareB6, White, true)
 	te.Attacked(SquareC6, White, false)
 	te.Attacked(SquareD6, White, true)
@@ -381,6 +381,33 @@ func TestPawnAttacks(t *testing.T) {
 	te.Attacked(SquareH1, Black, true)
 	te.Attacked(SquareE4, Black, true)
 	te.Attacked(SquareG4, Black, true)
+}
+
+func TestPawnPromotions(t *testing.T) {
+	pos, _ := PositionFromFEN(testBoard2)
+	pos.toMove = Black
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Pawn(SquareF2, []string{"f2f1N", "f2f1B", "f2f1R", "f2f1Q"})
+	te.Pawn(SquareG2, []string{
+		"g2g1N", "g2g1B", "g2g1R", "g2g1Q",
+		"g2h1N", "g2h1B", "g2h1R", "g2h1Q"})
+
+	te.Move("g2h1N")
+	te.Piece(SquareG1, NoPiece)
+	te.Piece(SquareH1, BlackKnight)
+
+	te.Undo()
+	te.Piece(SquareG2, BlackPawn)
+	te.Piece(SquareH1, WhiteRook)
+
+	te.Move("f2f1Q")
+	te.Piece(SquareF2, NoPiece)
+	te.Piece(SquareF1, BlackQueen)
+
+	te.Undo()
+	te.Piece(SquareG2, BlackPawn)
+	te.Piece(SquareH1, WhiteRook)
 }
 
 func TestPawnAttacksEnpassant(t *testing.T) {
@@ -426,6 +453,16 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	te.Pawn(SquareE5, []string{"e5e6", "e5d6"})
 	te.Piece(SquareD6, NoPiece)
 	te.Piece(SquareD5, BlackPawn)
+
+	// Makes sure that black pawn at A2/B2 doesn't take enpassant.
+	pos.toMove = Black
+	pos.enpassant = SquareA1
+	pos.Remove(SquareB2, pos.Get(SquareB2))
+	pos.Remove(SquareA1, pos.Get(SquareA1))
+	pos.Put(SquareB2, BlackPawn)
+	te.Pawn(SquareB2, []string{"b2b1N", "b2b1B", "b2b1R", "b2b1Q"})
+	pos.Put(SquareA2, BlackPawn)
+	te.Pawn(SquareA2, []string{"a2a1N", "a2a1B", "a2a1R", "a2a1Q"})
 }
 
 func TestIsAttackedByKnight(t *testing.T) {
@@ -455,4 +492,15 @@ func TestIsAttackedByBishop(t *testing.T) {
 	te.Move("c7c6")
 	te.Attacked(SquareE8, White, false)
 	te.Attacked(SquareC6, White, true)
+}
+
+func TestPanicPosition(t *testing.T) {
+	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
+	pos, _ := PositionFromFEN(fen)
+
+	moves := pos.GenerateMoves()
+	for _, m := range moves {
+		pos.DoMove(m)
+		pos.UndoMove(m)
+	}
 }

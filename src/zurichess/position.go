@@ -98,18 +98,25 @@ func (pos *Position) fix(move Move) Move {
 	return move
 }
 
+var symbolToFigure = map[byte]Figure{
+	'N': Knight,
+	'B': Bishop,
+	'R': Rook,
+	'Q': Queen,
+}
+
 // ParseMove parses a move given in standard algebraic notation.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
-// TODO: promotion
 func (pos *Position) ParseMove(s string) Move {
 	from := SquareFromString(s[0:2])
 	to := SquareFromString(s[2:4])
 
 	mvtp := Normal
 	capt := pos.Get(to)
+	promo := NoPiece
 
 	pi := pos.Get(from)
-	if pi.Figure() == Pawn && to == pos.enpassant {
+	if pi.Figure() == Pawn && pos.enpassant != SquareA1 && to == pos.enpassant {
 		mvtp = Enpassant
 		capt = ColorFigure(pos.toMove.Other(), Pawn)
 	}
@@ -119,12 +126,17 @@ func (pos *Position) ParseMove(s string) Move {
 	if pi == BlackKing && from == SquareE8 && (to == SquareC8 || to == SquareG8) {
 		mvtp = Castling
 	}
+	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
+		mvtp = Promotion
+		promo = ColorFigure(pos.toMove, symbolToFigure[s[4]])
+	}
 
 	return pos.fix(Move{
-		MoveType: mvtp,
-		From:     from,
-		To:       to,
-		Capture:  capt,
+		MoveType:  mvtp,
+		From:      from,
+		To:        to,
+		Capture:   capt,
+		Promotion: promo,
 	})
 }
 
@@ -193,22 +205,27 @@ func (pos *Position) DoMove(move Move) {
 	}
 
 	if move.Capture != NoPiece && pos.IsEmpty(captSq) {
-		panic(fmt.Errorf("invalid capture: expected %v at %v, got %v",
-			move.Capture, captSq, pos.Get(captSq)))
+		panic(fmt.Errorf("invalid capture: expected %v at %v, got %v. move is %+q",
+			move.Capture, captSq, pos.Get(captSq), move))
 	}
 
 	// Modify the chess board.
 	pos.Remove(move.From, pi)
 	pos.Remove(captSq, move.Capture)
-	pos.Put(move.To, pi)
+	if move.MoveType != Promotion {
+		pos.Put(move.To, pi)
+	} else {
+		pos.Put(move.To, move.Promotion)
+	}
 	pos.toMove = pos.toMove.Other()
 }
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
-// TODO: promotion
 func (pos *Position) UndoMove(move Move) {
 	// log.Println("Taking back", move)
+
+	pos.toMove = pos.toMove.Other()
 
 	captSq := move.To
 	if move.MoveType == Enpassant {
@@ -218,9 +235,12 @@ func (pos *Position) UndoMove(move Move) {
 	// Modify the chess board.
 	pi := pos.Get(move.To)
 	pos.Remove(move.To, pi)
-	pos.Put(move.From, pi)
+	if move.MoveType != Promotion {
+		pos.Put(move.From, pi)
+	} else {
+		pos.Put(move.From, ColorFigure(pos.toMove, Pawn))
+	}
 	pos.Put(captSq, move.Capture)
-	pos.toMove = pos.toMove.Other()
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -246,32 +266,57 @@ func (pos *Position) UndoMove(move Move) {
 	pos.enpassant = move.OldEnpassant
 }
 
-var pawnAttack = []struct {
-	delta  int      // difference on delta
-	attack Bitboard // allowed start position for attack
-}{
-	{-1, BbPawnLeftAttack},
-	{+1, BbPawnRightAttack},
+var (
+	pawnAttack = []struct {
+		delta  int      // difference on delta
+		attack Bitboard // allowed start position for attack
+	}{
+		{-1, BbPawnLeftAttack},
+		{+1, BbPawnRightAttack},
+	}
+	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
+)
+
+func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move) []Move {
+	pr := to.Rank()
+	if pr != 0 && pr != 7 {
+		mvtp := Normal
+		if to == pos.enpassant {
+			mvtp = Enpassant
+		}
+		moves = append(moves, pos.fix(Move{
+			MoveType: mvtp,
+			From:     from,
+			To:       to,
+			Capture:  capt,
+		}))
+	} else {
+		for _, promo := range pawnPromotions {
+			moves = append(moves, pos.fix(Move{
+				MoveType:  Promotion,
+				From:      from,
+				To:        to,
+				Capture:   capt,
+				Promotion: ColorFigure(pos.toMove, promo),
+			}))
+		}
+	}
+	return moves
 }
 
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
-	advance, pawnRank, lastRank := 1, 1, 6
+	advance, pawnRank := 1, 1
 	if pos.toMove == Black {
-		advance, pawnRank, lastRank = -1, 6, 1
+		advance, pawnRank = -1, 6
 	}
 
 	pr := from.Rank()
 
 	// Move forward.
 	f1 := from.Relative(advance, 0)
-	if pr != lastRank {
-		if pos.IsEmpty(f1) {
-			moves = append(moves, pos.fix(Move{
-				From: from,
-				To:   f1,
-			}))
-		}
+	if pos.IsEmpty(f1) {
+		moves = pos.genPawnPromotions(from, f1, NoPiece, moves)
 	}
 
 	// Move forward 2x.
@@ -287,33 +332,21 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 
 	for _, pa := range pawnAttack {
 		if from.Bitboard()&pa.attack != 0 {
-			var mvtp MoveType
 			var capt Piece
-
 			to := from.Relative(advance, pa.delta)
-			if to == pos.enpassant {
+			if pos.enpassant != SquareA1 && to == pos.enpassant {
 				// Captures en passant.
-				mvtp = Enpassant
 				capt = ColorFigure(pos.toMove.Other(), Pawn)
 			} else {
 				// Regular capture.
-				mvtp = Normal
 				capt = pos.Get(to)
 				if capt.Color() != pos.toMove.Other() {
 					continue
 				}
 			}
-
-			moves = append(moves, pos.fix(Move{
-				MoveType: mvtp,
-				From:     from,
-				To:       to,
-				Capture:  capt,
-			}))
+			moves = pos.genPawnPromotions(from, to, capt, moves)
 		}
 	}
-
-	// TODO promote
 
 	return moves
 }
