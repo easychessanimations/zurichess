@@ -493,6 +493,11 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
+	// King
+	if BbKingAttack[sq]&pos.byColor[co]&pos.byFigure[King] != 0 {
+		return true
+	}
+
 	// Rook&Queen
 	ref := pos.byColor[White] | pos.byColor[Black]
 	att := RookMagic[sq].Attack(ref)
@@ -500,7 +505,7 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
-	// Bishop&Queen.
+	// Bishop&Queen
 	ref = pos.byColor[White] | pos.byColor[Black]
 	att = BishopMagic[sq].Attack(ref)
 	if att&pos.byColor[co]&(pos.byFigure[Bishop]|pos.byFigure[Queen]) != 0 {
