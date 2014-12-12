@@ -159,8 +159,8 @@ var CastleRights = map[Square]Castle{
 func (pos *Position) DoMove(move Move) {
 	pi := pos.Get(move.From)
 	if pi.Color() != pos.ToMove {
-		panic(fmt.Errorf("bad move: expected %v piece at %v, got %v",
-			pos.ToMove, move.From, pi))
+		panic(fmt.Errorf("bad move %v: expected %v piece at %v, got %v",
+			move, pos.ToMove, move.From, pi))
 	}
 
 	/*
@@ -172,6 +172,8 @@ func (pos *Position) DoMove(move Move) {
 
 	// Update castling rights based on the source square.
 	pos.Castle &= ^CastleRights[move.From]
+	// Update castling rights based on the captured square.
+	pos.Castle &= ^CastleRights[move.To]
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -393,11 +395,19 @@ func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
 
 func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// King moves around.
+	other := pos.ToMove.Other()
 	att := BbKingAttack[from] & (^pos.byColor[pos.ToMove])
-	moves = pos.genBitboardMoves(from, att, moves)
+	for att != 0 {
+		if to := att.Pop(); !pos.IsAttackedBy(to, other) {
+			moves = append(moves, pos.fix(Move{
+				From:    from,
+				To:      to,
+				Capture: pos.Get(to),
+			}))
+		}
+	}
 
 	// King Castles.
-	// TODO: verify checks
 	oo, ooo, rank := WhiteOO, WhiteOOO, 0
 	if pos.ToMove == Black {
 		oo, ooo, rank = BlackOO, BlackOOO, 7
@@ -406,10 +416,10 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// Castle king side.
 	r5 := RankFile(rank, 5)
 	r6 := RankFile(rank, 6)
-	if pos.Castle&oo != 0 {
+	if pos.Castle&oo != 0 && !pos.IsAttackedBy(from, other) {
 		if pos.IsEmpty(r5) && pos.IsEmpty(r6) &&
-			!pos.IsAttackedBy(r5, pos.ToMove.Other()) &&
-			!pos.IsAttackedBy(r6, pos.ToMove.Other()) {
+			!pos.IsAttackedBy(r5, other) &&
+			!pos.IsAttackedBy(r6, other) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,
@@ -422,10 +432,10 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	r3 := RankFile(rank, 3)
 	r2 := RankFile(rank, 2)
 	r1 := RankFile(rank, 1)
-	if pos.Castle&ooo != 0 {
+	if pos.Castle&ooo != 0 && !pos.IsAttackedBy(from, other) {
 		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) &&
-			!pos.IsAttackedBy(r3, pos.ToMove.Other()) &&
-			!pos.IsAttackedBy(r2, pos.ToMove.Other()) {
+			!pos.IsAttackedBy(r3, other) &&
+			!pos.IsAttackedBy(r2, other) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Castling,
 				From:     from,

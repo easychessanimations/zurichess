@@ -150,7 +150,7 @@ func TestGenKingMoves(t *testing.T) {
 
 	// King is surrounded by black and white pieces.
 	pos.Put(SquareA3, WhitePawn)
-	pos.Put(SquareB3, BlackKnight)
+	pos.Put(SquareB3, BlackPawn)
 	pos.Put(SquareB2, WhiteQueen)
 	te.King(SquareA2, []string{"a2b3", "a2b1", "a2a1"})
 }
@@ -225,24 +225,17 @@ func TestCastle(t *testing.T) {
 	})
 }
 
-func TestCastleAfterUnrelatedMove(t *testing.T) {
-	pos, _ := PositionFromFEN(testBoard1)
-	pos.ToMove = Black
+func TestKingCannotCastleWhenUnderAttack(t *testing.T) {
+	pos, _ := PositionFromFEN(FENKiwipete)
+	te := &testEngine{T: t, Pos: pos}
 
-	// Move bishop which doesn't change Castle rights.
-	m1 := Move{
-		From:      SquareF7,
-		To:        SquareF6,
-		OldCastle: pos.Castle,
-	}
-
-	data := []CastleTestData{
-		// Castle on both sides.
-		{255, []string{"e1d1", "e1f1", "e1g1", "e1c1"}},
-	}
-
-	pos.DoMove(m1)
-	testCastleHelper(t, pos, data)
+	te.Move("f3f5")
+	// Black King can castle both sides.
+	te.King(SquareE8, []string{"e8d8", "e8f8", "e8g8", "e8c8"})
+	te.Move("d7d6")
+	te.Move("e2b5")
+	// Bishop attacks Black King.
+	te.King(SquareE8, []string{"e8d8", "e8f8"})
 }
 
 func TestCastleMovesPieces(t *testing.T) {
@@ -328,6 +321,17 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 	te.Undo()
 	te.Undo()
 	testCastleHelper(t, pos, good)
+}
+
+func TestCannotCastleAfterRookCapture(t *testing.T) {
+	pos, _ := PositionFromFEN(FENKiwipete)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("f3f5")
+	te.Move("h3g2")
+	te.Move("a1b1")
+	te.Move("g2h1N") // Pawn takes white rook.
+	te.King(SquareE1, []string{"e1d1", "e1f1"})
 }
 
 func TestGenBishopMoves(t *testing.T) {
@@ -425,6 +429,21 @@ func TestPawnPromotions(t *testing.T) {
 	te.Undo()
 	te.Piece(SquareG2, BlackPawn)
 	te.Piece(SquareH1, WhiteRook)
+}
+
+func TestPawnPromotions2(t *testing.T) {
+	pos, _ := PositionFromFEN(FENKiwipete)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Piece(SquareF5, NoPiece)
+	te.Move("f3f5")
+	te.Move("h3g2")
+	te.Move("a1b1")
+	te.Move("g2h1N")
+	te.Piece(SquareH1, BlackKnight)
+	te.Move("e2f1")
+	te.Piece(SquareH1, BlackKnight)
+	te.Move("h1f2")
 }
 
 func TestPawnAttacksEnpassant(t *testing.T) {
