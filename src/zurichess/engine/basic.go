@@ -1,7 +1,7 @@
 package engine
 
 // Square identifies the location on the board.
-type Square int
+type Square uint
 
 func RankFile(r, f int) Square {
 	return Square(r*8 + f)
