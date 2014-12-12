@@ -19,26 +19,28 @@ type Position struct {
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
-	pos.byColor[pi.Color()] |= sq.Bitboard()
-	pos.byFigure[pi.Figure()] |= sq.Bitboard()
+	bb := sq.Bitboard()
+	pos.byColor[pi.Color()] |= bb
+	pos.byFigure[pi.Figure()] |= bb
 }
 
 // Remove removes a piece from the table.
 // Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
-	pos.byColor[pi.Color()] &= ^sq.Bitboard()
-	pos.byFigure[pi.Figure()] &= ^sq.Bitboard()
+	bb := ^sq.Bitboard()
+	pos.byColor[pi.Color()] &= bb
+	pos.byFigure[pi.Figure()] &= bb
 }
 
 // IsEmpty returns true if there is no piece at sq.
 func (pos *Position) IsEmpty(sq Square) bool {
-	return (pos.byColor[White]|pos.byColor[Black])&sq.Bitboard() == 0
+	return (pos.byColor[White]|pos.byColor[Black])>>sq&1 == 0
 }
 
 // GetColor returns the piece's color at sq.
 func (pos *Position) GetColor(sq Square) Color {
-	return White*Color(uint64(pos.byColor[White])>>uint(sq)&1) +
-		Black*Color(uint64(pos.byColor[Black])>>uint(sq)&1)
+	return White*Color(pos.byColor[White]>>sq&1) +
+		Black*Color(pos.byColor[Black]>>sq&1)
 }
 
 // GetFigure returns the piece's type at sq.
@@ -411,8 +413,8 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// Castle king side.
 	r5 := RankFile(rank, 5)
 	r6 := RankFile(rank, 6)
-	if pos.Castle&oo != 0 && !pos.IsAttackedBy(from, other) {
-		if pos.IsEmpty(r5) && pos.IsEmpty(r6) &&
+	if pos.Castle&oo != 0 && pos.IsEmpty(r5) && pos.IsEmpty(r6) {
+		if !pos.IsAttackedBy(from, other) &&
 			!pos.IsAttackedBy(r5, other) &&
 			!pos.IsAttackedBy(r6, other) {
 			moves = append(moves, pos.fix(Move{
@@ -427,8 +429,8 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	r3 := RankFile(rank, 3)
 	r2 := RankFile(rank, 2)
 	r1 := RankFile(rank, 1)
-	if pos.Castle&ooo != 0 && !pos.IsAttackedBy(from, other) {
-		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) &&
+	if pos.Castle&ooo != 0 && pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) {
+		if !pos.IsAttackedBy(from, other) &&
 			!pos.IsAttackedBy(r3, other) &&
 			!pos.IsAttackedBy(r2, other) {
 			moves = append(moves, pos.fix(Move{
