@@ -93,7 +93,7 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	moves := uci.pos.GenerateMoves()
+	moves := uci.pos.GenerateMoves(nil)
 
 	var move Move
 	for {

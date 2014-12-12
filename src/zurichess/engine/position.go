@@ -449,8 +449,7 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 
 // GenerateMoves generates pseudo-legal moves, i.e. doesn't
 // check for king check.
-func (pos *Position) GenerateMoves() []Move {
-	moves := make([]Move, 0, 8)
+func (pos *Position) GenerateMoves(moves []Move) []Move {
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
 		if pos.byColor[pos.ToMove]&sq.Bitboard() == 0 {
 			continue

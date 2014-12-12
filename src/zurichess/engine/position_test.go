@@ -534,7 +534,7 @@ func TestPanicPosition(t *testing.T) {
 	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
 	pos, _ := PositionFromFEN(fen)
 
-	moves := pos.GenerateMoves()
+	moves := pos.GenerateMoves(nil)
 	for _, m := range moves {
 		pos.DoMove(m)
 		pos.UndoMove(m)
