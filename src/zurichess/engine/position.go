@@ -37,13 +37,8 @@ func (pos *Position) IsEmpty(sq Square) bool {
 
 // GetColor returns the piece's color at sq.
 func (pos *Position) GetColor(sq Square) Color {
-	if pos.byColor[White]&sq.Bitboard() != 0 {
-		return White
-	}
-	if pos.byColor[Black]&sq.Bitboard() != 0 {
-		return Black
-	}
-	return NoColor
+	return White*Color(uint64(pos.byColor[White])>>uint(sq)&1) +
+		Black*Color(uint64(pos.byColor[Black])>>uint(sq)&1)
 }
 
 // GetFigure returns the piece's type at sq.
