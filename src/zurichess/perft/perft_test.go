@@ -27,7 +27,6 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 
 func TestPerftInitial(t *testing.T) {
 	testHelper(t, startpos, data[startpos][:6])
-
 }
 
 func TestPerftKiwipete(t *testing.T) {
@@ -36,4 +35,23 @@ func TestPerftKiwipete(t *testing.T) {
 
 func TestPerftDuplain(t *testing.T) {
 	testHelper(t, duplain, data[duplain][:6])
+}
+
+func benchHelper(b *testing.B, fen string, depth int) {
+	pos, _ := engine.PositionFromFEN(fen)
+	for i := 0; i < b.N; i++ {
+		perft(pos, depth, new([]engine.Move))
+	}
+}
+
+func BenchmarkPerftInitial(b *testing.B) {
+	benchHelper(b, startpos, 4)
+}
+
+func BenchmarkPerftKiwipete(b *testing.B) {
+	benchHelper(b, kiwipete, 3)
+}
+
+func BenchmarkPerftDuplain(b *testing.B) {
+	benchHelper(b, duplain, 4)
 }
