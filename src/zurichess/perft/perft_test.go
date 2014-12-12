@@ -17,7 +17,7 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 			t.Errorf("invalid FEN: %s", fen)
 		}
 
-		actual := perft(pos, depth)
+		actual := perft(pos, depth, new([]engine.Move))
 		if !expected.Equals(actual) {
 			t.Errorf("at depth %d expected %+v got %+v",
 				depth, expected, actual)

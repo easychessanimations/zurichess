@@ -206,9 +206,11 @@ func (wiz *wizard) SearchMagics(mi []magicInfo) {
 			}
 		}
 	}
-	log.Println("numMagicTests =", wiz.numMagicTests,
-		"; numEntries =", numEntries,
-		"; minShift =", minShift)
+	/*
+		log.Println("numMagicTests =", wiz.numMagicTests,
+			"; numEntries =", numEntries,
+			"; minShift =", minShift)
+	*/
 }
 
 func initRookMagic() {
