@@ -70,28 +70,6 @@ const (
 	SquareMinValue = SquareA1
 )
 
-const (
-	NoFigure Figure = iota
-	Pawn
-	Knight
-	Bishop
-	Rook
-	Queen
-	King
-
-	FigureMaxValue
-	FigureMinValue = Pawn
-)
-
-const (
-	NoColor Color = iota
-	White
-	Black
-
-	ColorMaxValue
-	ColorMinValue = White
-)
-
 // Piece constants must stay in sync with ColorFigure
 const (
 	NoPiece Piece = iota
@@ -113,23 +91,6 @@ const (
 	BlackRook
 	BlackQueen
 	BlackKing
-)
-
-const (
-	Normal MoveType = iota
-	Promotion
-	Castling
-	Enpassant
-)
-
-const (
-	WhiteOO Castle = 1 << iota
-	WhiteOOO
-	BlackOO
-	BlackOOO
-
-	NoCastle  Castle = 0
-	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
 )
 
 const (

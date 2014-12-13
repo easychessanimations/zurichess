@@ -1,7 +1,7 @@
 package engine
 
 // Square identifies the location on the board.
-type Square uint
+type Square uint16
 
 func RankFile(r, f int) Square {
 	return Square(r*8 + f)
@@ -42,6 +42,19 @@ func (sq Square) String() string {
 // Figure represents a colorless piece
 type Figure uint
 
+const (
+	NoFigure Figure = iota
+	Pawn
+	Knight
+	Bishop
+	Rook
+	Queen
+	King
+
+	FigureMaxValue
+	FigureMinValue = Pawn
+)
+
 func (pt Figure) String() string {
 	switch pt {
 	case NoFigure:
@@ -65,6 +78,15 @@ func (pt Figure) String() string {
 
 // Color represents a color.
 type Color uint
+
+const (
+	NoColor Color = iota
+	White
+	Black
+
+	ColorMaxValue
+	ColorMinValue = White
+)
 
 func (co Color) Other() Color {
 	return White + Black - co
@@ -117,6 +139,14 @@ func (pi Piece) String() string {
 // An 8x8 bitboard.
 type Bitboard uint64
 
+func RankBb(rank int) Bitboard {
+	return BbRank1 << uint(8*rank)
+}
+
+func FileBb(file int) Bitboard {
+	return BbFileA << uint(file)
+}
+
 // If the bitboard has a single piece, returns the occupied square.
 func (bb Bitboard) AsSquare() Square {
 	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
@@ -143,7 +173,14 @@ func (bb *Bitboard) Pop() Square {
 }
 
 // Move type.
-type MoveType uint
+type MoveType uint16
+
+const (
+	Normal MoveType = iota
+	Promotion
+	Castling
+	Enpassant
+)
 
 type Move struct {
 	MoveType     MoveType
@@ -164,9 +201,19 @@ func (mo Move) String() string {
 }
 
 // Castle type
-type Castle uint
+type Castle uint16
 
-var CastleSymbol = map[Castle]byte{
+const (
+	WhiteOO Castle = 1 << iota
+	WhiteOOO
+	BlackOO
+	BlackOOO
+
+	NoCastle  Castle = 0
+	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
+)
+
+var castleSymbol = map[Castle]byte{
 	WhiteOO:  'K',
 	WhiteOOO: 'Q',
 	BlackOO:  'k',
@@ -179,18 +226,10 @@ func (ca Castle) String() string {
 	}
 
 	var r []byte
-	for k, v := range CastleSymbol {
+	for k, v := range castleSymbol {
 		if ca&k != 0 {
 			r = append(r, v)
 		}
 	}
 	return string(r)
-}
-
-func RankBb(rank int) Bitboard {
-	return BbRank1 << uint(8*rank)
-}
-
-func FileBb(file int) Bitboard {
-	return BbFileA << uint(file)
 }
