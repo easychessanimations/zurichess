@@ -117,19 +117,27 @@ func (pi Piece) String() string {
 // An 8x8 bitboard.
 type Bitboard uint64
 
-// LSB picks a square in the board.
-func (bb Bitboard) LSB() Bitboard {
-	return Bitboard(LSB(uint64(bb)))
-}
-
 // If the bitboard has a single piece, returns the occupied square.
 func (bb Bitboard) AsSquare() Square {
-	return Square(LogN(uint64(bb)))
+	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
+	/*
+		        // golang is bad at inlining .AsSquare if it calls LogN
+			return Square(LogN(uint64(bb)))
+	*/
+}
+
+// LSB picks a square in the board.
+func (bb Bitboard) lsb() Bitboard {
+	return bb & (-bb)
+	/*
+		        // golang is bad at inlining .LSB if it calls LSB
+			return Bitboard(LSB(uint64(bb)))
+	*/
 }
 
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
-	sq := (*bb).LSB()
+	sq := (*bb).lsb()
 	*bb -= sq
 	return sq.AsSquare()
 }
