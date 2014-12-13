@@ -5,7 +5,25 @@ import (
 	"log"
 )
 
-var _ = log.Println
+var (
+	_ = log.Println
+
+	// Which castle rights are lost when pieces are moved.
+	castleRights [64]Castle
+)
+
+func initCastleRights() {
+	castleRights[SquareA1] = WhiteOOO
+	castleRights[SquareE1] = WhiteOOO | WhiteOO
+	castleRights[SquareH1] = WhiteOO
+	castleRights[SquareA8] = BlackOOO
+	castleRights[SquareE8] = BlackOOO | BlackOO
+	castleRights[SquareH8] = BlackOO
+}
+
+func init() {
+	initCastleRights()
+}
 
 // Position encodes the chess board.
 type Position struct {
@@ -141,15 +159,6 @@ func (pos *Position) ParseMove(s string) Move {
 	})
 }
 
-var CastleRights = map[Square]Castle{
-	SquareA1: WhiteOOO,
-	SquareE1: WhiteOOO | WhiteOO,
-	SquareH1: WhiteOO,
-	SquareA8: BlackOOO,
-	SquareE8: BlackOOO | BlackOO,
-	SquareH8: BlackOO,
-}
-
 // DoMove performs a move.
 // Expects the move to be valid.
 // TODO: promotion
@@ -168,9 +177,9 @@ func (pos *Position) DoMove(move Move) {
 	*/
 
 	// Update castling rights based on the source square.
-	pos.Castle &= ^CastleRights[move.From]
+	pos.Castle &= ^castleRights[move.From]
 	// Update castling rights based on the captured square.
-	pos.Castle &= ^CastleRights[move.To]
+	pos.Castle &= ^castleRights[move.To]
 
 	// Move rook on castling.
 	if move.MoveType == Castling {

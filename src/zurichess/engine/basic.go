@@ -150,8 +150,8 @@ type Move struct {
 	From, To     Square
 	Capture      Piece
 	Promotion    Piece
-	OldCastle    Castle
 	OldEnpassant Square
+	OldCastle    Castle
 }
 
 func (mo Move) String() string {
