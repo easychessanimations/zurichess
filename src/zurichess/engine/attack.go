@@ -9,14 +9,20 @@ import (
 var (
 	BbKnightAttack [64]Bitboard
 	BbKingAttack   [64]Bitboard
-	RookMagic      [64]magicInfo
-	BishopMagic    [64]magicInfo
+	// Attack on empty board of all figures expect pawn.
+	BbSuperAttack [64]Bitboard
+	RookMagic     [64]magicInfo
+	BishopMagic   [64]magicInfo
+
+	rookDeltas   = [][2]int{{-1, +0}, {+1, +0}, {+0, -1}, {+0, +1}}
+	bishopDeltas = [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}}
 )
 
 func init() {
 	rand.Seed(5)
 	initBbKnightAttack()
 	initBbKingAttack()
+	initBbSuperAttack()
 	initRookMagic()
 	initBishopMagic()
 }
@@ -53,6 +59,14 @@ func initBbKingAttack() {
 	}
 	initJumpAttack(kingJump, BbKingAttack[:])
 	log.Println("BbKingAttack initialized")
+}
+
+func initBbSuperAttack() {
+	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+		BbSuperAttack[sq] = BbKnightAttack[sq] | BbKingAttack[sq] |
+			slidingAttack(sq, rookDeltas, BbEmpty) |
+			slidingAttack(sq, bishopDeltas, BbEmpty)
+	}
 }
 
 func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
@@ -215,7 +229,7 @@ func (wiz *wizard) SearchMagics(mi []magicInfo) {
 
 func initRookMagic() {
 	wiz := &wizard{
-		Deltas:        [][2]int{{-1, +0}, {+1, +0}, {+0, -1}, {+0, +1}},
+		Deltas:        rookDeltas,
 		MinShift:      10,
 		MaxShift:      13,
 		MaxNumEntries: 160000,
@@ -226,7 +240,7 @@ func initRookMagic() {
 
 func initBishopMagic() {
 	wiz := &wizard{
-		Deltas:        [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}},
+		Deltas:        bishopDeltas,
 		MinShift:      5,
 		MaxShift:      9,
 		MaxNumEntries: 7000,

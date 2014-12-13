@@ -503,27 +503,33 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		}
 	}
 
+	all := pos.byColor[White] | pos.byColor[Black]
+	enemy := pos.byColor[co]
+
+	// Quick test of SuperPiece on empty board.
+	if BbSuperAttack[sq]&(enemy&^pos.byFigure[Pawn]) == 0 {
+		return false
+	}
+
 	// Knight
-	if BbKnightAttack[sq]&pos.byColor[co]&pos.byFigure[Knight] != 0 {
+	if BbKnightAttack[sq]&enemy&pos.byFigure[Knight] != 0 {
 		return true
 	}
 
-	// King
-	if BbKingAttack[sq]&pos.byColor[co]&pos.byFigure[King] != 0 {
+	// King.
+	if BbKingAttack[sq]&enemy&pos.byFigure[King] != 0 {
 		return true
 	}
 
 	// Rook&Queen
-	ref := pos.byColor[White] | pos.byColor[Black]
-	att := RookMagic[sq].Attack(ref)
-	if att&pos.byColor[co]&(pos.byFigure[Rook]|pos.byFigure[Queen]) != 0 {
+	rooks := enemy & (pos.byFigure[Rook] | pos.byFigure[Queen])
+	if rooks != 0 && rooks&RookMagic[sq].Attack(all) != 0 {
 		return true
 	}
 
 	// Bishop&Queen
-	ref = pos.byColor[White] | pos.byColor[Black]
-	att = BishopMagic[sq].Attack(ref)
-	if att&pos.byColor[co]&(pos.byFigure[Bishop]|pos.byFigure[Queen]) != 0 {
+	bishops := enemy & (pos.byFigure[Bishop] | pos.byFigure[Queen])
+	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
 		return true
 	}
 

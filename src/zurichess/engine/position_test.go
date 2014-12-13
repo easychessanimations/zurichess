@@ -530,6 +530,22 @@ func TestIsAttackedByBishop(t *testing.T) {
 	te.Attacked(SquareC6, White, true)
 }
 
+func TestIsAttackedByKing(t *testing.T) {
+	pos := &Position{ToMove: White}
+	te := &testEngine{T: t, Pos: pos}
+
+	pos.Put(SquareE1, WhiteKing)
+	pos.Put(SquareD2, BlackPawn)
+	pos.Put(SquareE2, BlackPawn)
+	pos.Put(SquareF2, BlackPawn)
+
+	te.Attacked(SquareD1, White, true)
+	te.Attacked(SquareD2, White, true)
+	te.Attacked(SquareE2, White, true)
+	te.Attacked(SquareF2, White, true)
+	te.Attacked(SquareF1, White, true)
+}
+
 func TestPanicPosition(t *testing.T) {
 	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
 	pos, _ := PositionFromFEN(fen)
