@@ -9,16 +9,16 @@ var (
 	_ = log.Println
 
 	// Which castle rights are lost when pieces are moved.
-	castleRights [64]Castle
+	lostCastleRights [64]Castle
 )
 
 func initCastleRights() {
-	castleRights[SquareA1] = WhiteOOO
-	castleRights[SquareE1] = WhiteOOO | WhiteOO
-	castleRights[SquareH1] = WhiteOO
-	castleRights[SquareA8] = BlackOOO
-	castleRights[SquareE8] = BlackOOO | BlackOO
-	castleRights[SquareH8] = BlackOO
+	lostCastleRights[SquareA1] = WhiteOOO
+	lostCastleRights[SquareE1] = WhiteOOO | WhiteOO
+	lostCastleRights[SquareH1] = WhiteOO
+	lostCastleRights[SquareA8] = BlackOOO
+	lostCastleRights[SquareE8] = BlackOOO | BlackOO
+	lostCastleRights[SquareH8] = BlackOO
 }
 
 func init() {
@@ -177,9 +177,9 @@ func (pos *Position) DoMove(move Move) {
 	*/
 
 	// Update castling rights based on the source square.
-	pos.Castle &= ^castleRights[move.From]
+	pos.Castle &= ^lostCastleRights[move.From]
 	// Update castling rights based on the captured square.
-	pos.Castle &= ^castleRights[move.To]
+	pos.Castle &= ^lostCastleRights[move.To]
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
