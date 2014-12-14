@@ -28,7 +28,9 @@ var (
 		10000, // King
 	}
 
-	mateScore = 200000
+	mateScore          = 200000
+	connectedPawnBonus = 40
+	doublePawnPenalty  = 40
 )
 
 // evaluate evaluates the score of a position from white's color POV.
@@ -46,6 +48,33 @@ func (eng *Engine) evaluate() int {
 			colorScore += Popcnt(uint64(bb)) * figureBonus[fig]
 		}
 		score += colorScore * ColorWeight[col]
+	}
+
+	// Penalize double pawns.
+	{
+		doubleBb := pos.ByFigure[Pawn]
+		doubleBb &= doubleBb << 8
+		wdp := Popcnt(uint64(doubleBb & pos.ByColor[White]))
+		bdp := Popcnt(uint64(doubleBb & pos.ByColor[Black]))
+		score -= doublePawnPenalty * (wdp - bdp)
+	}
+
+	// Awared connected pawns (left).
+	{
+		connectedBb := pos.ByFigure[Pawn] & BbPawnLeftAttack
+		connectedBb &= connectedBb << 7
+		wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
+		bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
+		score += connectedPawnBonus * (wcp - bcp)
+	}
+
+	// Awared connected pawns (right).
+	{
+		connectedBb := pos.ByFigure[Pawn] & BbPawnRightAttack
+		connectedBb &= connectedBb << 9
+		wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
+		bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
+		score += connectedPawnBonus * (wcp - bcp)
 	}
 
 	return score
