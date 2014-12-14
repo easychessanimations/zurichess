@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"time"
 )
 
 var _ = log.Println
@@ -126,7 +127,17 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 }
 
 func (eng *Engine) Play() (Move, error) {
-	move, _ := eng.minMax(4)
+	minDuration := 250 * time.Millisecond
+	start := time.Now()
+
+	var move Move
+	depth := 3
+	for depth < 32 && time.Now().Sub(start) < minDuration {
+		depth++
+		move, _ = eng.minMax(depth)
+	}
+
+	log.Println("reached depth", depth, "in", time.Now().Sub(start))
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
