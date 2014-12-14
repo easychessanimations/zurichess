@@ -168,8 +168,8 @@ func main() {
 		log.Fatalln("Cannot parse --fen:", err)
 	}
 
-	fmt.Printf("depth        nodes captures enpassant castles\n")
-	fmt.Printf("-----+------------+--------+---------+-------\n")
+	fmt.Printf("depth        nodes   captures enpassant castles eval   KNps elapsed\n")
+	fmt.Printf("-----+------------+----------+---------+-------+----+------+-------\n")
 
 	for d := *min; d <= *max; d++ {
 		start := time.Now()
@@ -185,8 +185,9 @@ func main() {
 			}
 		}
 
-		fmt.Printf("   %2d %12d %8d %9d %7d %v %v\n",
-			d, c.nodes, c.captures, c.enpassant, c.castles, ok, duration)
+		fmt.Printf("   %2d %12d %10d %9d %7d %4s %6.f %v\n",
+			d, c.nodes, c.captures, c.enpassant, c.castles, ok,
+			float64(c.nodes)/duration.Seconds()/1e3, duration)
 
 		if ok == "bad" {
 			e := expected[d]
