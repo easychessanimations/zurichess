@@ -7,4 +7,4 @@ when=`date +"%F %T"`
 go build -ldflags "-X main.buildVersion '$version' -X main.buildTime '$when'" . || exit 1
 cp zurichess zc-$branch-$version
 
-echo "Built zc-$branch-$version, time $when"
+echo "Built zc-$branch-$version at $when"
