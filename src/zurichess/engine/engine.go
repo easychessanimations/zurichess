@@ -17,43 +17,45 @@ var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
 
-	figureScore = []int{
+	figureBonus = []int{
 		0,     // NoFigure
 		100,   // Pawn
 		300,   // Knight
-		315,   // Bishop
+		350,   // Bishop
 		500,   // Rook
 		900,   // Queen
 		10000, // King
 	}
 
-	checkScore = -50
-	mateScore  = 200000
+	checkPenalty = -50
+	mateScore    = 200000
 )
 
-// evaluate evaluates the score of a position from current color POV.
+// evaluate evaluates the score of a position from white's color POV.
 // Simplest implementation adapted from:
 // https://chessprogramming.wikispaces.com/Evaluation
 func (eng *Engine) evaluate() int {
+	pos := eng.Position
 	score := 0
-	toMove := eng.Position.ToMove
 
-	if eng.Position.IsChecked(toMove) {
-		score += checkScore
+	// Adjust score based on checks.
+	if pos.IsChecked(Black) {
+		score -= checkPenalty
 	}
-	if eng.Position.IsChecked(toMove.Other()) {
-		score -= checkScore
+	if pos.IsChecked(White) {
+		score += checkPenalty
 	}
 
 	// Compute piece values.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		colorScore := 0
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			bb := eng.Position.ByColor[col] & eng.Position.ByFigure[fig]
-			colorScore += int(bb.Popcnt()) * figureScore[fig]
+			bb := pos.ByColor[col] & pos.ByFigure[fig]
+			colorScore += int(bb.Popcnt()) * figureBonus[fig]
 		}
 		score += colorScore * ColorWeight[col]
 	}
+
 	return score
 }
 
