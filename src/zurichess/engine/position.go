@@ -345,14 +345,10 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	var forward Square
 
 	if pos.ToMove == White {
-		bb &= BbRank2
-		bb &= free >> 8
-		bb &= free >> 16
+		bb &= BbRank2 & (free >> 8) & (free >> 16)
 		forward = RankFile(+2, 0)
 	} else {
-		bb &= BbRank7
-		bb &= free << 8
-		bb &= free << 16
+		bb &= BbRank7 & (free << 8) & (free << 16)
 		forward = RankFile(-2, 0)
 	}
 
@@ -400,26 +396,48 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 	return moves
 }
 
+func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
+	if pos.Enpassant == SquareA1 {
+		return moves
+	}
+
+	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
+	enemy := pos.Enpassant.Bitboard()
+
+	if pos.ToMove == White {
+		enemy >>= 8
+	} else {
+		enemy <<= 8
+	}
+
+	// Left
+	bbl := bb & BbPawnLeftAttack & (enemy << 1)
+	if bbl != 0 {
+		from := bbl.AsSquare()
+		to := pos.Enpassant
+		capt := ColorFigure(pos.ToMove.Other(), Pawn)
+		moves = pos.genPawnPromotions(from, to, capt, moves)
+	}
+
+	// Right
+	bbr := bb & BbPawnRightAttack & (enemy >> 1)
+	if bbr != 0 {
+		from := bbr.AsSquare()
+		to := pos.Enpassant
+		capt := ColorFigure(pos.ToMove.Other(), Pawn)
+		moves = pos.genPawnPromotions(from, to, capt, moves)
+	}
+
+	return moves
+
+}
+
 // genPawnMoves generates pawn moves around from.
-func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
-	advance := 1
-	if pos.ToMove == Black {
-		advance = -1
-	}
-
-	// Attack.
-	for _, pa := range pawnAttack {
-		if from.Bitboard()&pa.attack != 0 {
-			var capt Piece
-			to := from.Relative(advance, pa.delta)
-			if pos.Enpassant != SquareA1 && to == pos.Enpassant {
-				// Captures en passant.
-				capt = ColorFigure(pos.ToMove.Other(), Pawn)
-				moves = pos.genPawnPromotions(from, to, capt, moves)
-			}
-		}
-	}
-
+func (pos *Position) genPawnMoves(moves []Move) []Move {
+	moves = pos.genPawnAdvanceMoves(moves)
+	moves = pos.genPawnDoubleAdvanceMoves(moves)
+	moves = pos.genPawnAttackMoves(moves)
+	moves = pos.genPawnEnpassantMoves(moves)
 	return moves
 }
 
@@ -516,10 +534,7 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 // GenerateMoves generates pseudo-legal moves, i.e. doesn't
 // check for king check.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
-	moves = pos.genPawnAdvanceMoves(moves)
-	moves = pos.genPawnDoubleAdvanceMoves(moves)
-	moves = pos.genPawnAttackMoves(moves)
-
+	moves = pos.genPawnMoves(moves)
 	for from := SquareMinValue; from < SquareMaxValue; from++ {
 		if pos.byColor[pos.ToMove]&from.Bitboard() == 0 {
 			continue
@@ -527,8 +542,6 @@ func (pos *Position) GenerateMoves(moves []Move) []Move {
 
 		pi := pos.Get(from)
 		switch pi.Figure() {
-		case Pawn:
-			moves = pos.genPawnMoves(from, moves)
 		case Knight:
 			moves = pos.genKnightMoves(from, moves)
 		case Bishop:

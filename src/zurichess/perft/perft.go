@@ -185,13 +185,13 @@ func main() {
 			}
 		}
 
-		fmt.Printf("   %2d %12d %10d %9d %7d %4s %6.f %v\n",
+		fmt.Printf("   %2d %12d %10d %9d %7d %-4s %6.f %v\n",
 			d, c.nodes, c.captures, c.enpassant, c.castles, ok,
 			float64(c.nodes)/duration.Seconds()/1e3, duration)
 
 		if ok == "bad" {
 			e := expected[d]
-			fmt.Printf("   %2d %12d %8d %9d %7d %v\n",
+			fmt.Printf("   %2d %12d %10d %9d %7d %s\n",
 				d, e.nodes, e.captures, e.enpassant, e.castles, "expected")
 			break
 		}

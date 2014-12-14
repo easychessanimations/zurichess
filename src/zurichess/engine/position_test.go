@@ -52,8 +52,15 @@ func (te *testEngine) Piece(sq Square, expected Piece) {
 }
 
 func (te *testEngine) Pawn(sq Square, expected []string) {
-	actual := te.Pos.genPawnMoves(sq, nil)
-	testMoves(te.T, actual, expected)
+	actual, end := te.Pos.genPawnMoves(nil), 0
+	// Filter pawn moves not starting at sq.
+	for i := range actual {
+		if actual[i].From == sq {
+			actual[end] = actual[i]
+			end++
+		}
+	}
+	testMoves(te.T, actual[:end], expected)
 }
 
 func (te *testEngine) Knight(sq Square, expected []string) {
@@ -443,7 +450,6 @@ func TestPawnAttacks(t *testing.T) {
 	te.Attacked(SquareG4, Black, true)
 }
 
-/*
 func TestPawnPromotions(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard2)
 	pos.ToMove = Black
@@ -470,7 +476,6 @@ func TestPawnPromotions(t *testing.T) {
 	te.Piece(SquareG2, BlackPawn)
 	te.Piece(SquareH1, WhiteRook)
 }
-*/
 
 func TestPawnPromotions2(t *testing.T) {
 	pos, _ := PositionFromFEN(FENKiwipete)
@@ -487,7 +492,6 @@ func TestPawnPromotions2(t *testing.T) {
 	te.Move("h1f2")
 }
 
-/*
 func TestPawnAttacksEnpassant(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 	te := &testEngine{T: t, Pos: pos}
@@ -542,7 +546,6 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	pos.Put(SquareA2, BlackPawn)
 	te.Pawn(SquareA2, []string{"a2a1N", "a2a1B", "a2a1R", "a2a1Q"})
 }
-*/
 
 func TestSquareIsAttackedByKnight(t *testing.T) {
 	testBoard2 := "4K3/8/3n4/8/4N3/3n4/8/4k3 w - - 0 1"
