@@ -11,6 +11,7 @@ var _ = log.Println
 
 type Engine struct {
 	Position *Position
+	moves    []Move
 }
 
 var (
@@ -27,8 +28,7 @@ var (
 		10000, // King
 	}
 
-	checkPenalty = -50
-	mateScore    = 200000
+	mateScore = 200000
 )
 
 // evaluate evaluates the score of a position from white's color POV.
@@ -38,20 +38,12 @@ func (eng *Engine) evaluate() int {
 	pos := eng.Position
 	score := 0
 
-	// Adjust score based on checks.
-	if pos.IsChecked(Black) {
-		score -= checkPenalty
-	}
-	if pos.IsChecked(White) {
-		score += checkPenalty
-	}
-
 	// Compute piece values.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		colorScore := 0
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			bb := pos.ByColor[col] & pos.ByFigure[fig]
-			colorScore += int(bb.Popcnt()) * figureBonus[fig]
+			colorScore += Popcnt(uint64(bb)) * figureBonus[fig]
 		}
 		score += colorScore * ColorWeight[col]
 	}
@@ -70,8 +62,14 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 	bestScore := -weight * math.MaxInt32
 
 	found := false
-	moves := eng.Position.GenerateMoves(nil)
-	for _, move := range moves {
+	start := len(eng.moves)
+	eng.moves = eng.Position.GenerateMoves(eng.moves)
+	for len(eng.moves) > start {
+		// Pops last move.
+		last := len(eng.moves) - 1
+		move := eng.moves[last]
+		eng.moves = eng.moves[:last]
+
 		eng.Position.DoMove(move)
 		if !eng.Position.IsChecked(toMove) {
 			found = true

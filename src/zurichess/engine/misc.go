@@ -23,9 +23,9 @@ func LogN(n uint64) uint {
 }
 
 // Popcnt counts number of bits set in n.
-func Popcnt(n uint64) (c uint) {
+func Popcnt(n uint64) (c int) {
 	for ; n > 0; c++ {
-		n -= LSB(n)
+		n &= n - 1
 	}
 	return c
 }

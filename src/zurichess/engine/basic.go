@@ -169,11 +169,6 @@ func (bb Bitboard) lsb() Bitboard {
 	*/
 }
 
-// Count returns the number of bits set in bb.
-func (bb Bitboard) Popcnt() uint {
-	return Popcnt(uint64(bb))
-}
-
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
 	sq := (*bb).lsb()
