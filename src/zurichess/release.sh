@@ -1,0 +1,10 @@
+#!/bin/sh
+
+version=`git describe --always --tag`
+branch=`git rev-parse --abbrev-ref HEAD`
+when=`date +"%F %T"`
+
+go build -ldflags "-X main.buildVersion '$version' -X main.buildTime '$when'" . || exit 1
+cp zurichess zc-$branch
+
+echo "Built zc-$branch, version $version, time $when"

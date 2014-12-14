@@ -6,20 +6,27 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"zurichess/engine"
 )
 
+var (
+	buildVersion = "(devel)"
+	buildTime    = "(just now)"
+)
+
 func init() {
+	fmt.Printf("zurichess %v, build with %v at %v, running on %v\n",
+		buildVersion, runtime.Version(), buildTime, runtime.GOARCH)
+
 	log.SetOutput(os.Stdout)
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
-
 }
 
 func main() {
-	fmt.Println("zurichess")
 	bio := bufio.NewReader(os.Stdin)
 	uci := &engine.UCI{}
 

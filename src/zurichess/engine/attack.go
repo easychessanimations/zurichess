@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"log"
 	"math"
 	"math/rand"
 )
@@ -49,7 +48,6 @@ func initBbKnightAttack() {
 		{-1, -2}, {-1, +2}, {+1, -2}, {+1, +2},
 	}
 	initJumpAttack(knightJump, BbKnightAttack[:])
-	log.Println("BbKnightAttack initialized")
 }
 
 func initBbKingAttack() {
@@ -58,7 +56,6 @@ func initBbKingAttack() {
 		{+1, +1}, {+1, +0}, {+1, -1}, {+0, -1},
 	}
 	initJumpAttack(kingJump, BbKingAttack[:])
-	log.Println("BbKingAttack initialized")
 }
 
 func initBbSuperAttack() {
@@ -235,7 +232,6 @@ func initRookMagic() {
 		MaxNumEntries: 160000,
 	}
 	wiz.SearchMagics(RookMagic[:])
-	log.Println("RookMagic initialized")
 }
 
 func initBishopMagic() {
@@ -246,5 +242,4 @@ func initBishopMagic() {
 		MaxNumEntries: 7000,
 	}
 	wiz.SearchMagics(BishopMagic[:])
-	log.Println("BishopMagic initialized")
 }
