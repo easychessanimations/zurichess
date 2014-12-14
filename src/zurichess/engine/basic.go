@@ -88,6 +88,10 @@ const (
 	ColorMinValue = White
 )
 
+var (
+	ColorWeight = []int{0, 1, -1}
+)
+
 func (co Color) Other() Color {
 	return White + Black - co
 }
@@ -163,6 +167,11 @@ func (bb Bitboard) lsb() Bitboard {
 		        // golang is bad at inlining .LSB if it calls LSB
 			return Bitboard(LSB(uint64(bb)))
 	*/
+}
+
+// Count returns the number of bits set in bb.
+func (bb Bitboard) Popcnt() uint {
+	return Popcnt(uint64(bb))
 }
 
 // Pop pops a set square from the bitboard.

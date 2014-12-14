@@ -13,7 +13,8 @@ var (
 )
 
 type UCI struct {
-	pos *Position
+	Position *Position
+	Engine   *Engine
 }
 
 func (uci *UCI) Execute(line string) error {
@@ -59,7 +60,8 @@ func (uci *UCI) isready(args []string) error {
 }
 
 func (uci *UCI) ucinewgame(args []string) error {
-	uci.pos = nil
+	uci.Position = nil
+	uci.Engine = nil
 	return nil
 }
 
@@ -67,15 +69,16 @@ func (uci *UCI) position(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("expected argument for 'position'")
 	}
-
 	if args[0] != "startpos" {
 		return fmt.Errorf("expected 'startpos', got '%s'", args[0])
 	}
+
 	var err error
-	uci.pos, err = PositionFromFEN(FENStartPos)
+	uci.Position, err = PositionFromFEN(FENStartPos)
 	if err != nil {
 		return err
 	}
+	uci.Engine = &Engine{Position: uci.Position}
 
 	if len(args) == 1 {
 		return nil
@@ -85,26 +88,15 @@ func (uci *UCI) position(args []string) error {
 	}
 
 	for _, m := range args[2:] {
-		move := uci.pos.ParseMove(m)
-		uci.pos.DoMove(move)
+		move := uci.Position.ParseMove(m)
+		uci.Position.DoMove(move)
 	}
 
 	return nil
 }
 
 func (uci *UCI) go_(args []string) {
-	moves := uci.pos.GenerateMoves(nil)
-
-	var move Move
-	for {
-		move = moves[rand.Intn(len(moves))]
-		uci.pos.DoMove(move)
-		if !uci.pos.IsChecked(uci.pos.ToMove.Other()) {
-			break
-		}
-		uci.pos.UndoMove(move)
-	}
-
-	log.Printf("selected %q (%v); piece %v", move, move, uci.pos.Get(move.From))
+	move, _ := uci.Engine.Play()
+	log.Printf("selected %q (%v); piece %v", move, move, uci.Position.Get(move.From))
 	fmt.Printf("bestmove %v\n", move)
 }

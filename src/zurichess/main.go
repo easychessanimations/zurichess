@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -18,6 +19,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println("zurichess")
 	bio := bufio.NewReader(os.Stdin)
 	uci := &engine.UCI{}
 
