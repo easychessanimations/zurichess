@@ -127,7 +127,8 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 func split(pos *engine.Position, depth, splitDepth int) counters {
 	r := counters{}
 	if depth == 0 || splitDepth == 0 {
-		r = perft(pos, depth, new([]engine.Move))
+		moves := make([]engine.Move, 0, 256)
+		r = perft(pos, depth, &moves)
 	} else {
 		moves := pos.GenerateMoves(nil)
 		for _, move := range moves {
