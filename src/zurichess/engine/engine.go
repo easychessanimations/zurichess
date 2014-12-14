@@ -2,8 +2,11 @@ package engine
 
 import (
 	"errors"
+	"log"
 	"math/rand"
 )
+
+var _ = log.Println
 
 type Engine struct {
 	Position *Position
@@ -53,11 +56,15 @@ func (eng *Engine) evaluate() int {
 	return score
 }
 
-func (eng *Engine) Play() (Move, error) {
+func (eng *Engine) minMax(depth int) (Move, int) {
+	if depth == 0 {
+		return Move{}, eng.evaluate()
+	}
+
 	toMove := eng.Position.ToMove
 	weight := ColorWeight[toMove]
-	bestScore := -mateScore
 	bestMove := Move{}
+	bestScore := -mateScore
 
 	found := false
 	moves := eng.Position.GenerateMoves(nil)
@@ -65,7 +72,8 @@ func (eng *Engine) Play() (Move, error) {
 		eng.Position.DoMove(move)
 		if !eng.Position.IsChecked(toMove) {
 			found = true
-			score := eng.evaluate() * weight
+			_, score := eng.minMax(depth - 1)
+			score *= weight
 			if (score == bestScore && rand.Intn(2) == 0) || score > bestScore {
 				bestScore = score
 				bestMove = move
@@ -77,12 +85,26 @@ func (eng *Engine) Play() (Move, error) {
 	// If there is no valid move, then it's a stalement or a checkmate.
 	if !found {
 		if eng.Position.IsChecked(toMove) {
+			return Move{}, -mateScore
+		} else {
+			return Move{}, 0
+		}
+	}
+
+	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
+	return bestMove, bestScore * weight
+}
+
+func (eng *Engine) Play() (Move, error) {
+	move, _ := eng.minMax(3)
+	if move.MoveType == NoMove {
+		// If there is no valid move, then it's a stalement or a checkmate.
+		if eng.Position.IsChecked(eng.Position.ToMove) {
 			return Move{}, ErrorCheckMate
 		} else {
 			return Move{}, ErrorStaleMate
 		}
 	}
 
-	return bestMove, nil
-
+	return move, nil
 }
