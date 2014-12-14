@@ -97,7 +97,7 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 }
 
 func (eng *Engine) Play() (Move, error) {
-	move, _ := eng.minMax(3)
+	move, _ := eng.minMax(4)
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
