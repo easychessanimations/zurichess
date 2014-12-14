@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"log"
+	"math"
 	"math/rand"
 )
 
@@ -64,7 +65,7 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 	toMove := eng.Position.ToMove
 	weight := ColorWeight[toMove]
 	bestMove := Move{}
-	bestScore := -mateScore
+	bestScore := -weight * math.MaxInt32
 
 	found := false
 	moves := eng.Position.GenerateMoves(nil)
@@ -73,8 +74,8 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 		if !eng.Position.IsChecked(toMove) {
 			found = true
 			_, score := eng.minMax(depth - 1)
-			score *= weight
-			if (score == bestScore && rand.Intn(2) == 0) || score > bestScore {
+			score += rand.Intn(11) - 5
+			if score*weight > bestScore*weight {
 				bestScore = score
 				bestMove = move
 			}
@@ -85,14 +86,14 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 	// If there is no valid move, then it's a stalement or a checkmate.
 	if !found {
 		if eng.Position.IsChecked(toMove) {
-			return Move{}, -mateScore
+			return Move{}, -weight * mateScore
 		} else {
 			return Move{}, 0
 		}
 	}
 
 	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
-	return bestMove, bestScore * weight
+	return bestMove, bestScore
 }
 
 func (eng *Engine) Play() (Move, error) {
