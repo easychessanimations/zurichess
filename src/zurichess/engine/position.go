@@ -27,8 +27,8 @@ func init() {
 
 // Position encodes the chess board.
 type Position struct {
-	byFigure  [FigureMaxValue]Bitboard
-	byColor   [ColorMaxValue]Bitboard
+	ByFigure  [FigureMaxValue]Bitboard
+	ByColor   [ColorMaxValue]Bitboard
 	ToMove    Color
 	Castle    Castle
 	Enpassant Square
@@ -38,33 +38,33 @@ type Position struct {
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
 	bb := sq.Bitboard()
-	pos.byColor[pi.Color()] |= bb
-	pos.byFigure[pi.Figure()] |= bb
+	pos.ByColor[pi.Color()] |= bb
+	pos.ByFigure[pi.Figure()] |= bb
 }
 
 // Remove removes a piece from the table.
 // Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
 	bb := ^sq.Bitboard()
-	pos.byColor[pi.Color()] &= bb
-	pos.byFigure[pi.Figure()] &= bb
+	pos.ByColor[pi.Color()] &= bb
+	pos.ByFigure[pi.Figure()] &= bb
 }
 
 // IsEmpty returns true if there is no piece at sq.
 func (pos *Position) IsEmpty(sq Square) bool {
-	return (pos.byColor[White]|pos.byColor[Black])>>sq&1 == 0
+	return (pos.ByColor[White]|pos.ByColor[Black])>>sq&1 == 0
 }
 
 // GetColor returns the piece's color at sq.
 func (pos *Position) GetColor(sq Square) Color {
-	return White*Color(pos.byColor[White]>>sq&1) +
-		Black*Color(pos.byColor[Black]>>sq&1)
+	return White*Color(pos.ByColor[White]>>sq&1) +
+		Black*Color(pos.ByColor[Black]>>sq&1)
 }
 
 // GetFigure returns the piece's type at sq.
 func (pos *Position) GetFigure(sq Square) Figure {
 	for pt := FigureMinValue; pt < FigureMaxValue; pt++ {
-		if pos.byFigure[pt]&sq.Bitboard() != 0 {
+		if pos.ByFigure[pt]&sq.Bitboard() != 0 {
 			return pt
 		}
 	}
@@ -83,7 +83,7 @@ func (pos *Position) Get(sq Square) Piece {
 
 // IsChecked returns true if co's king is checked.
 func (pos *Position) IsChecked(co Color) bool {
-	kingSq := (pos.byColor[co] & pos.byFigure[King]).AsSquare()
+	kingSq := (pos.ByColor[co] & pos.ByFigure[King]).AsSquare()
 	return pos.IsAttackedBy(kingSq, co.Other())
 }
 
@@ -318,8 +318,8 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 
 // genPawnAdvanceMoves moves pawns one square.
 func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
-	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
-	free := ^(pos.byColor[White] | pos.byColor[Black])
+	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
 	if pos.ToMove == White {
@@ -340,8 +340,8 @@ func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
 
 // genPawnAdvanceMoves moves pawns two square.
 func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
-	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
-	free := ^(pos.byColor[White] | pos.byColor[Black])
+	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
 	if pos.ToMove == White {
@@ -361,8 +361,8 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
-	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
-	enemy := pos.byColor[pos.ToMove.Other()]
+	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	enemy := pos.ByColor[pos.ToMove.Other()]
 	var forward Square
 
 	if pos.ToMove == White {
@@ -401,7 +401,7 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 		return moves
 	}
 
-	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
+	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
 	enemy := pos.Enpassant.Bitboard()
 
 	if pos.ToMove == White {
@@ -455,19 +455,19 @@ func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) [
 
 // genKnightMoves generates knight moves around from.
 func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
-	att := BbKnightAttack[from] & (^pos.byColor[pos.ToMove])
+	att := BbKnightAttack[from] & (^pos.ByColor[pos.ToMove])
 	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
-	ref := pos.byColor[White] | pos.byColor[Black]
-	att := RookMagic[from].Attack(ref) &^ pos.byColor[pos.ToMove]
+	ref := pos.ByColor[White] | pos.ByColor[Black]
+	att := RookMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
 	return pos.genBitboardMoves(from, att, moves)
 }
 
 func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
-	ref := pos.byColor[White] | pos.byColor[Black]
-	att := BishopMagic[from].Attack(ref) &^ pos.byColor[pos.ToMove]
+	ref := pos.ByColor[White] | pos.ByColor[Black]
+	att := BishopMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
 	return pos.genBitboardMoves(from, att, moves)
 }
 
@@ -480,7 +480,7 @@ func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
 func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	// King moves around.
 	other := pos.ToMove.Other()
-	att := BbKingAttack[from] & (^pos.byColor[pos.ToMove])
+	att := BbKingAttack[from] & (^pos.ByColor[pos.ToMove])
 	for att != 0 {
 		if to := att.Pop(); !pos.IsAttackedBy(to, other) {
 			moves = append(moves, pos.fix(Move{
@@ -536,7 +536,7 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 func (pos *Position) GenerateMoves(moves []Move) []Move {
 	moves = pos.genPawnMoves(moves)
 	for from := SquareMinValue; from < SquareMaxValue; from++ {
-		if pos.byColor[pos.ToMove]&from.Bitboard() == 0 {
+		if pos.ByColor[pos.ToMove]&from.Bitboard() == 0 {
 			continue
 		}
 
@@ -561,7 +561,7 @@ func (pos *Position) GenerateMoves(moves []Move) []Move {
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	// WhitePawn
 	if co == White {
-		pawns := pos.byColor[White] & pos.byFigure[Pawn]
+		pawns := pos.ByColor[White] & pos.ByFigure[Pawn]
 		if sq.Bitboard()&(BbPawnLeftAttack<<7) != 0 {
 			if sq.Relative(-1, +1).Bitboard()&pawns != 0 {
 				return true
@@ -576,7 +576,7 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 
 	// BlackPawn
 	if co == Black {
-		pawns := pos.byColor[Black] & pos.byFigure[Pawn]
+		pawns := pos.ByColor[Black] & pos.ByFigure[Pawn]
 		if sq.Bitboard()&(BbPawnLeftAttack>>9) != 0 {
 			if sq.Relative(+1, +1).Bitboard()&pawns != 0 {
 				return true
@@ -589,32 +589,32 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		}
 	}
 
-	all := pos.byColor[White] | pos.byColor[Black]
-	enemy := pos.byColor[co]
+	all := pos.ByColor[White] | pos.ByColor[Black]
+	enemy := pos.ByColor[co]
 
 	// Quick test of SuperPiece on empty board.
-	if BbSuperAttack[sq]&(enemy&^pos.byFigure[Pawn]) == 0 {
+	if BbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
 		return false
 	}
 
 	// Knight
-	if BbKnightAttack[sq]&enemy&pos.byFigure[Knight] != 0 {
+	if BbKnightAttack[sq]&enemy&pos.ByFigure[Knight] != 0 {
 		return true
 	}
 
 	// King.
-	if BbKingAttack[sq]&enemy&pos.byFigure[King] != 0 {
+	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
 		return true
 	}
 
 	// Rook&Queen
-	rooks := enemy & (pos.byFigure[Rook] | pos.byFigure[Queen])
+	rooks := enemy & (pos.ByFigure[Rook] | pos.ByFigure[Queen])
 	if rooks != 0 && rooks&RookMagic[sq].Attack(all) != 0 {
 		return true
 	}
 
 	// Bishop&Queen
-	bishops := enemy & (pos.byFigure[Bishop] | pos.byFigure[Queen])
+	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
 	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
 		return true
 	}
