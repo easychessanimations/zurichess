@@ -100,10 +100,28 @@ const (
 	BbPawnRightAttack Bitboard = 0x007f7f7f7f7f7f00
 	BbPawnStartRank   Bitboard = 0x00ff00000000ff00
 	BbPawnDoubleRank  Bitboard = 0x000000ffff000000
-	BbFileA           Bitboard = 0x0101010101010101
-	BbFileH           Bitboard = 0x8080808080808080
-	BbRank1           Bitboard = 0x00000000000000ff
-	BbRank8           Bitboard = 0xff00000000000000
+)
+
+const (
+	BbFileA Bitboard = 0x0101010101010101 << iota
+	BbFileB
+	BbFileC
+	BbFileD
+	BbFileE
+	BbFileF
+	BbFileG
+	BbFileH
+)
+
+const (
+	BbRank1 Bitboard = 0x00000000000000ff << (iota * 8)
+	BbRank2
+	BbRank3
+	BbRank4
+	BbRank5
+	BbRank6
+	BbRank7
+	BbRank8
 )
 
 var (

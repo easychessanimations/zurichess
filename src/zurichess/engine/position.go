@@ -316,32 +316,98 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 	return moves
 }
 
+// genPawnAdvanceMoves moves pawns one square.
+func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
+	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
+	free := ^(pos.byColor[White] | pos.byColor[Black])
+	var forward Square
+
+	if pos.ToMove == White {
+		bb &= free >> 8
+		forward = RankFile(+1, 0)
+	} else {
+		bb &= free << 8
+		forward = RankFile(-1, 0)
+	}
+
+	for bb != 0 {
+		from := bb.Pop()
+		to := from + forward
+		moves = pos.genPawnPromotions(from, to, NoPiece, moves)
+	}
+	return moves
+}
+
+// genPawnAdvanceMoves moves pawns two square.
+func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
+	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
+	free := ^(pos.byColor[White] | pos.byColor[Black])
+	var forward Square
+
+	if pos.ToMove == White {
+		bb &= BbRank2
+		bb &= free >> 8
+		bb &= free >> 16
+		forward = RankFile(+2, 0)
+	} else {
+		bb &= BbRank7
+		bb &= free << 8
+		bb &= free << 16
+		forward = RankFile(-2, 0)
+	}
+
+	for bb != 0 {
+		from := bb.Pop()
+		to := from + forward
+		moves = pos.genPawnPromotions(from, to, NoPiece, moves)
+	}
+	return moves
+}
+
+func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
+	bb := pos.byColor[pos.ToMove] & pos.byFigure[Pawn]
+	enemy := pos.byColor[pos.ToMove.Other()]
+	var forward Square
+
+	if pos.ToMove == White {
+		enemy >>= 8
+		forward = RankFile(+1, 0)
+	} else {
+		enemy <<= 8
+		forward = RankFile(-1, 0)
+	}
+
+	// Left
+	bbl := bb & BbPawnLeftAttack & (enemy << 1)
+	att := forward.Relative(0, -1)
+	for bbl > 0 {
+		from := bbl.Pop()
+		to := from + att
+		capt := pos.Get(to)
+		moves = pos.genPawnPromotions(from, to, capt, moves)
+	}
+
+	// Right
+	bbr := bb & BbPawnRightAttack & (enemy >> 1)
+	att = forward.Relative(0, +1)
+	for bbr > 0 {
+		from := bbr.Pop()
+		to := from + att
+		capt := pos.Get(to)
+		moves = pos.genPawnPromotions(from, to, capt, moves)
+	}
+
+	return moves
+}
+
 // genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
-	advance, pawnRank := 1, 1
+	advance := 1
 	if pos.ToMove == Black {
-		advance, pawnRank = -1, 6
+		advance = -1
 	}
 
-	pr := from.Rank()
-
-	// Move forward.
-	f1 := from.Relative(advance, 0)
-	if pos.IsEmpty(f1) {
-		moves = pos.genPawnPromotions(from, f1, NoPiece, moves)
-	}
-
-	// Move forward 2x.
-	if pr == pawnRank {
-		f2 := from.Relative(advance*2, 0)
-		if pos.IsEmpty(f1) && pos.IsEmpty(f2) {
-			moves = append(moves, pos.fix(Move{
-				From: from,
-				To:   f2,
-			}))
-		}
-	}
-
+	// Attack.
 	for _, pa := range pawnAttack {
 		if from.Bitboard()&pa.attack != 0 {
 			var capt Piece
@@ -349,14 +415,8 @@ func (pos *Position) genPawnMoves(from Square, moves []Move) []Move {
 			if pos.Enpassant != SquareA1 && to == pos.Enpassant {
 				// Captures en passant.
 				capt = ColorFigure(pos.ToMove.Other(), Pawn)
-			} else {
-				// Regular capture.
-				capt = pos.Get(to)
-				if capt.Color() != pos.ToMove.Other() {
-					continue
-				}
+				moves = pos.genPawnPromotions(from, to, capt, moves)
 			}
-			moves = pos.genPawnPromotions(from, to, capt, moves)
 		}
 	}
 
@@ -456,25 +516,29 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 // GenerateMoves generates pseudo-legal moves, i.e. doesn't
 // check for king check.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
-	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
-		if pos.byColor[pos.ToMove]&sq.Bitboard() == 0 {
+	moves = pos.genPawnAdvanceMoves(moves)
+	moves = pos.genPawnDoubleAdvanceMoves(moves)
+	moves = pos.genPawnAttackMoves(moves)
+
+	for from := SquareMinValue; from < SquareMaxValue; from++ {
+		if pos.byColor[pos.ToMove]&from.Bitboard() == 0 {
 			continue
 		}
 
-		pi := pos.Get(sq)
+		pi := pos.Get(from)
 		switch pi.Figure() {
 		case Pawn:
-			moves = pos.genPawnMoves(sq, moves)
+			moves = pos.genPawnMoves(from, moves)
 		case Knight:
-			moves = pos.genKnightMoves(sq, moves)
+			moves = pos.genKnightMoves(from, moves)
 		case Bishop:
-			moves = pos.genBishopMoves(sq, moves)
+			moves = pos.genBishopMoves(from, moves)
 		case Rook:
-			moves = pos.genRookMoves(sq, moves)
+			moves = pos.genRookMoves(from, moves)
 		case Queen:
-			moves = pos.genQueenMoves(sq, moves)
+			moves = pos.genQueenMoves(from, moves)
 		case King:
-			moves = pos.genKingMoves(sq, moves)
+			moves = pos.genKingMoves(from, moves)
 		}
 	}
 	return moves
