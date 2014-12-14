@@ -185,7 +185,8 @@ func (bb *Bitboard) Pop() Square {
 type MoveType uint16
 
 const (
-	Normal MoveType = iota
+	NoMove MoveType = iota
+	Normal
 	Promotion
 	Castling
 	Enpassant

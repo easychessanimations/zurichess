@@ -445,9 +445,10 @@ func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) [
 	for att != 0 {
 		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
-			From:    from,
-			To:      to,
-			Capture: pos.Get(to),
+			MoveType: Normal,
+			From:     from,
+			To:       to,
+			Capture:  pos.Get(to),
 		}))
 	}
 	return moves
@@ -484,9 +485,10 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 	for att != 0 {
 		if to := att.Pop(); !pos.IsAttackedBy(to, other) {
 			moves = append(moves, pos.fix(Move{
-				From:    from,
-				To:      to,
-				Capture: pos.Get(to),
+				MoveType: Normal,
+				From:     from,
+				To:       to,
+				Capture:  pos.Get(to),
 			}))
 		}
 	}
