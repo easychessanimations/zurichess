@@ -65,20 +65,12 @@ func (uci *UCI) ucinewgame(args []string) error {
 	return nil
 }
 
-func (uci *UCI) position(args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("expected argument for 'position'")
-	}
-	if args[0] != "startpos" {
-		return fmt.Errorf("expected 'startpos', got '%s'", args[0])
-	}
-
+func (uci *UCI) positionStartpos(args []string) error {
 	var err error
 	uci.Position, err = PositionFromFEN(FENStartPos)
 	if err != nil {
 		return err
 	}
-	uci.Engine = &Engine{Position: uci.Position}
 
 	if len(args) == 1 {
 		return nil
@@ -91,7 +83,39 @@ func (uci *UCI) position(args []string) error {
 		move := uci.Position.ParseMove(m)
 		uci.Position.DoMove(move)
 	}
+	return nil
+}
 
+func (uci *UCI) positionFEN(args []string) error {
+	if len(args) != 7 {
+		return fmt.Errorf("expected 6 fields in FEN position, got %d",
+			len(args)-1)
+	}
+
+	var err error
+	uci.Position, err = PositionFromFEN(strings.Join(args[1:], " "))
+	return err
+}
+
+func (uci *UCI) position(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("expected argument for 'position'")
+	}
+
+	switch args[0] {
+	case "startpos":
+		if err := uci.positionStartpos(args); err != nil {
+			return nil
+		}
+	case "fen":
+		if err := uci.positionFEN(args); err != nil {
+			return nil
+		}
+	default:
+		return fmt.Errorf("unknown position command: %s", args[0])
+	}
+
+	uci.Engine = &Engine{Position: uci.Position}
 	return nil
 }
 
