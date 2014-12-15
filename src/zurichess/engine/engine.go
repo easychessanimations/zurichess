@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -45,6 +46,7 @@ type TimeControl struct {
 type Engine struct {
 	position *Position
 	moves    []Move
+	nodes    uint64
 }
 
 // NewEngine returns a new engine for pos.
@@ -107,6 +109,7 @@ func (eng *Engine) Evaluate() int {
 }
 
 func (eng *Engine) minMax(depth int) (Move, int) {
+	eng.nodes++
 	if depth == 0 {
 		return Move{}, eng.Evaluate()
 	}
@@ -168,17 +171,18 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	}
 	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
 	timeLimit := thinkTime / branchFactor
-	log.Println("will think for", thinkTime)
-	log.Println("tc", tc)
 
-	depth := 2
 	var move Move
-	for depth < 64 && time.Now().Sub(start) <= timeLimit {
-		depth++
+	elapsed := time.Now().Sub(start)
+	for depth := 3; depth < 64 && elapsed <= timeLimit; depth++ {
 		move, _ = eng.minMax(depth)
+		elapsed = time.Now().Sub(start)
+		fmt.Printf("info depth %d nodes %d time %d nps %d pv %v\n",
+			depth, eng.nodes, elapsed/time.Millisecond,
+			eng.nodes*uint64(time.Second)/uint64(elapsed+1),
+			move)
 	}
 
-	log.Println("reached depth", depth, "in", time.Now().Sub(start))
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.position.IsChecked(eng.position.ToMove) {
