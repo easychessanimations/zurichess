@@ -10,4 +10,4 @@ cutechess-cli \
         -games 100 -pgnout $pgnout \
         -fcp cmd=`pwd`/$1 name=$1 \
         -scp cmd=`pwd`/$2 name=$2 \
-        -both tc=1/40 proto=uci
+        -both tc=40/60 proto=uci

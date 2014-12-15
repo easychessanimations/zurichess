@@ -30,11 +30,24 @@ var (
 	rookPawnPenalty = 12
 )
 
+type TimeControl struct {
+	// Remaining time.
+	Time time.Duration
+	// Time increment after each move.
+	Inc time.Duration
+	// Number of moves left. Recommended values
+	// 0 when there is no time refresh.
+	// 1 when solving puzzels.
+	// n when there is a time refresh.
+	MovesToGo int
+}
+
 type Engine struct {
 	position *Position
 	moves    []Move
 }
 
+// NewEngine returns a new engine for pos.
 func NewEngine(pos *Position) *Engine {
 	return &Engine{
 		position: pos,
@@ -138,13 +151,29 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 	return bestMove, bestScore
 }
 
-func (eng *Engine) Play() (Move, error) {
-	minDuration := 250 * time.Millisecond
+const (
+	defaultMovesToGo = 30 // default number of more moves expected to play
+	branchFactor     = 21 // default branching factor
+)
+
+func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	start := time.Now()
 
+	// Compute how much time to think according to the formula below.
+	// The formula allows engine to use more of time.Left in the begining
+	// and rely more on the inc time later.
+	movesToGo := time.Duration(defaultMovesToGo)
+	if tc.MovesToGo != 0 {
+		movesToGo = time.Duration(tc.MovesToGo)
+	}
+	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
+	timeLimit := thinkTime / branchFactor
+	log.Println("will think for", thinkTime)
+	log.Println("tc", tc)
+
+	depth := 2
 	var move Move
-	depth := 3
-	for depth < 32 && time.Now().Sub(start) < minDuration {
+	for depth < 64 && time.Now().Sub(start) <= timeLimit {
 		depth++
 		move, _ = eng.minMax(depth)
 	}

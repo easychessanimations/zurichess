@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -120,7 +121,44 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	move, _ := uci.Engine.Play()
+	var white, black TimeControl
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "infinite":
+			white.Time = 1000000 * time.Hour
+			black.Time = 1000000 * time.Hour
+		case "wtime":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			white.Time = time.Duration(t) * time.Millisecond
+		case "winc":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			white.Inc = time.Duration(t) * time.Millisecond
+		case "btime":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			black.Time = time.Duration(t) * time.Millisecond
+		case "binc":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			black.Inc = time.Duration(t) * time.Millisecond
+		case "movestogo":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			white.MovesToGo = t
+			black.MovesToGo = t
+		}
+	}
+
+	var tc TimeControl
+	if uci.Position.ToMove == White {
+		tc = white
+	} else {
+		tc = black
+	}
+
+	move, _ := uci.Engine.Play(tc)
 	log.Printf("selected %q (%v); piece %v", move, move, uci.Position.Get(move.From))
 	fmt.Printf("bestmove %v\n", move)
 }
