@@ -81,7 +81,7 @@ func (eng *Engine) Evaluate() int {
 	// Compute piece values.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		fb := figureBonus
-		numPawns := Popcnt(uint64(pos.ByPiece(White, Pawn)))
+		numPawns := Popcnt(uint64(pos.ByPiece(col, Pawn)))
 		if numPawns > 5 {
 			fb[Knight] += (numPawns - 5) * knightPawnBonus
 			fb[Rook] -= (numPawns - 5) * rookPawnPenalty
