@@ -10,16 +10,11 @@ import (
 
 var _ = log.Println
 
-type Engine struct {
-	Position *Position
-	moves    []Move
-}
-
 var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
 
-	figureBonus = [8]int{
+	figureBonus = [FigureMaxValue]int{
 		0,     // NoFigure
 		100,   // Pawn
 		325,   // Knight
@@ -35,10 +30,37 @@ var (
 	rookPawnPenalty = 12
 )
 
+type Engine struct {
+	position *Position
+	moves    []Move
+}
+
+func NewEngine(pos *Position) *Engine {
+	return &Engine{
+		position: pos,
+		moves:    make([]Move, 0, 64),
+	}
+}
+
+// ParseMove parses the move from a string.
+func (eng *Engine) ParseMove(move string) Move {
+	return eng.position.ParseMove(move)
+}
+
+// DoMove executes a move.
+func (eng *Engine) DoMove(move Move) {
+	eng.position.DoMove(move)
+}
+
+// UndoMove takes back a move.
+func (eng *Engine) UndoMove(move Move) {
+	eng.position.UndoMove(move)
+}
+
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
-func (eng *Engine) evaluate() int {
-	pos := eng.Position
+func (eng *Engine) Evaluate() int {
+	pos := eng.position
 	score := 0
 
 	// Compute piece values.
@@ -73,25 +95,25 @@ func (eng *Engine) evaluate() int {
 
 func (eng *Engine) minMax(depth int) (Move, int) {
 	if depth == 0 {
-		return Move{}, eng.evaluate()
+		return Move{}, eng.Evaluate()
 	}
 
-	toMove := eng.Position.ToMove
+	toMove := eng.position.ToMove
 	weight := ColorWeight[toMove]
 	bestMove := Move{}
 	bestScore := -weight * math.MaxInt32
 
 	found := false
 	start := len(eng.moves)
-	eng.moves = eng.Position.GenerateMoves(eng.moves)
+	eng.moves = eng.position.GenerateMoves(eng.moves)
 	for len(eng.moves) > start {
 		// Pops last move.
 		last := len(eng.moves) - 1
 		move := eng.moves[last]
 		eng.moves = eng.moves[:last]
 
-		eng.Position.DoMove(move)
-		if !eng.Position.IsChecked(toMove) {
+		eng.position.DoMove(move)
+		if !eng.position.IsChecked(toMove) {
 			found = true
 			_, score := eng.minMax(depth - 1)
 			score += rand.Intn(11) - 5
@@ -100,12 +122,12 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 				bestMove = move
 			}
 		}
-		eng.Position.UndoMove(move)
+		eng.position.UndoMove(move)
 	}
 
 	// If there is no valid move, then it's a stalement or a checkmate.
 	if !found {
-		if eng.Position.IsChecked(toMove) {
+		if eng.position.IsChecked(toMove) {
 			return Move{}, -weight * mateScore
 		} else {
 			return Move{}, 0
@@ -130,7 +152,7 @@ func (eng *Engine) Play() (Move, error) {
 	log.Println("reached depth", depth, "in", time.Now().Sub(start))
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
-		if eng.Position.IsChecked(eng.Position.ToMove) {
+		if eng.position.IsChecked(eng.position.ToMove) {
 			return Move{}, ErrorCheckMate
 		} else {
 			return Move{}, ErrorStaleMate

@@ -115,7 +115,7 @@ func (uci *UCI) position(args []string) error {
 		return fmt.Errorf("unknown position command: %s", args[0])
 	}
 
-	uci.Engine = &Engine{Position: uci.Position}
+	uci.Engine = NewEngine(uci.Position)
 	return nil
 }
 
