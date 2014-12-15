@@ -63,19 +63,27 @@ func (eng *Engine) evaluate() int {
 	// Awared connected pawns (left).
 	{
 		connectedBb := pos.ByFigure[Pawn] & BbPawnLeftAttack
-		connectedBb &= connectedBb << 7
-		wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
-		bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
-		score += connectedPawnBonus * (wcp - bcp)
+		bonus := connectedPawnBonus
+		for connectedBb > 0 {
+			connectedBb &= connectedBb << 7
+			wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
+			bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
+			score += bonus * (wcp - bcp)
+			bonus /= 2
+		}
 	}
 
 	// Awared connected pawns (right).
 	{
 		connectedBb := pos.ByFigure[Pawn] & BbPawnRightAttack
-		connectedBb &= connectedBb << 9
-		wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
-		bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
-		score += connectedPawnBonus * (wcp - bcp)
+		bonus := connectedPawnBonus
+		for connectedBb > 0 {
+			connectedBb &= connectedBb << 9
+			wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
+			bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
+			score += bonus * (wcp - bcp)
+			bonus /= 2
+		}
 	}
 
 	return score
