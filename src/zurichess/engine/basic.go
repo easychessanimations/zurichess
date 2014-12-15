@@ -89,7 +89,7 @@ const (
 )
 
 var (
-	ColorWeight = []int{0, 1, -1}
+	ColorWeight = [ColorMaxValue]int{0, 1, -1}
 )
 
 func (co Color) Other() Color {

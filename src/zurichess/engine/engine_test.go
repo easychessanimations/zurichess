@@ -14,41 +14,6 @@ var (
 	}
 )
 
-func TestScoreIsEvaluate(t *testing.T) {
-	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos)
-
-	for _, g := range games {
-		todo := strings.Fields(g)
-		done := make([]Move, 0)
-
-		for i := range todo {
-			move := eng.ParseMove(todo[i])
-			done = append(done, move)
-			eng.DoMove(move)
-
-			expected := eng.Evaluate()
-			actual := eng.Score()
-			if expected != actual {
-				t.Errorf("move %v: Evaluated() %d != Score() %d",
-					move, expected, actual)
-			}
-		}
-
-		for i := range done {
-			move := done[len(done)-1-i]
-			eng.UndoMove(move)
-
-			expected := eng.Evaluate()
-			actual := eng.Score()
-			if expected != actual {
-				t.Errorf("moves %v: Evaluated() %d != Score() %d",
-					move, expected, actual)
-			}
-		}
-	}
-}
-
 func BenchmarkScore(b *testing.B) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	eng := NewEngine(pos)

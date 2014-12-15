@@ -44,17 +44,22 @@ type TimeControl struct {
 }
 
 type Engine struct {
-	position *Position
-	moves    []Move
-	nodes    uint64
+	position *Position // current position
+	moves    []Move    // moves stack
+	nodes    uint64    // number of nodes evaluated
+
+	pieces     [ColorMaxValue][FigureMaxValue]int
+	pieceScore int
 }
 
 // NewEngine returns a new engine for pos.
 func NewEngine(pos *Position) *Engine {
-	return &Engine{
+	eng := &Engine{
 		position: pos,
 		moves:    make([]Move, 0, 64),
 	}
+	eng.countMaterial()
+	return eng
 }
 
 // ParseMove parses the move from a string.
@@ -62,62 +67,85 @@ func (eng *Engine) ParseMove(move string) Move {
 	return eng.position.ParseMove(move)
 }
 
+func (eng *Engine) put(col Color, pi Figure) {
+	eng.pieces[col][pi]++
+	eng.pieceScore += ColorWeight[col] * figureBonus[pi]
+}
+
+func (eng *Engine) remove(col Color, pi Figure) {
+	eng.pieces[col][pi]--
+	eng.pieceScore -= ColorWeight[col] * figureBonus[pi]
+}
+
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
+	capt := move.Capture
+	if capt != NoPiece {
+		eng.remove(capt.Color(), capt.Figure())
+	}
+	if move.MoveType == Promotion {
+		eng.remove(eng.position.ToMove, Pawn)
+		eng.put(eng.position.ToMove, move.Promotion.Figure())
+	}
 	eng.position.DoMove(move)
 }
 
 // UndoMove takes back a move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.position.UndoMove(move)
+	capt := move.Capture
+	if capt != NoPiece {
+		eng.put(capt.Color(), capt.Figure())
+	}
+	if move.MoveType == Promotion {
+		eng.put(eng.position.ToMove, Pawn)
+		eng.remove(eng.position.ToMove, move.Promotion.Figure())
+	}
+}
+
+// countMaterial counts pieces and updates the eng.pieceScore
+func (eng *Engine) countMaterial() {
+	eng.pieceScore = 0
+	for col := ColorMinValue; col < ColorMaxValue; col++ {
+		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
+			cnt := Popcnt(uint64(eng.position.ByPiece(col, fig)))
+			eng.pieces[col][fig] = cnt
+			eng.pieceScore += ColorWeight[col] * figureBonus[fig]
+		}
+	}
 }
 
 // Evaluate current position from white's POV.
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
-func (eng *Engine) Evaluate() int {
-	pos := eng.position
-	score := 0
+func (eng *Engine) Score() int {
+	score := eng.pieceScore
 
-	// Compute piece values.
-	for col := ColorMinValue; col < ColorMaxValue; col++ {
-		fb := figureBonus
-		numPawns := Popcnt(uint64(pos.ByPiece(col, Pawn)))
-		if numPawns > 5 {
-			fb[Knight] += (numPawns - 5) * knightPawnBonus
-			fb[Rook] -= (numPawns - 5) * rookPawnPenalty
-		}
-
-		colorScore := 0
-		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			bb := pos.ByPiece(col, fig)
-			colorScore += Popcnt(uint64(bb)) * fb[fig]
-		}
-		score += colorScore * ColorWeight[col]
+	// Give bonus for connected bishops.
+	if eng.pieces[White][Bishop] >= 2 {
+		score += bishopPairBonus
+	}
+	if eng.pieces[Black][Bishop] >= 2 {
+		score -= bishopPairBonus
 	}
 
-	// Award bishop pair.
-	{
-		if Popcnt(uint64(pos.ByPiece(White, Bishop))) >= 2 {
-			score += bishopPairBonus
-		}
-		if Popcnt(uint64(pos.ByPiece(Black, Bishop))) >= 2 {
-			score -= bishopPairBonus
+	// Give bonuses based on number of pawns.
+	for col := ColorMinValue; col < ColorMaxValue; col++ {
+		numPawns := eng.pieces[col][Pawn]
+		if numPawns > 5 {
+			adjust := knightPawnBonus * eng.pieces[col][Knight]
+			adjust -= rookPawnPenalty * eng.pieces[col][Rook]
+			score += adjust * ColorWeight[col] * (numPawns - 5)
 		}
 	}
 
 	return score
 }
 
-// Score returns a cached result of Evaluate.
-func (eng *Engine) Score() int {
-	return eng.Evaluate()
-}
-
 func (eng *Engine) minMax(depth int) (Move, int) {
 	eng.nodes++
 	if depth == 0 {
-		return Move{}, eng.Evaluate()
+		return Move{}, eng.Score()
 	}
 
 	toMove := eng.position.ToMove
