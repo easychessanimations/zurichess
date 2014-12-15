@@ -72,6 +72,7 @@ func (eng *Engine) UndoMove(move Move) {
 	eng.position.UndoMove(move)
 }
 
+// Evaluate current position from white's POV.
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Evaluate() int {
@@ -108,6 +109,11 @@ func (eng *Engine) Evaluate() int {
 	return score
 }
 
+// Score returns a cached result of Evaluate.
+func (eng *Engine) Score() int {
+	return eng.Evaluate()
+}
+
 func (eng *Engine) minMax(depth int) (Move, int) {
 	eng.nodes++
 	if depth == 0 {
@@ -128,7 +134,7 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 		move := eng.moves[last]
 		eng.moves = eng.moves[:last]
 
-		eng.position.DoMove(move)
+		eng.DoMove(move)
 		if !eng.position.IsChecked(toMove) {
 			found = true
 			_, score := eng.minMax(depth - 1)
@@ -138,7 +144,7 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 				bestMove = move
 			}
 		}
-		eng.position.UndoMove(move)
+		eng.UndoMove(move)
 	}
 
 	// If there is no valid move, then it's a stalement or a checkmate.
@@ -175,10 +181,11 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var move Move
 	elapsed := time.Now().Sub(start)
 	for depth := 3; depth < 64 && elapsed <= timeLimit; depth++ {
-		move, _ = eng.minMax(depth)
+		var score int
+		move, score = eng.minMax(depth)
 		elapsed = time.Now().Sub(start)
-		fmt.Printf("info depth %d nodes %d time %d nps %d pv %v\n",
-			depth, eng.nodes, elapsed/time.Millisecond,
+		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
+			depth, score, eng.nodes, elapsed/time.Millisecond,
 			eng.nodes*uint64(time.Second)/uint64(elapsed+1),
 			move)
 	}
