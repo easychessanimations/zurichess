@@ -34,6 +34,11 @@ type Position struct {
 	Enpassant Square
 }
 
+// ByPiece is a shortcut for byColor&byFigure.
+func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
+	return pos.ByColor[col] & pos.ByFigure[fig]
+}
+
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {

@@ -19,70 +19,52 @@ var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
 
-	figureBonus = []int{
+	figureBonus = [8]int{
 		0,     // NoFigure
 		100,   // Pawn
-		300,   // Knight
-		350,   // Bishop
+		325,   // Knight
+		325,   // Bishop
 		500,   // Rook
-		900,   // Queen
+		975,   // Queen
 		10000, // King
 	}
 
-	mateScore          = 200000
-	connectedPawnBonus = 40
-	doublePawnPenalty  = 40
+	mateScore       = 200000
+	bishopPairBonus = 50
+	knightPawnBonus = 6
+	rookPawnPenalty = 12
 )
 
-// evaluate evaluates the score of a position from white's color POV.
-// Simplest implementation adapted from:
-// https://chessprogramming.wikispaces.com/Evaluation
+// Figure values and bonuses are taken from:
+// http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) evaluate() int {
 	pos := eng.Position
 	score := 0
 
 	// Compute piece values.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
+		fb := figureBonus
+		numPawns := Popcnt(uint64(pos.ByPiece(White, Pawn)))
+		if numPawns > 5 {
+			fb[Knight] += (numPawns - 5) * knightPawnBonus
+			fb[Rook] -= (numPawns - 5) * rookPawnPenalty
+		}
+
 		colorScore := 0
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			bb := pos.ByColor[col] & pos.ByFigure[fig]
-			colorScore += Popcnt(uint64(bb)) * figureBonus[fig]
+			bb := pos.ByPiece(col, fig)
+			colorScore += Popcnt(uint64(bb)) * fb[fig]
 		}
 		score += colorScore * ColorWeight[col]
 	}
 
-	// Penalize double pawns.
+	// Award bishop pair.
 	{
-		doubleBb := pos.ByFigure[Pawn]
-		doubleBb &= doubleBb << 8
-		wdp := Popcnt(uint64(doubleBb & pos.ByColor[White]))
-		bdp := Popcnt(uint64(doubleBb & pos.ByColor[Black]))
-		score -= doublePawnPenalty * (wdp - bdp)
-	}
-
-	// Awared connected pawns (left).
-	{
-		connectedBb := pos.ByFigure[Pawn] & BbPawnLeftAttack
-		bonus := connectedPawnBonus
-		for connectedBb > 0 {
-			connectedBb &= connectedBb << 7
-			wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
-			bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
-			score += bonus * (wcp - bcp)
-			bonus /= 2
+		if Popcnt(uint64(pos.ByPiece(White, Bishop))) >= 2 {
+			score += bishopPairBonus
 		}
-	}
-
-	// Awared connected pawns (right).
-	{
-		connectedBb := pos.ByFigure[Pawn] & BbPawnRightAttack
-		bonus := connectedPawnBonus
-		for connectedBb > 0 {
-			connectedBb &= connectedBb << 9
-			wcp := Popcnt(uint64(connectedBb & pos.ByColor[White]))
-			bcp := Popcnt(uint64(connectedBb & pos.ByColor[Black]))
-			score += bonus * (wcp - bcp)
-			bonus /= 2
+		if Popcnt(uint64(pos.ByPiece(Black, Bishop))) >= 2 {
+			score -= bishopPairBonus
 		}
 	}
 
