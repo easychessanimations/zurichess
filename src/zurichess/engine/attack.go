@@ -3,6 +3,7 @@ package engine
 import (
 	"math"
 	"math/rand"
+	// "log"
 )
 
 var (
@@ -97,8 +98,10 @@ func randMagic() uint64 {
 }
 
 func spell(magic uint64, shift uint, bb Bitboard) uint {
-	bb = bb ^ (bb >> 23) // from fast-hash
-	return uint(magic * uint64(bb) >> shift)
+	// bb = bb ^ (bb >> 23) // from fast-hash
+	hi := uint32(bb>>32) * uint32(magic)
+	lo := uint32(magic>>32) * uint32(bb)
+	return uint((hi ^ lo) >> (shift - 32))
 }
 
 type magicInfo struct {
@@ -218,9 +221,9 @@ func (wiz *wizard) SearchMagics(mi []magicInfo) {
 		}
 	}
 	/*
-		log.Println("numMagicTests =", wiz.numMagicTests,
-			"; numEntries =", numEntries,
-			"; minShift =", minShift)
+	   log.Println("numMagicTests =", wiz.numMagicTests,
+	           "; numEntries =", numEntries,
+	           "; minShift =", minShift)
 	*/
 }
 
@@ -229,7 +232,7 @@ func initRookMagic() {
 		Deltas:        rookDeltas,
 		MinShift:      10,
 		MaxShift:      13,
-		MaxNumEntries: 160000,
+		MaxNumEntries: 130000,
 	}
 	wiz.SearchMagics(RookMagic[:])
 }
@@ -239,7 +242,7 @@ func initBishopMagic() {
 		Deltas:        bishopDeltas,
 		MinShift:      5,
 		MaxShift:      9,
-		MaxNumEntries: 7000,
+		MaxNumEntries: 6000,
 	}
 	wiz.SearchMagics(BishopMagic[:])
 }
