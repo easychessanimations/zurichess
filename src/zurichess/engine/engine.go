@@ -41,6 +41,8 @@ type TimeControl struct {
 	// 1 when solving puzzels.
 	// n when there is a time refresh.
 	MovesToGo int
+	// If set, search only at this depth.
+	Depth int
 }
 
 type Engine struct {
@@ -142,18 +144,16 @@ func (eng *Engine) Score() int {
 	return score
 }
 
-func (eng *Engine) minMax(depth int) (Move, int) {
+func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
+	// log.Println("max", alpha, beta, depth)
 	eng.nodes++
 	if depth == 0 {
-		return Move{}, eng.Score()
+		return Move{}, eng.Score() + rand.Intn(11) - 5
 	}
 
-	toMove := eng.position.ToMove
-	weight := ColorWeight[toMove]
-	bestMove := Move{}
-	bestScore := -weight * math.MaxInt32
+	// log.Println("xxx", depth)
 
-	found := false
+	bestMove := Move{}
 	start := len(eng.moves)
 	eng.moves = eng.position.GenerateMoves(eng.moves)
 	for len(eng.moves) > start {
@@ -163,29 +163,93 @@ func (eng *Engine) minMax(depth int) (Move, int) {
 		eng.moves = eng.moves[:last]
 
 		eng.DoMove(move)
-		if !eng.position.IsChecked(toMove) {
-			found = true
-			_, score := eng.minMax(depth - 1)
-			score += rand.Intn(11) - 5
-			if score*weight > bestScore*weight {
-				bestScore = score
+		if !eng.position.IsChecked(White) {
+			_, score := eng.alphaBetaMin(alpha, beta, depth-1)
+			if score >= beta {
+				// log.Println("beta cutoff", depth)
+				eng.UndoMove(move)
+				eng.moves = eng.moves[:start]
+				return Move{}, beta
+			}
+			if score > alpha {
+				// log.Println("bestMove", bestMove)
+				bestMove = move
+				alpha = score
+			}
+			if bestMove.MoveType == NoMove {
 				bestMove = move
 			}
 		}
 		eng.UndoMove(move)
 	}
 
-	// If there is no valid move, then it's a stalement or a checkmate.
-	if !found {
-		if eng.position.IsChecked(toMove) {
-			return Move{}, -weight * mateScore
+	// log.Println("bestMove", bestMove, "depth", depth)
+	if bestMove.MoveType == NoMove {
+		if eng.position.IsChecked(White) {
+			return Move{}, -mateScore
 		} else {
 			return Move{}, 0
 		}
 	}
 
 	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
-	return bestMove, bestScore
+	return bestMove, alpha
+}
+
+func (eng *Engine) alphaBetaMin(alpha, beta int, depth int) (Move, int) {
+	// log.Println("min", alpha, beta, depth)
+	eng.nodes++
+	if depth == 0 {
+		return Move{}, eng.Score() + rand.Intn(11) - 5
+	}
+
+	bestMove := Move{}
+	start := len(eng.moves)
+	eng.moves = eng.position.GenerateMoves(eng.moves)
+	for len(eng.moves) > start {
+		// Pops last move.
+		last := len(eng.moves) - 1
+		move := eng.moves[last]
+		eng.moves = eng.moves[:last]
+
+		eng.DoMove(move)
+		if !eng.position.IsChecked(Black) {
+			_, score := eng.alphaBetaMax(alpha, beta, depth-1)
+			if score <= alpha {
+				// log.Println("alpha cutoff")
+				eng.UndoMove(move)
+				eng.moves = eng.moves[:start]
+				return Move{}, alpha
+			}
+			if score < beta {
+				bestMove = move
+				beta = score
+			}
+			if bestMove.MoveType == NoMove {
+				bestMove = move
+			}
+		}
+		eng.UndoMove(move)
+	}
+
+	if bestMove.MoveType == NoMove {
+		if eng.position.IsChecked(Black) {
+			return Move{}, mateScore
+		} else {
+			return Move{}, 0
+		}
+	}
+
+	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
+	return bestMove, beta
+}
+
+func (eng *Engine) alphaBeta(depth int) (Move, int) {
+	if eng.position.ToMove == White {
+		return eng.alphaBetaMax(math.MinInt32, math.MaxInt32, depth)
+	} else {
+		return eng.alphaBetaMin(math.MinInt32, math.MaxInt32, depth)
+	}
 }
 
 const (
@@ -194,8 +258,6 @@ const (
 )
 
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
-	start := time.Now()
-
 	// Compute how much time to think according to the formula below.
 	// The formula allows engine to use more of time.Left in the begining
 	// and rely more on the inc time later.
@@ -206,11 +268,19 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
 	timeLimit := thinkTime / branchFactor
 
+	// Set a fix depth if given.
+	minDepth, maxDepth := 2, 64
+	if tc.Depth != 0 {
+		minDepth, maxDepth = tc.Depth, tc.Depth
+		timeLimit = 1 * time.Hour // TODO: do not test time
+	}
+
 	var move Move
-	elapsed := time.Now().Sub(start)
-	for depth := 3; depth < 64 && elapsed <= timeLimit; depth++ {
+	start := time.Now()
+	elapsed := time.Duration(0)
+	for depth := minDepth; depth <= maxDepth && elapsed <= timeLimit; depth++ {
 		var score int
-		move, score = eng.minMax(depth)
+		move, score = eng.alphaBeta(depth)
 		elapsed = time.Now().Sub(start)
 		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
 			depth, score, eng.nodes, elapsed/time.Millisecond,

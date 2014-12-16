@@ -38,3 +38,15 @@ func BenchmarkScore(b *testing.B) {
 		}
 	}
 }
+
+// Play a game against itself.
+func TestGame(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	eng := NewEngine(pos)
+	tc := TimeControl{Depth: 3}
+
+	for i := 0; i < 10; i++ {
+		move, _ := eng.Play(tc)
+		eng.DoMove(move)
+	}
+}
