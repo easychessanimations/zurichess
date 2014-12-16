@@ -25,7 +25,8 @@ var (
 		10000, // King
 	}
 
-	mateScore       = 200000
+	knownWinScore   = 20000
+	mateScore       = 30000
 	bishopPairBonus = 50
 	knightPawnBonus = 6
 	rookPawnPenalty = 12
@@ -145,13 +146,10 @@ func (eng *Engine) Score() int {
 }
 
 func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
-	// log.Println("max", alpha, beta, depth)
 	eng.nodes++
 	if depth == 0 {
 		return Move{}, eng.Score() + rand.Intn(11) - 5
 	}
-
-	// log.Println("xxx", depth)
 
 	bestMove := Move{}
 	start := len(eng.moves)
@@ -165,14 +163,15 @@ func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
 		eng.DoMove(move)
 		if !eng.position.IsChecked(White) {
 			_, score := eng.alphaBetaMin(alpha, beta, depth-1)
+			if score > knownWinScore {
+				score--
+			}
 			if score >= beta {
-				// log.Println("beta cutoff", depth)
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
 				return Move{}, beta
 			}
 			if score > alpha {
-				// log.Println("bestMove", bestMove)
 				bestMove = move
 				alpha = score
 			}
@@ -183,7 +182,6 @@ func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
 		eng.UndoMove(move)
 	}
 
-	// log.Println("bestMove", bestMove, "depth", depth)
 	if bestMove.MoveType == NoMove {
 		if eng.position.IsChecked(White) {
 			return Move{}, -mateScore
@@ -192,12 +190,10 @@ func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
 		}
 	}
 
-	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
 	return bestMove, alpha
 }
 
 func (eng *Engine) alphaBetaMin(alpha, beta int, depth int) (Move, int) {
-	// log.Println("min", alpha, beta, depth)
 	eng.nodes++
 	if depth == 0 {
 		return Move{}, eng.Score() + rand.Intn(11) - 5
@@ -215,8 +211,10 @@ func (eng *Engine) alphaBetaMin(alpha, beta int, depth int) (Move, int) {
 		eng.DoMove(move)
 		if !eng.position.IsChecked(Black) {
 			_, score := eng.alphaBetaMax(alpha, beta, depth-1)
+			if score < -knownWinScore {
+				score++
+			}
 			if score <= alpha {
-				// log.Println("alpha cutoff")
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
 				return Move{}, alpha
@@ -240,7 +238,6 @@ func (eng *Engine) alphaBetaMin(alpha, beta int, depth int) (Move, int) {
 		}
 	}
 
-	// log.Printf("at %d got %v %d", depth, bestMove, bestScore)
 	return bestMove, beta
 }
 
@@ -254,7 +251,7 @@ func (eng *Engine) alphaBeta(depth int) (Move, int) {
 
 const (
 	defaultMovesToGo = 30 // default number of more moves expected to play
-	branchFactor     = 21 // default branching factor
+	branchFactor     = 16 // default branching factor
 )
 
 func (eng *Engine) Play(tc TimeControl) (Move, error) {

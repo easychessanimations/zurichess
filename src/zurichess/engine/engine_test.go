@@ -43,10 +43,33 @@ func BenchmarkScore(b *testing.B) {
 func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	eng := NewEngine(pos)
-	tc := TimeControl{Depth: 3}
 
+	tc := TimeControl{Depth: 3}
 	for i := 0; i < 10; i++ {
 		move, _ := eng.Play(tc)
 		eng.DoMove(move)
+	}
+}
+
+func TestMateIn1(t *testing.T) {
+	game := []struct {
+		move string
+		fen  string
+	}{
+		{"a3a8", "2kn3r/5p2/2p5/1pN1B3/4P3/R5P1/7P/R4K2 w - - 6 46"},
+	}
+
+	for _, g := range game {
+		pos, _ := PositionFromFEN(g.fen)
+		eng := NewEngine(pos)
+
+		for d := 2; d < 8; d++ {
+			tc := TimeControl{Depth: d}
+			move, _ := eng.Play(tc)
+			if move.String() != g.move {
+				t.Errorf("at depth %d expected move %s, got %v for position %s",
+					d, g.move, move, g.fen)
+			}
+		}
 	}
 }
