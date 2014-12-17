@@ -93,34 +93,39 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 
 	r := counters{}
 	start := len(*moves)
-	*moves = pos.GenerateMoves(*moves)
 
-	for len(*moves) > start {
-		last := len(*moves) - 1
-		move := (*moves)[last]
-		*moves = (*moves)[:last]
+	moveGen := engine.NewMoveGenerator(pos)
+	for hasMore := true; hasMore; {
+		var piece engine.Piece
+		piece, *moves, hasMore = moveGen.Next(*moves)
+		for len(*moves) > start {
+			last := len(*moves) - 1
+			move := (*moves)[last]
+			*moves = (*moves)[:last]
 
-		pos.DoMove(move)
-		if pos.IsChecked(pos.ToMove.Other()) {
+			pos.DoMovePiece(piece, move)
+			if pos.IsChecked(pos.ToMove.Other()) {
+				pos.UndoMove(move)
+				continue
+			}
+
+			if depth == 1 { // count only leaf nodes
+				if move.Capture != engine.NoPiece {
+					r.captures++
+				}
+				if move.MoveType == engine.Enpassant {
+					r.enpassant++
+				}
+				if move.MoveType == engine.Castling {
+					r.castles++
+				}
+			}
+
+			r.Add(perft(pos, depth-1, moves))
 			pos.UndoMove(move)
-			continue
 		}
-
-		if depth == 1 { // count only leaf nodes
-			if move.Capture != engine.NoPiece {
-				r.captures++
-			}
-			if move.MoveType == engine.Enpassant {
-				r.enpassant++
-			}
-			if move.MoveType == engine.Castling {
-				r.castles++
-			}
-		}
-
-		r.Add(perft(pos, depth-1, moves))
-		pos.UndoMove(move)
 	}
+
 	return r
 }
 
