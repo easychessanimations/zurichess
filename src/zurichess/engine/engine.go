@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math"
+	// "math"
 	"math/rand"
 	"time"
 )
@@ -28,6 +28,7 @@ var (
 
 	knownWinScore   = 20000
 	mateScore       = 30000
+	infinityScore   = 32000
 	bishopPairBonus = 50
 	knightPawnBonus = 6
 	rookPawnPenalty = 12
@@ -132,13 +133,17 @@ func (eng *Engine) Score() int {
 	return score
 }
 
+// negamax implements negamax framework with fail-soft.
+// http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
 	eng.nodes++
 	if depth == 0 {
 		return Move{}, ColorWeight[color] * (eng.Score() + rand.Intn(11) - 5)
 	}
 
-	bestMove := Move{}
+	// log.Println(depth, "xxxx", alpha, beta, color, depth)
+
+	bestMove, bestScore := Move{}, -infinityScore
 	start := len(eng.moves)
 	eng.moves = eng.position.GenerateMoves(eng.moves)
 	for len(eng.moves) > start {
@@ -157,29 +162,36 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 			if score >= beta {
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
+				// log.Println(depth, "early", score, alpha, beta, color)
 				return Move{}, beta
 			}
-			if score > alpha {
-				bestMove = move
-				alpha = score
+			if score > bestScore {
+				bestMove, bestScore = move, score
+				if score > alpha {
+					alpha = score
+				}
 			}
 		}
 		eng.UndoMove(move)
 	}
 
+	// log.Println(depth, "best", bestMove, bestScore, alpha, beta, color)
+
 	if bestMove.MoveType == NoMove {
 		if eng.position.IsChecked(color) {
-			bestMove, alpha = Move{}, -mateScore
+			// log.Println(color, "mated")
+			bestMove, bestScore = Move{}, -mateScore
 		} else {
-			bestMove, alpha = Move{}, 0
+			// log.Println(color, "stale")
+			bestMove, bestScore = Move{}, 0
 		}
 	}
 
-	return bestMove, alpha
+	return bestMove, bestScore
 }
 
 func (eng *Engine) alphaBeta(depth int) (Move, int) {
-	return eng.negamax(math.MinInt32, math.MaxInt32, eng.position.ToMove, depth)
+	return eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, depth)
 }
 
 // Play find the next move.
@@ -193,12 +205,10 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		move, score = eng.alphaBeta(depth)
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
-		/*
-			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-				depth, score, eng.nodes, elapsed/time.Millisecond,
-				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
-				move)
-		*/
+		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
+			depth, score, eng.nodes, elapsed/time.Millisecond,
+			eng.nodes*uint64(time.Second)/uint64(elapsed+1),
+			move)
 	}
 
 	if move.MoveType == NoMove {

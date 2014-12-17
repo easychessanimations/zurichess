@@ -39,12 +39,35 @@ func BenchmarkScore(b *testing.B) {
 	}
 }
 
+func TestGame(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	eng := NewEngine(pos)
+	for i := 0; i < 1; i++ {
+		tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
+		tc.Start()
+		move, _ := eng.Play(tc)
+		eng.DoMove(move)
+	}
+}
+
+func TestFoobar(t *testing.T) {
+	pos, _ := PositionFromFEN("rnb1kbnr/ppp1pppp/8/3p3Q/1q6/4P2N/PPPP1PPP/RNB1KB1R w KQkq - 3 4")
+
+	eng := NewEngine(pos)
+	for i := 0; i < 1; i++ {
+		tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 6}
+		tc.Start()
+		move, _ := eng.Play(tc)
+		eng.DoMove(move)
+	}
+}
+
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)
 		eng := NewEngine(pos)
 		for i := 0; i < 10; i++ {
-			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
+			tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 2}
 			tc.Start()
 			move, _ := eng.Play(tc)
 			eng.DoMove(move)
