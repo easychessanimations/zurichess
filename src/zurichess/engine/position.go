@@ -614,49 +614,49 @@ type MoveGenerator struct {
 	state    int
 }
 
-func NewMoveGenerator(pos *Position) MoveGenerator {
-	return MoveGenerator{
+func NewMoveGenerator(pos *Position) *MoveGenerator {
+	return &MoveGenerator{
 		position: pos,
 		state:    0,
 	}
 }
 
 // Next generates pseudo-legal moves,i.e. doesn't check for king check.
-func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move, bool) {
+func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 	mg.state++
 	toMove := mg.position.ToMove
 	switch mg.state {
 	case 1:
 		moves = mg.position.genPawnMoves(moves)
-		return ColorFigure(toMove, Pawn), moves, true
+		return ColorFigure(toMove, Pawn), moves
 	case 2:
 		moves = mg.position.genKnightMoves(moves)
-		return ColorFigure(toMove, Knight), moves, true
+		return ColorFigure(toMove, Knight), moves
 	case 3:
 		moves = mg.position.genBishopMoves(moves, Bishop)
-		return ColorFigure(toMove, Bishop), moves, true
+		return ColorFigure(toMove, Bishop), moves
 	case 4:
 		moves = mg.position.genRookMoves(moves, Rook)
-		return ColorFigure(toMove, Rook), moves, true
+		return ColorFigure(toMove, Rook), moves
 	case 5:
 		moves = mg.position.genBishopMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves, true
+		return ColorFigure(toMove, Queen), moves
 	case 6:
 		moves = mg.position.genRookMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves, true
+		return ColorFigure(toMove, Queen), moves
 	case 7:
 		moves = mg.position.genKingMoves(moves)
-		return ColorFigure(toMove, King), moves, true
+		return ColorFigure(toMove, King), moves
 	default:
-		return NoPiece, moves, false
+		return NoPiece, moves
 	}
 }
 
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
 	moveGen := NewMoveGenerator(pos)
-	for hasMore := true; hasMore; {
-		_, moves, hasMore = moveGen.Next(moves)
+	for piece := WhitePawn; piece != NoPiece; {
+		piece, moves = moveGen.Next(moves)
 	}
 	return moves
 }

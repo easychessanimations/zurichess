@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	// "math"
-	"math/rand"
 	"time"
 )
 
@@ -47,7 +45,7 @@ type Engine struct {
 func NewEngine(pos *Position) *Engine {
 	eng := &Engine{
 		position: pos,
-		moves:    make([]Move, 0, 64),
+		moves:    make([]Move, 0, 128),
 	}
 	eng.countMaterial()
 	return eng
@@ -70,6 +68,12 @@ func (eng *Engine) remove(col Color, pi Figure) {
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
+	pi := eng.position.Get(move.From)
+	eng.DoMovePiece(pi, move)
+}
+
+// DoMove executes a move.
+func (eng *Engine) DoMovePiece(pi Piece, move Move) {
 	capt := move.Capture
 	if capt != NoPiece {
 		eng.remove(capt.Color(), capt.Figure())
@@ -78,7 +82,7 @@ func (eng *Engine) DoMove(move Move) {
 		eng.remove(eng.position.ToMove, Pawn)
 		eng.put(eng.position.ToMove, move.Promotion.Figure())
 	}
-	eng.position.DoMove(move)
+	eng.position.DoMovePiece(pi, move)
 }
 
 // UndoMove takes back a move.
@@ -138,21 +142,27 @@ func (eng *Engine) Score() int {
 func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
 	eng.nodes++
 	if depth == 0 {
-		return Move{}, ColorWeight[color] * (eng.Score() + rand.Intn(11) - 5)
+		return Move{}, ColorWeight[color] * eng.Score()
 	}
 
 	// log.Println(depth, "xxxx", alpha, beta, color, depth)
 
 	bestMove, bestScore := Move{}, -infinityScore
 	start := len(eng.moves)
-	eng.moves = eng.position.GenerateMoves(eng.moves)
-	for len(eng.moves) > start {
-		// Pops last move.
+	moveGen := NewMoveGenerator(eng.position)
+
+	for piece := WhitePawn; piece != NoPiece; {
+		if len(eng.moves) == start {
+			piece, eng.moves = moveGen.Next(eng.moves)
+			continue
+		}
+
+		// Pop & try last move.
 		last := len(eng.moves) - 1
 		move := eng.moves[last]
 		eng.moves = eng.moves[:last]
 
-		eng.DoMove(move)
+		eng.DoMovePiece(piece, move)
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
 			score = -score
