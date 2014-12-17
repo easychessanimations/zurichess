@@ -58,14 +58,16 @@ func TestMateIn1(t *testing.T) {
 		fen  string
 	}{
 		{"a3a8", "2kn3r/5p2/2p5/1pN1B3/4P3/R5P1/7P/R4K2 w - - 6 46"},
+		{"d8b8", "3Q4/3b4/2Nk4/3P3p/1KP4P/8/5p2/8 w - - 0 87"},
+		{"g4f2", "r3k3/pR4B1/2p1p1p1/2N5/P4nn1/2P5/6r1/7K b - - 5 40"},
 	}
 
 	for _, g := range game {
 		pos, _ := PositionFromFEN(g.fen)
 		eng := NewEngine(pos)
 
-		for d := 2; d < 8; d++ {
-			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 4}
+		for d := 2; d < 3; d++ {
+			tc := &FixedDepthTimeControl{MinDepth: d, MaxDepth: d}
 			tc.Start()
 
 			move, _ := eng.Play(tc)

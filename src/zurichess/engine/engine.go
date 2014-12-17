@@ -132,10 +132,10 @@ func (eng *Engine) Score() int {
 	return score
 }
 
-func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
+func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
 	eng.nodes++
 	if depth == 0 {
-		return Move{}, eng.Score() + rand.Intn(11) - 5
+		return Move{}, ColorWeight[color] * (eng.Score() + rand.Intn(11) - 5)
 	}
 
 	bestMove := Move{}
@@ -148,10 +148,11 @@ func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
 		eng.moves = eng.moves[:last]
 
 		eng.DoMove(move)
-		if !eng.position.IsChecked(White) {
-			_, score := eng.alphaBetaMin(alpha, beta, depth-1)
-			if score > knownWinScore {
-				score--
+		if !eng.position.IsChecked(color) {
+			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
+			score = -score
+			if ColorWeight[color]*score > knownWinScore {
+				score -= ColorWeight[color]
 			}
 			if score >= beta {
 				eng.UndoMove(move)
@@ -162,78 +163,23 @@ func (eng *Engine) alphaBetaMax(alpha, beta int, depth int) (Move, int) {
 				bestMove = move
 				alpha = score
 			}
-			if bestMove.MoveType == NoMove {
-				bestMove = move
-			}
 		}
 		eng.UndoMove(move)
 	}
 
 	if bestMove.MoveType == NoMove {
-		if eng.position.IsChecked(White) {
-			return Move{}, -mateScore
+		if eng.position.IsChecked(color) {
+			bestMove, alpha = Move{}, -mateScore
 		} else {
-			return Move{}, 0
+			bestMove, alpha = Move{}, 0
 		}
 	}
 
 	return bestMove, alpha
 }
 
-func (eng *Engine) alphaBetaMin(alpha, beta int, depth int) (Move, int) {
-	eng.nodes++
-	if depth == 0 {
-		return Move{}, eng.Score() + rand.Intn(11) - 5
-	}
-
-	bestMove := Move{}
-	start := len(eng.moves)
-	eng.moves = eng.position.GenerateMoves(eng.moves)
-	for len(eng.moves) > start {
-		// Pops last move.
-		last := len(eng.moves) - 1
-		move := eng.moves[last]
-		eng.moves = eng.moves[:last]
-
-		eng.DoMove(move)
-		if !eng.position.IsChecked(Black) {
-			_, score := eng.alphaBetaMax(alpha, beta, depth-1)
-			if score < -knownWinScore {
-				score++
-			}
-			if score <= alpha {
-				eng.UndoMove(move)
-				eng.moves = eng.moves[:start]
-				return Move{}, alpha
-			}
-			if score < beta {
-				bestMove = move
-				beta = score
-			}
-			if bestMove.MoveType == NoMove {
-				bestMove = move
-			}
-		}
-		eng.UndoMove(move)
-	}
-
-	if bestMove.MoveType == NoMove {
-		if eng.position.IsChecked(Black) {
-			return Move{}, mateScore
-		} else {
-			return Move{}, 0
-		}
-	}
-
-	return bestMove, beta
-}
-
 func (eng *Engine) alphaBeta(depth int) (Move, int) {
-	if eng.position.ToMove == White {
-		return eng.alphaBetaMax(math.MinInt32, math.MaxInt32, depth)
-	} else {
-		return eng.alphaBetaMin(math.MinInt32, math.MaxInt32, depth)
-	}
+	return eng.negamax(math.MinInt32, math.MaxInt32, eng.position.ToMove, depth)
 }
 
 // Play find the next move.
