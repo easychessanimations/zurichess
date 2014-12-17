@@ -39,15 +39,16 @@ func BenchmarkScore(b *testing.B) {
 	}
 }
 
-// Play a game against itself.
-func TestGame(t *testing.T) {
-	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos)
-
-	tc := TimeControl{Depth: 3}
-	for i := 0; i < 10; i++ {
-		move, _ := eng.Play(tc)
-		eng.DoMove(move)
+func BenchmarkGame(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		pos, _ := PositionFromFEN(FENStartPos)
+		eng := NewEngine(pos)
+		for i := 0; i < 10; i++ {
+			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
+			tc.Start()
+			move, _ := eng.Play(tc)
+			eng.DoMove(move)
+		}
 	}
 }
 
@@ -64,7 +65,9 @@ func TestMateIn1(t *testing.T) {
 		eng := NewEngine(pos)
 
 		for d := 2; d < 8; d++ {
-			tc := TimeControl{Depth: d}
+			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 4}
+			tc.Start()
+
 			move, _ := eng.Play(tc)
 			if move.String() != g.move {
 				t.Errorf("at depth %d expected move %s, got %v for position %s",

@@ -121,7 +121,7 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	var white, black TimeControl
+	var white, black OnClockTimeControl
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "infinite":
@@ -153,11 +153,12 @@ func (uci *UCI) go_(args []string) {
 
 	var tc TimeControl
 	if uci.Position.ToMove == White {
-		tc = white
+		tc = &white
 	} else {
-		tc = black
+		tc = &black
 	}
 
+	tc.Start()
 	move, _ := uci.Engine.Play(tc)
 	log.Printf("selected %q (%v); piece %v", move, move, uci.Position.Get(move.From))
 	fmt.Printf("bestmove %v\n", move)

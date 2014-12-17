@@ -10,6 +10,7 @@ import (
 )
 
 var _ = log.Println
+var _ = fmt.Println
 
 var (
 	ErrorCheckMate = errors.New("current position is checkmate")
@@ -31,20 +32,6 @@ var (
 	knightPawnBonus = 6
 	rookPawnPenalty = 12
 )
-
-type TimeControl struct {
-	// Remaining time.
-	Time time.Duration
-	// Time increment after each move.
-	Inc time.Duration
-	// Number of moves left. Recommended values
-	// 0 when there is no time refresh.
-	// 1 when solving puzzels.
-	// n when there is a time refresh.
-	MovesToGo int
-	// If set, search only at this depth.
-	Depth int
-}
 
 type Engine struct {
 	position *Position // current position
@@ -249,40 +236,23 @@ func (eng *Engine) alphaBeta(depth int) (Move, int) {
 	}
 }
 
-const (
-	defaultMovesToGo = 30 // default number of more moves expected to play
-	branchFactor     = 16 // default branching factor
-)
-
+// Play find the next move.
+// tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
-	// Compute how much time to think according to the formula below.
-	// The formula allows engine to use more of time.Left in the begining
-	// and rely more on the inc time later.
-	movesToGo := time.Duration(defaultMovesToGo)
-	if tc.MovesToGo != 0 {
-		movesToGo = time.Duration(tc.MovesToGo)
-	}
-	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
-	timeLimit := thinkTime / branchFactor
-
-	// Set a fix depth if given.
-	minDepth, maxDepth := 2, 64
-	if tc.Depth != 0 {
-		minDepth, maxDepth = tc.Depth, tc.Depth
-		timeLimit = 1 * time.Hour // TODO: do not test time
-	}
-
 	var move Move
+	var score int
+
 	start := time.Now()
-	elapsed := time.Duration(0)
-	for depth := minDepth; depth <= maxDepth && elapsed <= timeLimit; depth++ {
-		var score int
+	for depth := tc.NextDepth(); depth != 0; depth = tc.NextDepth() {
 		move, score = eng.alphaBeta(depth)
-		elapsed = time.Now().Sub(start)
-		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-			depth, score, eng.nodes, elapsed/time.Millisecond,
-			eng.nodes*uint64(time.Second)/uint64(elapsed+1),
-			move)
+		elapsed := time.Now().Sub(start)
+		_, _ = score, elapsed
+		/*
+			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
+				depth, score, eng.nodes, elapsed/time.Millisecond,
+				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
+				move)
+		*/
 	}
 
 	if move.MoveType == NoMove {
