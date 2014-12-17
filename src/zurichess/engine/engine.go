@@ -18,10 +18,10 @@ var (
 	figureBonus = [FigureMaxValue]int{
 		0,     // NoFigure
 		100,   // Pawn
-		325,   // Knight
-		325,   // Bishop
-		500,   // Rook
-		975,   // Queen
+		400,   // Knight
+		400,   // Bishop
+		600,   // Rook
+		1200,  // Queen
 		10000, // King
 	}
 
