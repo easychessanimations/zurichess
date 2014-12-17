@@ -10,6 +10,9 @@ var (
 
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
+
+	// Pieces into which a pawn can be promoted.
+	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
 )
 
 func initCastleRights() {
@@ -283,17 +286,6 @@ func (pos *Position) UndoMove(move Move) {
 	pos.Enpassant = move.OldEnpassant
 }
 
-var (
-	pawnAttack = []struct {
-		delta  int      // difference on delta
-		attack Bitboard // allowed start position for attack
-	}{
-		{-1, BbPawnLeftAttack},
-		{+1, BbPawnRightAttack},
-	}
-	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
-)
-
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move) []Move {
 	pr := to.Rank()
 	if pr != 0 && pr != 7 {
@@ -307,22 +299,23 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 			To:       to,
 			Capture:  capt,
 		}))
-	} else {
-		for _, promo := range pawnPromotions {
-			moves = append(moves, pos.fix(Move{
-				MoveType:  Promotion,
-				From:      from,
-				To:        to,
-				Capture:   capt,
-				Promotion: ColorFigure(pos.ToMove, promo),
-			}))
-		}
+		return moves
+	}
+
+	for _, promo := range pawnPromotions {
+		moves = append(moves, pos.fix(Move{
+			MoveType:  Promotion,
+			From:      from,
+			To:        to,
+			Capture:   capt,
+			Promotion: ColorFigure(pos.ToMove, promo),
+		}))
 	}
 	return moves
 }
 
-// genPawnAdvanceMoves moves pawns one square.
-func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
+// GenPawnAdvanceMoves moves pawns one square.
+func (pos *Position) GenPawnAdvanceMoves(moves []Move) []Move {
 	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
@@ -343,8 +336,8 @@ func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
 	return moves
 }
 
-// genPawnAdvanceMoves moves pawns two square.
-func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
+// GenPawnAdvanceMoves moves pawns two square.
+func (pos *Position) GenPawnDoubleAdvanceMoves(moves []Move) []Move {
 	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
@@ -365,7 +358,7 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	return moves
 }
 
-func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
+func (pos *Position) GenPawnAttackMoves(moves []Move) []Move {
 	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
 	enemy := pos.ByColor[pos.ToMove.Other()]
 	var forward Square
@@ -401,7 +394,7 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 	return moves
 }
 
-func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
+func (pos *Position) GenPawnEnpassantMoves(moves []Move) []Move {
 	if pos.Enpassant == SquareA1 {
 		return moves
 	}
@@ -437,16 +430,16 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 
 }
 
-// genPawnMoves generates pawn moves around from.
-func (pos *Position) genPawnMoves(moves []Move) []Move {
-	moves = pos.genPawnAdvanceMoves(moves)
-	moves = pos.genPawnDoubleAdvanceMoves(moves)
-	moves = pos.genPawnAttackMoves(moves)
-	moves = pos.genPawnEnpassantMoves(moves)
+// GenPawnMoves generates pawn moves around from.
+func (pos *Position) GenPawnMoves(moves []Move) []Move {
+	moves = pos.GenPawnAdvanceMoves(moves)
+	moves = pos.GenPawnDoubleAdvanceMoves(moves)
+	moves = pos.GenPawnAttackMoves(moves)
+	moves = pos.GenPawnEnpassantMoves(moves)
 	return moves
 }
 
-func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) []Move {
+func (pos *Position) GenBitboardMoves(from Square, att Bitboard, moves []Move) []Move {
 	for att != 0 {
 		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
@@ -459,31 +452,38 @@ func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) [
 	return moves
 }
 
-// genKnightMoves generates knight moves around from.
-func (pos *Position) genKnightMoves(from Square, moves []Move) []Move {
-	att := BbKnightAttack[from] & (^pos.ByColor[pos.ToMove])
-	return pos.genBitboardMoves(from, att, moves)
-}
-
-func (pos *Position) genRookMoves(from Square, moves []Move) []Move {
-	ref := pos.ByColor[White] | pos.ByColor[Black]
-	att := RookMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
-	return pos.genBitboardMoves(from, att, moves)
-}
-
-func (pos *Position) genBishopMoves(from Square, moves []Move) []Move {
-	ref := pos.ByColor[White] | pos.ByColor[Black]
-	att := BishopMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
-	return pos.genBitboardMoves(from, att, moves)
-}
-
-func (pos *Position) genQueenMoves(from Square, moves []Move) []Move {
-	moves = pos.genRookMoves(from, moves)
-	moves = pos.genBishopMoves(from, moves)
+func (pos *Position) GenKnightMoves(moves []Move) []Move {
+	for bb := pos.ByPiece(pos.ToMove, Knight); bb != 0; {
+		from := bb.Pop()
+		att := BbKnightAttack[from] & (^pos.ByColor[pos.ToMove])
+		moves = pos.GenBitboardMoves(from, att, moves)
+	}
 	return moves
 }
 
-func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
+func (pos *Position) GenBishopMoves(moves []Move, fig Figure) []Move {
+	ref := pos.ByColor[White] | pos.ByColor[Black]
+	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
+		from := bb.Pop()
+		att := BishopMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
+		moves = pos.GenBitboardMoves(from, att, moves)
+	}
+	return moves
+}
+
+func (pos *Position) GenRookMoves(moves []Move, fig Figure) []Move {
+	ref := pos.ByColor[White] | pos.ByColor[Black]
+	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
+		from := bb.Pop()
+		att := RookMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
+		moves = pos.GenBitboardMoves(from, att, moves)
+	}
+	return moves
+}
+
+func (pos *Position) GenKingMoves(moves []Move) []Move {
+	from := (pos.ByColor[pos.ToMove] & pos.ByFigure[King]).AsSquare()
+
 	// King moves around.
 	other := pos.ToMove.Other()
 	att := BbKingAttack[from] & (^pos.ByColor[pos.ToMove])
@@ -535,32 +535,6 @@ func (pos *Position) genKingMoves(from Square, moves []Move) []Move {
 		}
 	}
 
-	return moves
-}
-
-// GenerateMoves generates pseudo-legal moves, i.e. doesn't
-// check for king check.
-func (pos *Position) GenerateMoves(moves []Move) []Move {
-	moves = pos.genPawnMoves(moves)
-	for from := SquareMinValue; from < SquareMaxValue; from++ {
-		if pos.ByColor[pos.ToMove]&from.Bitboard() == 0 {
-			continue
-		}
-
-		pi := pos.Get(from)
-		switch pi.Figure() {
-		case Knight:
-			moves = pos.genKnightMoves(from, moves)
-		case Bishop:
-			moves = pos.genBishopMoves(from, moves)
-		case Rook:
-			moves = pos.genRookMoves(from, moves)
-		case Queen:
-			moves = pos.genQueenMoves(from, moves)
-		case King:
-			moves = pos.genKingMoves(from, moves)
-		}
-	}
 	return moves
 }
 
@@ -627,4 +601,56 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	}
 
 	return false
+}
+
+// GenerateMoves is a helper to generate moves in stages.
+type GenerateMoves struct {
+	position *Position
+	state    int
+}
+
+func NewGenerateMoves(pos *Position) GenerateMoves {
+	return GenerateMoves{
+		position: pos,
+		state:    0,
+	}
+}
+
+// Next generates pseudo-legal moves,i.e. doesn't check for king check.
+func (gm *GenerateMoves) Next(moves []Move) (Piece, []Move, bool) {
+	other := gm.position.ToMove.Other()
+	gm.state++
+	switch gm.state {
+	case 1:
+		moves = gm.position.GenPawnMoves(moves)
+		return ColorFigure(other, Pawn), moves, true
+	case 2:
+		moves = gm.position.GenKnightMoves(moves)
+		return ColorFigure(other, Knight), moves, true
+	case 3:
+		moves = gm.position.GenBishopMoves(moves, Bishop)
+		return ColorFigure(other, Bishop), moves, true
+	case 4:
+		moves = gm.position.GenRookMoves(moves, Rook)
+		return ColorFigure(other, Rook), moves, true
+	case 5:
+		moves = gm.position.GenBishopMoves(moves, Queen)
+		return ColorFigure(other, Queen), moves, true
+	case 6:
+		moves = gm.position.GenRookMoves(moves, Queen)
+		return ColorFigure(other, Queen), moves, true
+	case 7:
+		moves = gm.position.GenKingMoves(moves)
+		return ColorFigure(other, King), moves, true
+	default:
+		return NoPiece, moves, false
+	}
+}
+
+func (pos *Position) GenerateMoves(moves []Move) []Move {
+	gm := NewGenerateMoves(pos)
+	for hasMore := true; hasMore; {
+		_, moves, hasMore = gm.Next(moves)
+	}
+	return moves
 }
