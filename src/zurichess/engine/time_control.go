@@ -6,7 +6,7 @@ import (
 
 const (
 	defaultMovesToGo    = 30 // default number of more moves expected to play
-	defaultbranchFactor = 16 // default branching factor
+	defaultbranchFactor = 10 // default branching factor
 )
 
 type TimeControl interface {
