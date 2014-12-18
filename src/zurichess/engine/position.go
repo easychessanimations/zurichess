@@ -439,8 +439,8 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 func (pos *Position) genPawnMoves(moves []Move) []Move {
 	moves = pos.genPawnAdvanceMoves(moves)
 	moves = pos.genPawnDoubleAdvanceMoves(moves)
-	moves = pos.genPawnAttackMoves(moves)
 	moves = pos.genPawnEnpassantMoves(moves)
+	moves = pos.genPawnAttackMoves(moves)
 	return moves
 }
 
