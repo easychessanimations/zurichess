@@ -77,25 +77,34 @@ func BenchmarkGame(b *testing.B) {
 
 func TestMateIn1(t *testing.T) {
 	game := []struct {
-		move string
+		move []string
 		fen  string
 	}{
-		{"a3a8", "2kn3r/5p2/2p5/1pN1B3/4P3/R5P1/7P/R4K2 w - - 6 46"},
-		{"d8b8", "3Q4/3b4/2Nk4/3P3p/1KP4P/8/5p2/8 w - - 0 87"},
-		{"g4f2", "r3k3/pR4B1/2p1p1p1/2N5/P4nn1/2P5/6r1/7K b - - 5 40"},
+		{[]string{"a3a8"}, "2kn3r/5p2/2p5/1pN1B3/4P3/R5P1/7P/R4K2 w - - 6 46"},
+		{[]string{"d8b8"}, "3Q4/3b4/2Nk4/3P3p/1KP4P/8/5p2/8 w - - 0 87"},
+		{[]string{"g4f2"}, "r3k3/pR4B1/2p1p1p1/2N5/P4nn1/2P5/6r1/7K b - - 5 40"},
+		{[]string{"f6f4", "f6f2"}, "1r6/4k3/5q2/p2pp3/2P5/1P1QK3/2P3rP/1R6 b - - 1 39"},
 	}
 
 	for _, g := range game {
 		pos, _ := PositionFromFEN(g.fen)
 		eng := NewEngine(pos)
 
-		for d := 2; d < 3; d++ {
+		for d := 2; d < 5; d++ {
 			tc := &FixedDepthTimeControl{MinDepth: d, MaxDepth: d}
 			tc.Start()
 
 			move, _ := eng.Play(tc)
-			if move.String() != g.move {
-				t.Errorf("at depth %d expected move %s, got %v for position %s",
+			found := false
+			for _, m := range g.move {
+				if move.String() == m {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				t.Errorf("at depth %d expected one of %v, got %v for position %s",
 					d, g.move, move, g.fen)
 			}
 		}

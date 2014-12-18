@@ -95,9 +95,8 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 	start := len(*moves)
 
 	moveGen := engine.NewMoveGenerator(pos)
-	for hasMore := true; hasMore; {
-		var piece engine.Piece
-		piece, *moves, hasMore = moveGen.Next(*moves)
+	for piece := engine.WhitePawn; piece != engine.NoPiece; {
+		piece, *moves = moveGen.Next(*moves)
 		for len(*moves) > start {
 			last := len(*moves) - 1
 			move := (*moves)[last]

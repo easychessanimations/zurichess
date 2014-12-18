@@ -166,8 +166,8 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
 			score = -score
-			if ColorWeight[color]*score > knownWinScore {
-				score -= ColorWeight[color]
+			if score > knownWinScore {
+				score--
 			}
 			if score >= beta {
 				eng.UndoMove(move)
@@ -176,6 +176,8 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 				return Move{}, beta
 			}
 			if score > bestScore {
+				// log.Println(depth, color, ColorWeight[color]*score, knownWinScore)
+				// log.Println(depth, "bestmove", move, score)
 				bestMove, bestScore = move, score
 				if score > alpha {
 					alpha = score
