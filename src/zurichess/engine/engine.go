@@ -68,24 +68,18 @@ func (eng *Engine) remove(col Color, pi Figure) {
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
-	pi := eng.position.Get(move.From)
-	eng.DoMovePiece(pi, move)
-}
-
-// DoMove executes a move.
-func (eng *Engine) DoMovePiece(pi Piece, move Move) {
 	capt := move.Capture
 	if capt != NoPiece {
 		eng.remove(capt.Color(), capt.Figure())
 	}
 	if move.MoveType == Promotion {
 		eng.remove(eng.position.ToMove, Pawn)
-		eng.put(eng.position.ToMove, move.Promotion.Figure())
+		eng.put(eng.position.ToMove, move.Target.Figure())
 	}
-	eng.position.DoMovePiece(pi, move)
+	eng.position.DoMove(move)
 }
 
-// UndoMove takes back a move.
+// UndoMove undoes a move. Must be the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.position.UndoMove(move)
 	capt := move.Capture
@@ -94,7 +88,7 @@ func (eng *Engine) UndoMove(move Move) {
 	}
 	if move.MoveType == Promotion {
 		eng.put(eng.position.ToMove, Pawn)
-		eng.remove(eng.position.ToMove, move.Promotion.Figure())
+		eng.remove(eng.position.ToMove, move.Target.Figure())
 	}
 }
 
@@ -145,8 +139,6 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		return Move{}, ColorWeight[color] * eng.Score()
 	}
 
-	// log.Println(depth, "xxxx", alpha, beta, color, depth)
-
 	bestMove, bestScore := Move{}, -infinityScore
 	start := len(eng.moves)
 	moveGen := NewMoveGenerator(eng.position)
@@ -162,7 +154,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		move := eng.moves[last]
 		eng.moves = eng.moves[:last]
 
-		eng.DoMovePiece(piece, move)
+		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
 			score = -score
@@ -172,12 +164,9 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 			if score >= beta {
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
-				// log.Println(depth, "early", score, alpha, beta, color)
 				return Move{}, beta
 			}
 			if score > bestScore {
-				// log.Println(depth, color, ColorWeight[color]*score, knownWinScore)
-				// log.Println(depth, "bestmove", move, score)
 				bestMove, bestScore = move, score
 				if score > alpha {
 					alpha = score
@@ -187,14 +176,10 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		eng.UndoMove(move)
 	}
 
-	// log.Println(depth, "best", bestMove, bestScore, alpha, beta, color)
-
 	if bestMove.MoveType == NoMove {
 		if eng.position.IsChecked(color) {
-			// log.Println(color, "mated")
 			bestMove, bestScore = Move{}, -mateScore
 		} else {
-			// log.Println(color, "stale")
 			bestMove, bestScore = Move{}, 0
 		}
 	}

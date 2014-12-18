@@ -102,7 +102,11 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 			move := (*moves)[last]
 			*moves = (*moves)[:last]
 
-			pos.DoMovePiece(piece, move)
+			if piece != pos.Get(move.From) {
+				panic(fmt.Sprintf("Expected %v got %v", pos.Get(move.From), piece))
+			}
+
+			pos.DoMove(move)
 			if pos.IsChecked(pos.ToMove.Other()) {
 				pos.UndoMove(move)
 				continue

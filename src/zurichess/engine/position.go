@@ -140,7 +140,7 @@ func (pos *Position) ParseMove(s string) Move {
 
 	mvtp := Normal
 	capt := pos.Get(to)
-	promo := NoPiece
+	promo := pos.Get(from)
 
 	pi := pos.Get(from)
 	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
@@ -159,24 +159,22 @@ func (pos *Position) ParseMove(s string) Move {
 	}
 
 	return pos.fix(Move{
-		MoveType:  mvtp,
-		From:      from,
-		To:        to,
-		Capture:   capt,
-		Promotion: promo,
+		MoveType: mvtp,
+		From:     from,
+		To:       to,
+		Capture:  capt,
+		Target:   promo,
 	})
 }
 
-// DoMove performs a move.
+// DoMovePiece performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
-	pi := pos.Get(move.From)
-	pos.DoMovePiece(pi, move)
-}
+	pi := move.Target
+	if move.MoveType == Promotion {
+		pi = ColorFigure(pos.ToMove, Pawn)
+	}
 
-// DoMove performs a move of known piece.
-// Expects the move to be valid.
-func (pos *Position) DoMovePiece(pi Piece, move Move) {
 	if pi.Color() != pos.ToMove {
 		panic(fmt.Errorf("bad move %v: expected %v piece at %v, got %v",
 			move, pos.ToMove, move.From, pi))
@@ -240,17 +238,20 @@ func (pos *Position) DoMovePiece(pi Piece, move Move) {
 	if move.MoveType != Promotion {
 		pos.Put(move.To, pi)
 	} else {
-		pos.Put(move.To, move.Promotion)
+		pos.Put(move.To, move.Target)
 	}
 	pos.ToMove = pos.ToMove.Other()
 }
 
-// UndoMove takes back a move.
+// UndoMovePiece takes back a move.
 // Expects the move to be valid.
+// pi must be the piece moved, i.e. the pawn in case of promotions.
 func (pos *Position) UndoMove(move Move) {
-	// log.Println("Taking back", move)
-
 	pos.ToMove = pos.ToMove.Other()
+	pi := move.Target
+	if move.MoveType == Promotion {
+		pi = ColorFigure(pos.ToMove, Pawn)
+	}
 
 	captSq := move.To
 	if move.MoveType == Enpassant {
@@ -258,12 +259,11 @@ func (pos *Position) UndoMove(move Move) {
 	}
 
 	// Modify the chess board.
-	pi := pos.Get(move.To)
-	pos.Remove(move.To, pi)
-	if move.MoveType != Promotion {
-		pos.Put(move.From, pi)
+	pos.Put(move.From, pi)
+	if move.MoveType == Promotion {
+		pos.Remove(move.To, move.Target)
 	} else {
-		pos.Put(move.From, ColorFigure(pos.ToMove, Pawn))
+		pos.Remove(move.To, pi)
 	}
 	pos.Put(captSq, move.Capture)
 
@@ -303,17 +303,18 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move
 			From:     from,
 			To:       to,
 			Capture:  capt,
+			Target:   ColorFigure(pos.ToMove, Pawn),
 		}))
 		return moves
 	}
 
 	for _, promo := range pawnPromotions {
 		moves = append(moves, pos.fix(Move{
-			MoveType:  Promotion,
-			From:      from,
-			To:        to,
-			Capture:   capt,
-			Promotion: ColorFigure(pos.ToMove, promo),
+			MoveType: Promotion,
+			From:     from,
+			To:       to,
+			Capture:  capt,
+			Target:   ColorFigure(pos.ToMove, promo),
 		}))
 	}
 	return moves
@@ -444,7 +445,7 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 	return moves
 }
 
-func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) []Move {
+func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
 	for att != 0 {
 		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
@@ -452,41 +453,46 @@ func (pos *Position) genBitboardMoves(from Square, att Bitboard, moves []Move) [
 			From:     from,
 			To:       to,
 			Capture:  pos.Get(to),
+			Target:   pi,
 		}))
 	}
 	return moves
 }
 
 func (pos *Position) genKnightMoves(moves []Move) []Move {
+	pi := ColorFigure(pos.ToMove, Knight)
 	for bb := pos.ByPiece(pos.ToMove, Knight); bb != 0; {
 		from := bb.Pop()
 		att := BbKnightAttack[from] & (^pos.ByColor[pos.ToMove])
-		moves = pos.genBitboardMoves(from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genBishopMoves(moves []Move, fig Figure) []Move {
+	pi := ColorFigure(pos.ToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := BishopMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
-		moves = pos.genBitboardMoves(from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genRookMoves(moves []Move, fig Figure) []Move {
+	pi := ColorFigure(pos.ToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := RookMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
-		moves = pos.genBitboardMoves(from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genKingMoves(moves []Move) []Move {
+	pi := ColorFigure(pos.ToMove, King)
 	from := (pos.ByColor[pos.ToMove] & pos.ByFigure[King]).AsSquare()
 
 	// King moves around.
@@ -499,6 +505,7 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 				From:     from,
 				To:       to,
 				Capture:  pos.Get(to),
+				Target:   pi,
 			}))
 		}
 	}
@@ -520,6 +527,7 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 				MoveType: Castling,
 				From:     from,
 				To:       RankFile(rank, 6),
+				Target:   pi,
 			}))
 		}
 	}
@@ -536,6 +544,7 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 				MoveType: Castling,
 				From:     from,
 				To:       RankFile(rank, 2),
+				Target:   pi,
 			}))
 		}
 	}

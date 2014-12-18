@@ -189,17 +189,17 @@ const (
 
 type Move struct {
 	MoveType     MoveType
-	From, To     Square
-	Capture      Piece
-	Promotion    Piece
-	OldEnpassant Square
-	OldCastle    Castle
+	From, To     Square // Source and destination
+	Capture      Piece  // Which piece is captured
+	Target       Piece  // Target is the piece on To, after the move.
+	OldEnpassant Square // Old enpassant square
+	OldCastle    Castle // Old castle rights
 }
 
 func (mo Move) String() string {
 	r := mo.From.String() + mo.To.String()
 	if mo.MoveType == Promotion {
-		s := mo.Promotion.Figure()
+		s := mo.Target.Figure()
 		r += string(pieceSymbol[White][s : s+1])
 	}
 	return r
