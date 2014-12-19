@@ -210,7 +210,7 @@ const (
 	CastleMaxValue  = AnyCastle
 )
 
-var castleSymbol = map[Castle]byte{
+var castleToSymbol = map[Castle]byte{
 	WhiteOO:  'K',
 	WhiteOOO: 'Q',
 	BlackOO:  'k',
@@ -223,7 +223,7 @@ func (ca Castle) String() string {
 	}
 
 	var r []byte
-	for k, v := range castleSymbol {
+	for k, v := range castleToSymbol {
 		if ca&k != 0 {
 			r = append(r, v)
 		}
