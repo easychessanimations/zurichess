@@ -188,7 +188,10 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 }
 
 func (eng *Engine) alphaBeta(depth int) (Move, int) {
-	return eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, depth)
+	move, score := eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, depth)
+
+	score *= ColorWeight[eng.position.ToMove]
+	return move, score
 }
 
 // Play find the next move.
