@@ -86,17 +86,17 @@ func (uci *UCI) position(args []string) error {
 		return err
 	}
 
+	uci.Engine = NewEngine(uci.Position)
 	if i < len(args) {
 		if args[i] != "moves" {
 			return fmt.Errorf("expected 'moves', got '%s'", args[1])
 		}
 		for _, m := range args[i+1:] {
-			move := uci.Position.ParseMove(m)
-			uci.Position.DoMove(move)
+			move := uci.Engine.ParseMove(m)
+			uci.Engine.DoMove(move)
 		}
 	}
 
-	uci.Engine = NewEngine(uci.Position)
 	return nil
 }
 

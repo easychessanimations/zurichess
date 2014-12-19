@@ -75,6 +75,28 @@ func BenchmarkGame(b *testing.B) {
 	}
 }
 
+// Test score is the same if we start with the position or move.
+func TestScore(t *testing.T) {
+	for _, game := range games {
+		// t.Log("Starting new game")
+		pos, _ := PositionFromFEN(FENStartPos)
+		engDyn := NewEngine(pos)
+		moves := strings.Fields(game)
+		for _, move := range moves {
+			m := pos.ParseMove(move)
+			// t.Log("move", m, "piece", m.Target, "capture", m.Capture)
+			engDyn.DoMove(m)
+			engStatic := NewEngine(pos)
+			if engDyn.Score() != engStatic.Score() {
+				t.Logf("expected static score %v, got dynamic score %v", engStatic.Score(), engDyn.Score())
+				t.Logf(" static pieces %v; pieceScore %v", engStatic.pieces, engStatic.pieceScore)
+				t.Logf("dynamic pieces %v; pieceScore %v", engDyn.pieces, engDyn.pieceScore)
+				t.FailNow()
+			}
+		}
+	}
+}
+
 func TestMateIn1(t *testing.T) {
 	game := []struct {
 		move []string

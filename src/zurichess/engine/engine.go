@@ -99,7 +99,7 @@ func (eng *Engine) countMaterial() {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			cnt := Popcnt(uint64(eng.position.ByPiece(col, fig)))
 			eng.pieces[col][fig] = cnt
-			eng.pieceScore += ColorWeight[col] * figureBonus[fig]
+			eng.pieceScore += ColorWeight[col] * figureBonus[fig] * cnt
 		}
 	}
 }
