@@ -597,8 +597,9 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
-	// King.
-	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
+	// Bishop&Queen
+	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
+	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
 		return true
 	}
 
@@ -608,9 +609,8 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
-	// Bishop&Queen
-	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
-	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
+	// King.
+	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
 		return true
 	}
 

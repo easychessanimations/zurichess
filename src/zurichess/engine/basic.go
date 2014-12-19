@@ -188,7 +188,7 @@ const (
 )
 
 type Move struct {
-	To, From     Square // Source and destination
+	From, To     Square // Source and destination
 	Capture      Piece  // Which piece is captured
 	Target       Piece  // Target is the piece on To, after the move.
 	MoveType     MoveType
