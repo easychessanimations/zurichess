@@ -1,7 +1,7 @@
 package engine
 
 // Square identifies the location on the board.
-type Square uint16
+type Square uint8
 
 func RankFile(r, f int) Square {
 	return Square(r*8 + f)
@@ -110,7 +110,7 @@ func (co Color) String() string {
 }
 
 // Piece is a combination of piece type and color
-type Piece uint
+type Piece uint8
 
 func ColorFigure(co Color, pt Figure) Piece {
 	return Piece(pt<<2) + Piece(co)
@@ -177,7 +177,7 @@ func (bb *Bitboard) Pop() Square {
 }
 
 // Move type.
-type MoveType uint16
+type MoveType uint8
 
 const (
 	NoMove MoveType = iota
@@ -188,10 +188,10 @@ const (
 )
 
 type Move struct {
-	MoveType     MoveType
-	From, To     Square // Source and destination
+	To, From     Square // Source and destination
 	Capture      Piece  // Which piece is captured
 	Target       Piece  // Target is the piece on To, after the move.
+	MoveType     MoveType
 	OldEnpassant Square // Old enpassant square
 	OldCastle    Castle // Old castle rights
 }
