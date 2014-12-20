@@ -172,24 +172,24 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 
 		eng.DoMove(move)
 
-		// if !eng.position.IsChecked(color) {
-		_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
-		score = -score
-		if score > knownWinScore {
-			score--
-		}
-		if score >= beta {
-			eng.UndoMove(move)
-			eng.moves = eng.moves[:start]
-			return Move{}, beta
-		}
-		if score > bestScore {
-			bestMove, bestScore = move, score
-			if score > alpha {
-				alpha = score
+		if !eng.position.IsChecked(color) {
+			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
+			score = -score
+			if score > knownWinScore {
+				score--
+			}
+			if score >= beta {
+				eng.UndoMove(move)
+				eng.moves = eng.moves[:start]
+				return Move{}, beta
+			}
+			if score > bestScore {
+				bestMove, bestScore = move, score
+				if score > alpha {
+					alpha = score
+				}
 			}
 		}
-		// }
 
 		eng.UndoMove(move)
 	}
@@ -223,10 +223,12 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		move, score = eng.alphaBeta(depth)
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
-		fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-			depth, score, eng.nodes, elapsed/time.Millisecond,
-			eng.nodes*uint64(time.Second)/uint64(elapsed+1),
-			move)
+		/*
+			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
+				depth, score, eng.nodes, elapsed/time.Millisecond,
+				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
+				move)
+		*/
 	}
 
 	if move.MoveType == NoMove {

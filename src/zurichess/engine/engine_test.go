@@ -68,7 +68,7 @@ func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)
 		eng := NewEngine(pos)
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 20; i++ {
 			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
 			tc.Start()
 			move, _ := eng.Play(tc)
