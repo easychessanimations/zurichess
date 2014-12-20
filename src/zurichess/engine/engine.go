@@ -131,10 +131,26 @@ func (eng *Engine) Score() int {
 	return score
 }
 
+// EndPosition determines whether this is and end game
+// position based on the number of pieces.
+// Returns score and a bool if the game has ended.
+func (eng *Engine) EndPosition() (int, bool) {
+	if eng.pieces[White][King] == 0 {
+		return -mateScore, true
+	}
+	if eng.pieces[Black][King] == 0 {
+		return +mateScore, true
+	}
+	return eng.Score(), false
+}
+
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
 	eng.nodes++
+	if score, done := eng.EndPosition(); done {
+		return Move{}, ColorWeight[color] * score
+	}
 	if depth == 0 {
 		return Move{}, ColorWeight[color] * eng.Score()
 	}
@@ -155,24 +171,26 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		eng.moves = eng.moves[:last]
 
 		eng.DoMove(move)
-		if !eng.position.IsChecked(color) {
-			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
-			score = -score
-			if score > knownWinScore {
-				score--
-			}
-			if score >= beta {
-				eng.UndoMove(move)
-				eng.moves = eng.moves[:start]
-				return Move{}, beta
-			}
-			if score > bestScore {
-				bestMove, bestScore = move, score
-				if score > alpha {
-					alpha = score
-				}
+
+		// if !eng.position.IsChecked(color) {
+		_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
+		score = -score
+		if score > knownWinScore {
+			score--
+		}
+		if score >= beta {
+			eng.UndoMove(move)
+			eng.moves = eng.moves[:start]
+			return Move{}, beta
+		}
+		if score > bestScore {
+			bestMove, bestScore = move, score
+			if score > alpha {
+				alpha = score
 			}
 		}
+		// }
+
 		eng.UndoMove(move)
 	}
 

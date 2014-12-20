@@ -50,6 +50,7 @@ func TestGame(t *testing.T) {
 	}
 }
 
+/*
 func TestFoobar(t *testing.T) {
 	pos, _ := PositionFromFEN("rnb1kbnr/ppp1pppp/8/3p3Q/1q6/4P2N/PPPP1PPP/RNB1KB1R w KQkq - 3 4")
 
@@ -61,6 +62,7 @@ func TestFoobar(t *testing.T) {
 		eng.DoMove(move)
 	}
 }
+*/
 
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -112,7 +114,7 @@ func TestMateIn1(t *testing.T) {
 		pos, _ := PositionFromFEN(g.fen)
 		eng := NewEngine(pos)
 
-		for d := 2; d < 5; d++ {
+		for d := 3; d < 5; d++ {
 			tc := &FixedDepthTimeControl{MinDepth: d, MaxDepth: d}
 			tc.Start()
 
