@@ -81,12 +81,12 @@ func (pos *Position) GetFigure(sq Square) Figure {
 
 // Get returns the piece at sq.
 func (pos *Position) Get(sq Square) Piece {
-	co := pos.GetColor(sq)
-	if co == NoColor {
+	col := pos.GetColor(sq)
+	if col == NoColor {
 		return NoPiece
 	}
-	pt := pos.GetFigure(sq)
-	return ColorFigure(co, pt)
+	fig := pos.GetFigure(sq)
+	return ColorFigure(col, fig)
 }
 
 // IsChecked returns true if co's king is checked.
@@ -554,42 +554,22 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 
 // IsAttackedBy returns true if sq is under attacked by co.
 func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
-	// WhitePawn
-	if co == White {
-		pawns := pos.ByColor[White] & pos.ByFigure[Pawn]
-		if sq.Bitboard()&(BbPawnLeftAttack<<7) != 0 {
-			if sq.Relative(-1, +1).Bitboard()&pawns != 0 {
-				return true
-			}
-		}
-		if sq.Bitboard()&(BbPawnRightAttack<<9) != 0 {
-			if sq.Relative(-1, -1).Bitboard()&pawns != 0 {
-				return true
-			}
-		}
-	}
-
-	// BlackPawn
-	if co == Black {
-		pawns := pos.ByColor[Black] & pos.ByFigure[Pawn]
-		if sq.Bitboard()&(BbPawnLeftAttack>>9) != 0 {
-			if sq.Relative(+1, +1).Bitboard()&pawns != 0 {
-				return true
-			}
-		}
-		if sq.Bitboard()&(BbPawnRightAttack>>7) != 0 {
-			if sq.Relative(+1, -1).Bitboard()&pawns != 0 {
-				return true
-			}
-		}
-	}
-
-	all := pos.ByColor[White] | pos.ByColor[Black]
 	enemy := pos.ByColor[co]
+	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
+		bb := sq.Bitboard()
+		pawns := pos.ByPiece(co, Pawn)
+		pawnsLeft := BbPawnLeftAttack & pawns
+		pawnsRight := BbPawnRightAttack & pawns
 
-	// Quick test of SuperPiece on empty board.
-	if BbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
-		return false
+		if co == White { // WhitePawn
+			if att := (bb>>7)&pawnsLeft | (bb>>9)&pawnsRight; att != 0 {
+				return true
+			}
+		} else { // BlackPawn
+			if att := (bb<<9)&pawnsLeft | (bb<<7)&pawnsRight; att != 0 {
+				return true
+			}
+		}
 	}
 
 	// Knight
@@ -597,7 +577,18 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
+	// Quick test of SuperPiece (Bishop, Rook, Queen, King) on empty board.
+	if BbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
+		return false
+	}
+
+	// King.
+	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
+		return true
+	}
+
 	// Bishop&Queen
+	all := pos.ByColor[White] | pos.ByColor[Black]
 	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
 	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
 		return true
@@ -606,11 +597,6 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	// Rook&Queen
 	rooks := enemy & (pos.ByFigure[Rook] | pos.ByFigure[Queen])
 	if rooks != 0 && rooks&RookMagic[sq].Attack(all) != 0 {
-		return true
-	}
-
-	// King.
-	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
 		return true
 	}
 

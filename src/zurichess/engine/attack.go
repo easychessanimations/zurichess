@@ -7,9 +7,10 @@ import (
 )
 
 var (
+	BbPawnAttack   [64]Bitboard
 	BbKnightAttack [64]Bitboard
 	BbKingAttack   [64]Bitboard
-	// Attack on empty board of all figures expect pawn.
+	// Attack on empty board of Bishop, Rook, Queen, King figures.
 	BbSuperAttack [64]Bitboard
 	RookMagic     [64]magicInfo
 	BishopMagic   [64]magicInfo
@@ -20,6 +21,7 @@ var (
 
 func init() {
 	rand.Seed(5)
+	initBbPawnAttack()
 	initBbKnightAttack()
 	initBbKingAttack()
 	initBbSuperAttack()
@@ -43,6 +45,13 @@ func initJumpAttack(jump [][2]int, attack []Bitboard) {
 	}
 }
 
+func initBbPawnAttack() {
+	pawnJump := [][2]int{
+		{-1, -1}, {-1, +1}, {+1, +1}, {+1, -1},
+	}
+	initJumpAttack(pawnJump, BbPawnAttack[:])
+}
+
 func initBbKnightAttack() {
 	knightJump := [][2]int{
 		{-2, -1}, {-2, +1}, {+2, -1}, {+2, +1},
@@ -61,9 +70,7 @@ func initBbKingAttack() {
 
 func initBbSuperAttack() {
 	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
-		BbSuperAttack[sq] = BbKnightAttack[sq] | BbKingAttack[sq] |
-			slidingAttack(sq, rookDeltas, BbEmpty) |
-			slidingAttack(sq, bishopDeltas, BbEmpty)
+		BbSuperAttack[sq] = slidingAttack(sq, rookDeltas, BbEmpty) | slidingAttack(sq, bishopDeltas, BbEmpty)
 	}
 }
 
@@ -98,10 +105,9 @@ func randMagic() uint64 {
 }
 
 func spell(magic uint64, shift uint, bb Bitboard) uint {
-	// bb = bb ^ (bb >> 23) // from fast-hash
 	hi := uint32(bb>>32) * uint32(magic)
 	lo := uint32(magic>>32) * uint32(bb)
-	return uint((hi ^ lo) >> (shift - 32))
+	return uint((hi ^ lo) >> shift)
 }
 
 type magicInfo struct {
@@ -139,9 +145,10 @@ func (wiz *wizard) tryMagicNumber(magic uint64, shift uint) bool {
 	for j := range wiz.store[:1<<shift] {
 		wiz.store[j] = 0
 	}
+
 	// Verify that magic gives a perfect hash.
 	for i, bb := range wiz.reference {
-		index := spell(magic, 64-shift, bb)
+		index := spell(magic, 32-shift, bb)
 		if wiz.store[index] != 0 && wiz.store[index] != wiz.occupancy[i] {
 			return false
 		}
@@ -202,7 +209,7 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 			copy(mi.store, wiz.store)
 			mi.mask = mask
 			mi.magic = magic
-			mi.shift = 64 - shift
+			mi.shift = 32 - shift
 		}
 	}
 }

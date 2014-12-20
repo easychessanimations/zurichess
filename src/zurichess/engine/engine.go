@@ -171,7 +171,6 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		eng.moves = eng.moves[:last]
 
 		eng.DoMove(move)
-
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
 			score = -score
@@ -190,7 +189,6 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 				}
 			}
 		}
-
 		eng.UndoMove(move)
 	}
 
