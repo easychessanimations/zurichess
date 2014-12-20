@@ -558,17 +558,17 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
 		bb := sq.Bitboard()
 		pawns := pos.ByPiece(co, Pawn)
-		pawnsLeft := BbPawnLeftAttack & pawns
-		pawnsRight := BbPawnRightAttack & pawns
+		pawnsLeft := (BbPawnLeftAttack & pawns) >> 1
+		pawnsRight := (BbPawnRightAttack & pawns) << 1
 
 		if co == White { // WhitePawn
-			if att := (bb>>7)&pawnsLeft | (bb>>9)&pawnsRight; att != 0 {
-				return true
-			}
+			bb >>= 8
 		} else { // BlackPawn
-			if att := (bb<<9)&pawnsLeft | (bb<<7)&pawnsRight; att != 0 {
-				return true
-			}
+			bb <<= 8
+		}
+
+		if att := bb & (pawnsLeft | pawnsRight); att != 0 {
+			return true
 		}
 	}
 
