@@ -59,48 +59,58 @@ func (eng *Engine) ParseMove(move string) Move {
 	return eng.position.ParseMove(move)
 }
 
-func (eng *Engine) put(sq Square, col Color, fig Figure) {
-	eng.pieces[col][NoFigure]++
-	eng.pieces[col][fig]++
-	eng.pieceScore += ColorWeight[col] * figureBonus[fig]
-	eng.positionScore += PieceSquareTable[fig][ColorMask[col]^sq]
+// put adjusts score after puting piece on sq.
+// mask is which side is to move.
+// delta is -1 if the piece is taken (including undo), 1 otherwise.
+func (eng *Engine) put(sq Square, piece Piece, delta int) {
+	col := piece.Color()
+	fig := piece.Figure()
+	weight := ColorWeight[col]
+	mask := ColorMask[col]
+
+	eng.pieces[col][NoFigure] += delta
+	eng.pieces[col][fig] += delta
+	eng.pieceScore += delta * weight * figureBonus[fig]
+	eng.positionScore += delta * weight * PieceSquareTable[fig][mask^sq]
 }
 
-func (eng *Engine) remove(sq Square, col Color, fig Figure) {
-	eng.pieces[col][NoFigure]--
-	eng.pieces[col][fig]--
-	eng.pieceScore -= ColorWeight[col] * figureBonus[fig]
-	eng.positionScore -= PieceSquareTable[fig][ColorMask[col]^sq]
+// adjust updates score after making a move.
+// delta is -1 if the move is taken back, 1 otherwise.
+// position.ToMove must have not been updated already.
+// TODO: enpassant.
+func (eng *Engine) adjust(move Move, delta int) {
+	color := eng.position.ToMove
+
+	if move.MoveType == Promotion {
+		eng.put(move.From, ColorFigure(color, Pawn), -delta)
+	} else {
+		eng.put(move.From, move.Target, -delta)
+	}
+	eng.put(move.To, move.Target, delta)
+
+	if move.MoveType == Castling {
+		rookStart := RookStartSquare(move.To)
+		rookEnd := RookEndSquare(move.To)
+		rook := CastlingRook(move.To)
+		eng.put(rookStart, rook, -delta)
+		eng.put(rookEnd, rook, delta)
+	}
+
+	if move.Capture != NoPiece {
+		eng.put(move.To, move.Capture, -delta)
+	}
 }
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
-	capt := move.Capture
-	if capt != NoPiece {
-		eng.remove(move.To, capt.Color(), capt.Figure())
-	}
-	if move.MoveType == Promotion {
-		eng.remove(move.From, eng.position.ToMove, Pawn)
-	} else {
-		eng.remove(move.From, eng.position.ToMove, move.Target.Figure())
-	}
-	eng.put(move.To, eng.position.ToMove, move.Target.Figure())
+	eng.adjust(move, 1)
 	eng.position.DoMove(move)
 }
 
 // UndoMove undoes a move. Must be the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.position.UndoMove(move)
-	eng.remove(move.To, eng.position.ToMove, move.Target.Figure())
-	if move.MoveType == Promotion {
-		eng.put(move.From, eng.position.ToMove, Pawn)
-	} else {
-		eng.put(move.From, eng.position.ToMove, move.Target.Figure())
-	}
-	capt := move.Capture
-	if capt != NoPiece {
-		eng.put(move.To, capt.Color(), capt.Figure())
-	}
+	eng.adjust(move, -1)
 }
 
 // countMaterial counts pieces and updates the eng.pieceScore
@@ -110,8 +120,7 @@ func (eng *Engine) countMaterial() {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			bb := eng.position.ByPiece(col, fig)
 			for bb > 0 {
-				sq := bb.Pop()
-				eng.put(sq, col, fig)
+				eng.put(bb.Pop(), ColorFigure(col, fig), 1)
 			}
 		}
 	}

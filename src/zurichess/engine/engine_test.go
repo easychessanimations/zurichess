@@ -14,31 +14,6 @@ var (
 	}
 )
 
-func BenchmarkScore(b *testing.B) {
-	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos)
-
-	for i := 0; i < b.N; i++ {
-		for _, g := range games {
-			todo := strings.Fields(g)
-			done := make([]Move, 0)
-
-			for i := range todo {
-				move := eng.ParseMove(todo[i])
-				done = append(done, move)
-				eng.DoMove(move)
-				_ = eng.Score()
-			}
-
-			for i := range done {
-				move := done[len(done)-1-i]
-				eng.UndoMove(move)
-				_ = eng.Score()
-			}
-		}
-	}
-}
-
 func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	eng := NewEngine(pos)
@@ -50,49 +25,24 @@ func TestGame(t *testing.T) {
 	}
 }
 
-/*
-func TestFoobar(t *testing.T) {
-	pos, _ := PositionFromFEN("rnb1kbnr/ppp1pppp/8/3p3Q/1q6/4P2N/PPPP1PPP/RNB1KB1R w KQkq - 3 4")
-
-	eng := NewEngine(pos)
-	for i := 0; i < 1; i++ {
-		tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 6}
-		tc.Start()
-		move, _ := eng.Play(tc)
-		eng.DoMove(move)
-	}
-}
-*/
-
-func BenchmarkGame(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		pos, _ := PositionFromFEN(FENStartPos)
-		eng := NewEngine(pos)
-		for i := 0; i < 20; i++ {
-			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
-			tc.Start()
-			move, _ := eng.Play(tc)
-			eng.DoMove(move)
-		}
-	}
-}
-
 // Test score is the same if we start with the position or move.
 func TestScore(t *testing.T) {
 	for _, game := range games {
-		// t.Log("Starting new game")
 		pos, _ := PositionFromFEN(FENStartPos)
-		engDyn := NewEngine(pos)
+		dynamic := NewEngine(pos)
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.ParseMove(move)
-			// t.Log("move", m, "piece", m.Target, "capture", m.Capture)
-			engDyn.DoMove(m)
-			engStatic := NewEngine(pos)
-			if engDyn.Score() != engStatic.Score() {
-				t.Logf("expected static score %v, got dynamic score %v", engStatic.Score(), engDyn.Score())
-				t.Logf(" static pieces %v; pieceScore %v", engStatic.pieces, engStatic.pieceScore)
-				t.Logf("dynamic pieces %v; pieceScore %v", engDyn.pieces, engDyn.pieceScore)
+			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
+			dynamic.DoMove(m)
+			static := NewEngine(pos)
+			if dynamic.Score() != static.Score() {
+				t.Logf("expected static score %v, got dynamic score %v",
+					static.Score(), dynamic.Score())
+				t.Logf(" static pieces %v; pieceScore %d; positionScore %d",
+					static.pieces, static.pieceScore, static.positionScore)
+				t.Logf("dynamic pieces %v; pieceScore %d; positionScore %d",
+					dynamic.pieces, dynamic.pieceScore, dynamic.positionScore)
 				t.FailNow()
 			}
 		}
@@ -130,6 +80,44 @@ func TestMateIn1(t *testing.T) {
 			if !found {
 				t.Errorf("at depth %d expected one of %v, got %v for position %s",
 					d, g.move, move, g.fen)
+			}
+		}
+	}
+}
+
+func BenchmarkGame(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		pos, _ := PositionFromFEN(FENStartPos)
+		eng := NewEngine(pos)
+		for i := 0; i < 20; i++ {
+			tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 4}
+			tc.Start()
+			move, _ := eng.Play(tc)
+			eng.DoMove(move)
+		}
+	}
+}
+
+func BenchmarkScore(b *testing.B) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	eng := NewEngine(pos)
+
+	for i := 0; i < b.N; i++ {
+		for _, g := range games {
+			todo := strings.Fields(g)
+			done := make([]Move, 0)
+
+			for i := range todo {
+				move := eng.ParseMove(todo[i])
+				done = append(done, move)
+				eng.DoMove(move)
+				_ = eng.Score()
+			}
+
+			for i := range done {
+				move := done[len(done)-1-i]
+				eng.UndoMove(move)
+				_ = eng.Score()
 			}
 		}
 	}
