@@ -8,6 +8,7 @@ mv -f $pgnout $pgnout~
 cutechess-cli \
         -concurrency 2 \
         -games 500 \
+        -srand $RANDOM \
         -pgnin 2moves_v1.pgn \
         -pgnout $pgnout \
         -fcp cmd=`pwd`/$1 name=$1 \

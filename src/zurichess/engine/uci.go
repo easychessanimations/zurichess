@@ -38,8 +38,8 @@ func (uci *UCI) Execute(line string) error {
 		err = uci.position(args)
 	case "go":
 		uci.go_(args)
-	case "set":
-		err = uci.set(args)
+	case "setoption":
+		err = uci.setoption(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -151,7 +151,7 @@ func (uci *UCI) go_(args []string) {
 	fmt.Printf("bestmove %v\n", move)
 }
 
-func (uci *UCI) set(args []string) error {
+func (uci *UCI) setoption(args []string) error {
 	if args[0] != "name" {
 		return fmt.Errorf("expected first field 'name', got %s", args[0])
 	}
