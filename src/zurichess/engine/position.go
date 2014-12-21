@@ -36,6 +36,8 @@ type Position struct {
 	Castle    Castle
 	Enpassant Square
 
+	// A mask where pieces are not allowed to moved.
+	// Used mainly to generate only captures.
 	moveMask Bitboard
 }
 
@@ -426,7 +428,7 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
-	for att &= pos.moveMask; att != 0; {
+	for att &= ^pos.moveMask; att != 0; {
 		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
 			MoveType: Normal,
@@ -478,8 +480,8 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 	// King moves around.
 	other := pos.ToMove.Other()
 	att := BbKingAttack[from] & (^pos.ByColor[pos.ToMove])
-	for att != 0 {
-		if to := att.Pop(); !pos.IsAttackedBy(to, other) {
+	for bb := att & ^pos.moveMask; bb != 0; {
+		if to := bb.Pop(); !pos.IsAttackedBy(to, other) {
 			moves = append(moves, pos.fix(Move{
 				MoveType: Normal,
 				From:     from,
@@ -604,9 +606,9 @@ func NewMoveGenerator(pos *Position, onlyCaptures bool) *MoveGenerator {
 // Next generates pseudo-legal moves,i.e. doesn't check for king check.
 func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 	if mg.onlyCaptures {
-		mg.position.moveMask = mg.position.ByColor[mg.position.ToMove.Other()]
+		mg.position.moveMask = ^mg.position.ByColor[mg.position.ToMove.Other()]
 	} else {
-		mg.position.moveMask = BbFull
+		mg.position.moveMask = BbEmpty
 	}
 
 	mg.state++
