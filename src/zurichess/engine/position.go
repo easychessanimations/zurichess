@@ -429,6 +429,7 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
 	att &= ^pos.moveMask
+	att &= ^pos.ByColor[pos.ToMove]
 	other := pos.ByColor[pos.ToMove.Other()]
 
 	// First generate non-captures.
@@ -438,7 +439,7 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves
 			MoveType: Normal,
 			From:     from,
 			To:       to,
-			Capture:  pos.Get(to),
+			Capture:  NoPiece,
 			Target:   pi,
 		}))
 	}
@@ -462,7 +463,7 @@ func (pos *Position) genKnightMoves(moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, Knight)
 	for bb := pos.ByPiece(pos.ToMove, Knight); bb != 0; {
 		from := bb.Pop()
-		att := BbKnightAttack[from] & (^pos.ByColor[pos.ToMove])
+		att := BbKnightAttack[from]
 		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
@@ -473,7 +474,7 @@ func (pos *Position) genBishopMoves(moves []Move, fig Figure) []Move {
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := BishopMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
+		att := BishopMagic[from].Attack(ref)
 		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
@@ -484,67 +485,74 @@ func (pos *Position) genRookMoves(moves []Move, fig Figure) []Move {
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := RookMagic[from].Attack(ref) &^ pos.ByColor[pos.ToMove]
+		att := RookMagic[from].Attack(ref)
 		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genKingMoves(moves []Move) []Move {
+	moves = pos.genKingMovesNear(moves)
+	moves = pos.genKingCastles(moves)
+	return moves
+}
+
+func (pos *Position) genKingMovesNear(moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, King)
-	from := (pos.ByColor[pos.ToMove] & pos.ByFigure[King]).AsSquare()
+	from := pos.ByPiece(pos.ToMove, King).AsSquare()
+	att := BbKingAttack[from]
+	moves = pos.genBitboardMoves(pi, from, att, moves)
+	return moves
+}
 
-	// King moves around.
-	other := pos.ToMove.Other()
-	att := BbKingAttack[from] & (^pos.ByColor[pos.ToMove])
-	for bb := att & ^pos.moveMask; bb != 0; {
-		if to := bb.Pop(); !pos.IsAttackedBy(to, other) {
-			moves = append(moves, pos.fix(Move{
-				MoveType: Normal,
-				From:     from,
-				To:       to,
-				Capture:  pos.Get(to),
-				Target:   pi,
-			}))
-		}
-	}
-
+func (pos *Position) genKingCastles(moves []Move) []Move {
 	// King Castles.
-	oo, ooo, rank := WhiteOO, WhiteOOO, 0
+	pi, oo, ooo := WhiteKing, WhiteOO, WhiteOOO
+	rank, from := 0, SquareE1
 	if pos.ToMove == Black {
-		oo, ooo, rank = BlackOO, BlackOOO, 7
+		pi, oo, ooo = BlackKing, BlackOO, BlackOOO
+		rank, from = 7, SquareE8
 	}
+	if pos.Castle&(oo|ooo) == 0 {
+		return moves
+	}
+
+	other := pos.ToMove.Other()
 
 	// Castle king side.
-	r5 := RankFile(rank, 5)
-	r6 := RankFile(rank, 6)
-	if pos.Castle&oo != 0 && pos.IsEmpty(r5) && pos.IsEmpty(r6) {
-		if !pos.IsAttackedBy(from, other) &&
-			!pos.IsAttackedBy(r5, other) &&
-			!pos.IsAttackedBy(r6, other) {
-			moves = append(moves, pos.fix(Move{
-				MoveType: Castling,
-				From:     from,
-				To:       RankFile(rank, 6),
-				Target:   pi,
-			}))
+	if pos.Castle&oo != 0 {
+		r5 := RankFile(rank, 5)
+		r6 := RankFile(rank, 6)
+		if pos.IsEmpty(r5) && pos.IsEmpty(r6) {
+			if !pos.IsAttackedBy(from, other) &&
+				!pos.IsAttackedBy(r5, other) &&
+				!pos.IsAttackedBy(r6, other) {
+				moves = append(moves, pos.fix(Move{
+					MoveType: Castling,
+					From:     from,
+					To:       RankFile(rank, 6),
+					Target:   pi,
+				}))
+			}
 		}
 	}
 
 	// Castle queen side.
-	r3 := RankFile(rank, 3)
-	r2 := RankFile(rank, 2)
-	r1 := RankFile(rank, 1)
-	if pos.Castle&ooo != 0 && pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) {
-		if !pos.IsAttackedBy(from, other) &&
-			!pos.IsAttackedBy(r3, other) &&
-			!pos.IsAttackedBy(r2, other) {
-			moves = append(moves, pos.fix(Move{
-				MoveType: Castling,
-				From:     from,
-				To:       RankFile(rank, 2),
-				Target:   pi,
-			}))
+	if pos.Castle&ooo != 0 {
+		r3 := RankFile(rank, 3)
+		r2 := RankFile(rank, 2)
+		r1 := RankFile(rank, 1)
+		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) {
+			if !pos.IsAttackedBy(from, other) &&
+				!pos.IsAttackedBy(r3, other) &&
+				!pos.IsAttackedBy(r2, other) {
+				moves = append(moves, pos.fix(Move{
+					MoveType: Castling,
+					From:     from,
+					To:       RankFile(rank, 2),
+					Target:   pi,
+				}))
+			}
 		}
 	}
 
@@ -651,9 +659,14 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 		moves = mg.position.genRookMoves(moves, Queen)
 		return ColorFigure(toMove, Queen), moves
 	case 7:
-		moves = mg.position.genKingMoves(moves)
+		moves = mg.position.genKingMovesNear(moves)
 		return ColorFigure(toMove, King), moves
 	case 8:
+		if !mg.onlyCaptures {
+			moves = mg.position.genKingCastles(moves)
+			return ColorFigure(toMove, King), moves
+		}
+	case 9:
 		if !mg.onlyCaptures {
 			moves = mg.position.genPawnAdvanceMoves(moves)
 			moves = mg.position.genPawnDoubleAdvanceMoves(moves)

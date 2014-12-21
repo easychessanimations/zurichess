@@ -244,7 +244,7 @@ func TestKingCannotCastleWhenUnderAttack(t *testing.T) {
 	te.Move("d7d6")
 	te.Move("e2b5")
 	// Bishop attacks Black King.
-	te.King([]string{"e8d8", "e8f8"})
+	te.King([]string{"e8d8", "e8f8", "e8d7"})
 }
 
 func TestCastleMovesPieces(t *testing.T) {
