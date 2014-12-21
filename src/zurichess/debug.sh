@@ -18,7 +18,6 @@ cutechess-cli \
         -concurrency 1 \
         -resign movecount=3 score=400 \
         -draw movenumber=34 movecount=8 score=20 \
-        -openings file=2moves_v1.pgn format=pgn order=random \
         -pgnout $pgnout \
         -engine cmd=`pwd`/$1 name=$1 whitepov \
         -engine cmd=`pwd`/$2 name=$2 whitepov \

@@ -85,6 +85,24 @@ func TestMateIn1(t *testing.T) {
 	}
 }
 
+func TestStallingFENs(t *testing.T) {
+	fens := []string{
+		// Causes quiscence search to explode.
+		"rnb1kbnr/pppp1ppp/8/8/3PPp1q/6P1/PPP4P/RNBQKBNR b KQkq -1 0 4",
+		"r2qr1k1/2pn1ppp/pp2pn2/3b4/3P4/B2BPN2/P1P1QPPP/R4RK1 w - -1 4 13",
+	}
+
+	for _, fen := range fens {
+		pos, _ := PositionFromFEN(fen)
+		eng := NewEngine(pos)
+		eng.AnalyseMode = true
+
+		tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 5}
+		tc.Start()
+		eng.Play(tc)
+	}
+}
+
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)

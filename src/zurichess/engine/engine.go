@@ -35,13 +35,15 @@ var (
 type Engine struct {
 	AnalyseMode bool
 
-	position *Position // current position
-	moves    []Move    // moves stack
-	nodes    uint64    // number of nodes evaluated
+	position     *Position // current position
+	moves        []Move    // moves stack
+	negamaxNodes uint64    // number of nodes evaluated
+	quiesceNodes uint64    // number of nodes evaluated in quiscence searche
 
 	pieces        [ColorMaxValue][FigureMaxValue]int
 	pieceScore    int
 	positionScore int
+	maxPly        int
 }
 
 // NewEngine returns a new engine for pos.
@@ -189,11 +191,15 @@ func (eng *Engine) popMove() Move {
 }
 
 // quiesce searches a quite move.
-func (eng *Engine) quiesce(alpha, beta int, color Color) int {
-	eng.nodes++
+func (eng *Engine) quiesce(alpha, beta int, color Color, ply int) int {
+	eng.quiesceNodes++
+	eng.negamaxNodes++
 	score := ColorWeight[color] * eng.Score()
 	if score >= beta {
 		return beta
+	}
+	if ply == eng.maxPly {
+		return score
 	}
 	if score > alpha {
 		alpha = score
@@ -215,7 +221,7 @@ func (eng *Engine) quiesce(alpha, beta int, color Color) int {
 
 		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
-			score := -eng.quiesce(-beta, -alpha, color.Other())
+			score := -eng.quiesce(-beta, -alpha, color.Other(), ply+1)
 			if score >= beta {
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
@@ -233,13 +239,13 @@ func (eng *Engine) quiesce(alpha, beta int, color Color) int {
 
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
-func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
-	eng.nodes++
+func (eng *Engine) negamax(alpha, beta int, color Color, ply int) (Move, int) {
+	eng.negamaxNodes++
 	if score, done := eng.EndPosition(); done {
 		return Move{}, ColorWeight[color] * score
 	}
-	if depth == 0 {
-		return Move{}, eng.quiesce(alpha, beta, color)
+	if ply == eng.maxPly {
+		return Move{}, eng.quiesce(alpha, beta, color, 0)
 	}
 
 	bestMove, bestScore := Move{}, -infinityScore
@@ -255,7 +261,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		move := eng.popMove()
 		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
-			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
+			_, score := eng.negamax(-beta, -alpha, color.Other(), ply+1)
 			score = -score
 			if score > knownWinScore {
 				score--
@@ -286,9 +292,8 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 	return bestMove, bestScore
 }
 
-func (eng *Engine) alphaBeta(depth int) (Move, int) {
-	move, score := eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, depth)
-
+func (eng *Engine) alphaBeta() (Move, int) {
+	move, score := eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, 0)
 	score *= ColorWeight[eng.position.ToMove]
 	return move, score
 }
@@ -299,15 +304,21 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var move Move
 	var score int
 
+	eng.negamaxNodes = 0
+	eng.quiesceNodes = 0
+
 	start := time.Now()
 	for depth := tc.NextDepth(); depth != 0; depth = tc.NextDepth() {
-		move, score = eng.alphaBeta(depth)
+		eng.maxPly = depth
+		move, score = eng.alphaBeta()
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
 		if eng.AnalyseMode {
+			fmt.Printf("info string nodes %d quiesce %d\n",
+				eng.negamaxNodes, eng.quiesceNodes)
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-				depth, score, eng.nodes, elapsed/time.Millisecond,
-				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
+				depth, score, eng.negamaxNodes, elapsed/time.Millisecond,
+				eng.negamaxNodes*uint64(time.Second)/uint64(elapsed+1),
 				move)
 		}
 	}
