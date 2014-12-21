@@ -37,7 +37,7 @@ type Engine struct {
 
 	position     *Position // current position
 	moves        []Move    // moves stack
-	negamaxNodes uint64    // number of nodes evaluated
+	nodes        uint64    // number of nodes evaluated
 	quiesceNodes uint64    // number of nodes evaluated in quiscence searche
 
 	pieces        [ColorMaxValue][FigureMaxValue]int
@@ -132,6 +132,7 @@ func (eng *Engine) countMaterial() {
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int {
+	eng.nodes++
 	score := eng.pieceScore + eng.positionScore
 
 	// Give bonus for connected bishops.
@@ -193,7 +194,6 @@ func (eng *Engine) popMove() Move {
 // quiesce searches a quite move.
 func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 	eng.quiesceNodes++
-	eng.negamaxNodes++
 	color := eng.position.ToMove
 	score := ColorWeight[color] * eng.Score()
 	if score >= beta {
@@ -241,7 +241,6 @@ func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
-	eng.negamaxNodes++
 	color := eng.position.ToMove
 	if score, done := eng.EndPosition(); done {
 		return Move{}, ColorWeight[color] * score
@@ -305,7 +304,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var move Move
 	var score int
 
-	eng.negamaxNodes = 0
+	eng.nodes = 0
 	eng.quiesceNodes = 0
 
 	start := time.Now()
@@ -316,10 +315,10 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		_, _ = score, elapsed
 		if eng.AnalyseMode {
 			fmt.Printf("info string nodes %d quiesce %d\n",
-				eng.negamaxNodes, eng.quiesceNodes)
+				eng.nodes, eng.quiesceNodes)
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-				depth, score, eng.negamaxNodes, elapsed/time.Millisecond,
-				eng.negamaxNodes*uint64(time.Second)/uint64(elapsed+1),
+				depth, score, eng.nodes, elapsed/time.Millisecond,
+				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
 				move)
 		}
 	}

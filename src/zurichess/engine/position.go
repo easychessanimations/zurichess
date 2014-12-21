@@ -428,8 +428,12 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
-	for att &= ^pos.moveMask; att != 0; {
-		to := att.Pop()
+	att &= ^pos.moveMask
+	other := pos.ByColor[pos.ToMove.Other()]
+
+	// First generate non-captures.
+	for bb := att &^ other; bb != 0; {
+		to := bb.Pop()
 		moves = append(moves, pos.fix(Move{
 			MoveType: Normal,
 			From:     from,
@@ -438,6 +442,19 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves
 			Target:   pi,
 		}))
 	}
+
+	// Second generate captures.
+	for bb := att & other; bb != 0; {
+		to := bb.Pop()
+		moves = append(moves, pos.fix(Move{
+			MoveType: Normal,
+			From:     from,
+			To:       to,
+			Capture:  pos.Get(to),
+			Target:   pi,
+		}))
+	}
+
 	return moves
 }
 
@@ -619,32 +636,31 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 		moves = mg.position.genPawnAttackMoves(moves)
 		return ColorFigure(toMove, Pawn), moves
 	case 2:
+		moves = mg.position.genKnightMoves(moves)
+		return ColorFigure(toMove, Knight), moves
+	case 3:
+		moves = mg.position.genBishopMoves(moves, Bishop)
+		return ColorFigure(toMove, Bishop), moves
+	case 4:
+		moves = mg.position.genRookMoves(moves, Rook)
+		return ColorFigure(toMove, Rook), moves
+	case 5:
+		moves = mg.position.genBishopMoves(moves, Queen)
+		return ColorFigure(toMove, Queen), moves
+	case 6:
+		moves = mg.position.genRookMoves(moves, Queen)
+		return ColorFigure(toMove, Queen), moves
+	case 7:
+		moves = mg.position.genKingMoves(moves)
+		return ColorFigure(toMove, King), moves
+	case 8:
 		if !mg.onlyCaptures {
 			moves = mg.position.genPawnAdvanceMoves(moves)
 			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
+			return ColorFigure(toMove, Pawn), moves
 		}
-		return ColorFigure(toMove, Pawn), moves
-	case 3:
-		moves = mg.position.genKnightMoves(moves)
-		return ColorFigure(toMove, Knight), moves
-	case 4:
-		moves = mg.position.genBishopMoves(moves, Bishop)
-		return ColorFigure(toMove, Bishop), moves
-	case 5:
-		moves = mg.position.genRookMoves(moves, Rook)
-		return ColorFigure(toMove, Rook), moves
-	case 6:
-		moves = mg.position.genBishopMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves
-	case 7:
-		moves = mg.position.genRookMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves
-	case 8:
-		moves = mg.position.genKingMoves(moves)
-		return ColorFigure(toMove, King), moves
-	default:
-		return NoPiece, moves
 	}
+	return NoPiece, moves
 }
 
 // GenerateMoves is a helper to generate all moves.
