@@ -13,6 +13,24 @@ func SquareFromString(s string) Square {
 	return RankFile(r, f)
 }
 
+// RookStartSquare returns the rook starts square on castling.
+func RookStartSquare(kingEnd Square) Square {
+	// How it works for king on E1.
+	// if kingEnd == C1 == b010, then rookStart == A1 == b000
+	// if kingEnd == G1 == b110, then rookStart == H1 == b111
+	// So bit 3 will set bit 2 and bit 1.
+	return kingEnd&^3 | (kingEnd & 4 >> 1) | (kingEnd & 4 >> 2)
+}
+
+// RookEndSquare returns the rook starts square on castling.
+func RookEndSquare(kingEnd Square) Square {
+	// How it works for king on E1.
+	// if kingEnd == C1 == b010, then rookEnd == D1 == b011
+	// if kingEnd == G1 == b110, then rookEnd == F1 == b101
+	// So bit 3 will invert bit 2. bit 1 is always set.
+	return kingEnd ^ (kingEnd & 4 >> 1) | 1
+}
+
 // Bitboard returns a bitboard that has sq set.
 func (sq Square) Bitboard() Bitboard {
 	return 1 << uint(sq)
@@ -90,7 +108,7 @@ const (
 
 var (
 	ColorWeight = [ColorMaxValue]int{0, 1, -1}
-	ColorMask   = [ColorMaxValue]int{0, 0, 63}
+	ColorMask   = [ColorMaxValue]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
 )
 
 func (co Color) Other() Color {
@@ -115,6 +133,11 @@ type Piece uint8
 
 func ColorFigure(co Color, pt Figure) Piece {
 	return Piece(pt<<2) + Piece(co)
+}
+
+// CastlingRook returns which rook is moved on castling.
+func CastlingRook(kingEnd Square) Piece {
+	return Piece(Rook<<2) + 1 + Piece(kingEnd>>5)
 }
 
 func (pi Piece) Color() Color {

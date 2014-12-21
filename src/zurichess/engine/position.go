@@ -194,22 +194,11 @@ func (pos *Position) DoMove(move Move) {
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
-		if move.To == SquareC1 {
-			pos.Remove(SquareA1, WhiteRook)
-			pos.Put(SquareD1, WhiteRook)
-		}
-		if move.To == SquareG1 {
-			pos.Remove(SquareH1, WhiteRook)
-			pos.Put(SquareF1, WhiteRook)
-		}
-		if move.To == SquareC8 {
-			pos.Remove(SquareA8, BlackRook)
-			pos.Put(SquareD8, BlackRook)
-		}
-		if move.To == SquareG8 {
-			pos.Remove(SquareH8, BlackRook)
-			pos.Put(SquareF8, BlackRook)
-		}
+		rookStart := RookStartSquare(move.To)
+		rookEnd := RookEndSquare(move.To)
+		rook := CastlingRook(move.To)
+		pos.Remove(rookStart, rook)
+		pos.Put(rookEnd, rook)
 	}
 
 	// Set Enpassant square for capturing.
@@ -269,22 +258,11 @@ func (pos *Position) UndoMove(move Move) {
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
-		if move.To == SquareC1 {
-			pos.Remove(SquareD1, WhiteRook)
-			pos.Put(SquareA1, WhiteRook)
-		}
-		if move.To == SquareG1 {
-			pos.Remove(SquareF1, WhiteRook)
-			pos.Put(SquareH1, WhiteRook)
-		}
-		if move.To == SquareC8 {
-			pos.Remove(SquareD8, BlackRook)
-			pos.Put(SquareA8, BlackRook)
-		}
-		if move.To == SquareG8 {
-			pos.Remove(SquareF8, BlackRook)
-			pos.Put(SquareH8, BlackRook)
-		}
+		rookStart := RookStartSquare(move.To)
+		rookEnd := RookEndSquare(move.To)
+		rook := CastlingRook(move.To)
+		pos.Put(rookStart, rook)
+		pos.Remove(rookEnd, rook)
 	}
 
 	pos.Castle = move.OldCastle

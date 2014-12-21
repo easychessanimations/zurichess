@@ -25,6 +25,26 @@ func TestSquareFromString(t *testing.T) {
 	}
 }
 
+func TestRookSquare(t *testing.T) {
+	data := []struct {
+		kingEnd, rookStart, rookEnd Square
+	}{
+		{SquareC1, SquareA1, SquareD1},
+		{SquareC8, SquareA8, SquareD8},
+		{SquareG1, SquareH1, SquareF1},
+		{SquareG8, SquareH8, SquareF8},
+	}
+
+	for _, d := range data {
+		rookStart := RookStartSquare(d.kingEnd)
+		rookEnd := RookEndSquare(d.kingEnd)
+		if rookStart != d.rookStart || rookEnd != d.rookEnd {
+			t.Errorf("for king to %v, expected rook from %v to %v, got rook from %v to %v",
+				d.kingEnd, d.rookStart, d.rookEnd, rookStart, rookEnd)
+		}
+	}
+}
+
 func TestRankFile(t *testing.T) {
 	for r := 0; r < 7; r++ {
 		for f := 0; f < 7; f++ {
@@ -51,4 +71,24 @@ func TestPiece(t *testing.T) {
 			checkPiece(t, ColorFigure(co, pt), co, pt)
 		}
 	}
+}
+
+func TestCastlingRook(t *testing.T) {
+	data := []struct {
+		kingEnd Square
+		rook    Piece
+	}{
+		{SquareC1, WhiteRook},
+		{SquareC8, BlackRook},
+		{SquareG1, WhiteRook},
+		{SquareG8, BlackRook},
+	}
+
+	for _, d := range data {
+		rook := CastlingRook(d.kingEnd)
+		if rook != d.rook {
+			t.Errorf("for king to %v, expected %v, got %v", d.kingEnd, d.rook, rook)
+		}
+	}
+
 }
