@@ -39,8 +39,9 @@ type Engine struct {
 	moves    []Move    // moves stack
 	nodes    uint64    // number of nodes evaluated
 
-	pieces     [ColorMaxValue][FigureMaxValue]int
-	pieceScore int
+	pieces        [ColorMaxValue][FigureMaxValue]int
+	pieceScore    int
+	positionScore int
 }
 
 // NewEngine returns a new engine for pos.
@@ -58,41 +59,47 @@ func (eng *Engine) ParseMove(move string) Move {
 	return eng.position.ParseMove(move)
 }
 
-func (eng *Engine) put(col Color, fig Figure) {
+func (eng *Engine) put(sq Square, col Color, fig Figure) {
 	eng.pieces[col][NoFigure]++
 	eng.pieces[col][fig]++
 	eng.pieceScore += ColorWeight[col] * figureBonus[fig]
+	eng.positionScore += PieceSquareTable[fig][ColorMask[col]^sq]
 }
 
-func (eng *Engine) remove(col Color, fig Figure) {
+func (eng *Engine) remove(sq Square, col Color, fig Figure) {
 	eng.pieces[col][NoFigure]--
 	eng.pieces[col][fig]--
 	eng.pieceScore -= ColorWeight[col] * figureBonus[fig]
+	eng.positionScore -= PieceSquareTable[fig][ColorMask[col]^sq]
 }
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
 	capt := move.Capture
 	if capt != NoPiece {
-		eng.remove(capt.Color(), capt.Figure())
+		eng.remove(move.To, capt.Color(), capt.Figure())
 	}
 	if move.MoveType == Promotion {
-		eng.remove(eng.position.ToMove, Pawn)
-		eng.put(eng.position.ToMove, move.Target.Figure())
+		eng.remove(move.From, eng.position.ToMove, Pawn)
+	} else {
+		eng.remove(move.From, eng.position.ToMove, move.Target.Figure())
 	}
+	eng.put(move.To, eng.position.ToMove, move.Target.Figure())
 	eng.position.DoMove(move)
 }
 
 // UndoMove undoes a move. Must be the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.position.UndoMove(move)
+	eng.remove(move.To, eng.position.ToMove, move.Target.Figure())
+	if move.MoveType == Promotion {
+		eng.put(move.From, eng.position.ToMove, Pawn)
+	} else {
+		eng.put(move.From, eng.position.ToMove, move.Target.Figure())
+	}
 	capt := move.Capture
 	if capt != NoPiece {
-		eng.put(capt.Color(), capt.Figure())
-	}
-	if move.MoveType == Promotion {
-		eng.put(eng.position.ToMove, Pawn)
-		eng.remove(eng.position.ToMove, move.Target.Figure())
+		eng.put(move.To, capt.Color(), capt.Figure())
 	}
 }
 
@@ -101,10 +108,11 @@ func (eng *Engine) countMaterial() {
 	eng.pieceScore = 0
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			cnt := Popcnt(uint64(eng.position.ByPiece(col, fig)))
-			eng.pieces[col][NoFigure] += cnt
-			eng.pieces[col][fig] = cnt
-			eng.pieceScore += ColorWeight[col] * figureBonus[fig] * cnt
+			bb := eng.position.ByPiece(col, fig)
+			for bb > 0 {
+				sq := bb.Pop()
+				eng.put(sq, col, fig)
+			}
 		}
 	}
 }
@@ -113,7 +121,7 @@ func (eng *Engine) countMaterial() {
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int {
-	score := eng.pieceScore
+	score := eng.pieceScore + eng.positionScore
 
 	// Give bonus for connected bishops.
 	if eng.pieces[White][Bishop] >= 2 {
