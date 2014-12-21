@@ -94,7 +94,7 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 	r := counters{}
 	start := len(*moves)
 
-	moveGen := engine.NewMoveGenerator(pos)
+	moveGen := engine.NewMoveGenerator(pos, false)
 	for piece := engine.WhitePawn; piece != engine.NoPiece; {
 		piece, *moves = moveGen.Next(*moves)
 		for len(*moves) > start {

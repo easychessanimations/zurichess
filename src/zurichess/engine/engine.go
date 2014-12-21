@@ -206,7 +206,7 @@ func (eng *Engine) quiesce(alpha, beta int, color Color, ply int) int {
 	}
 
 	start := len(eng.moves)
-	moveGen := NewMoveGenerator(eng.position)
+	moveGen := NewMoveGenerator(eng.position, true)
 	for piece := WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {
 			piece, eng.moves = moveGen.Next(eng.moves)
@@ -250,7 +250,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, ply int) (Move, int) {
 
 	bestMove, bestScore := Move{}, -infinityScore
 	start := len(eng.moves)
-	moveGen := NewMoveGenerator(eng.position)
+	moveGen := NewMoveGenerator(eng.position, false)
 
 	for piece := WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {

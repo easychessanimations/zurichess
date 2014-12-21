@@ -94,7 +94,8 @@ const (
 )
 
 const (
-	BbEmpty           Bitboard = 0
+	BbEmpty           Bitboard = 0x0000000000000000
+	BbFull            Bitboard = 0xffffffffffffffff
 	BbBorder          Bitboard = 0xff818181818181ff
 	BbPawnLeftAttack  Bitboard = 0x00fefefefefefe00
 	BbPawnRightAttack Bitboard = 0x007f7f7f7f7f7f00

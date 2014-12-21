@@ -35,6 +35,8 @@ type Position struct {
 	ToMove    Color
 	Castle    Castle
 	Enpassant Square
+
+	moveMask Bitboard
 }
 
 // ByPiece is a shortcut for byColor&byFigure.
@@ -424,7 +426,7 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
-	for att != 0 {
+	for att &= pos.moveMask; att != 0; {
 		to := att.Pop()
 		moves = append(moves, pos.fix(Move{
 			MoveType: Normal,
@@ -583,41 +585,59 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 
 // GenerateMoves is a helper to generate moves in stages.
 type MoveGenerator struct {
-	position *Position
-	state    int
+	position     *Position
+	state        int
+	onlyCaptures bool
 }
 
-func NewMoveGenerator(pos *Position) *MoveGenerator {
+// NewMoveGenerator returns a MoveGenerator for pos.
+// If onlyCaptures is set then the MoveGenerator will try to limit generated
+// moves to captures only. It's possible a few non-captures will be returned.
+func NewMoveGenerator(pos *Position, onlyCaptures bool) *MoveGenerator {
 	return &MoveGenerator{
-		position: pos,
-		state:    0,
+		position:     pos,
+		state:        0,
+		onlyCaptures: onlyCaptures,
 	}
 }
 
 // Next generates pseudo-legal moves,i.e. doesn't check for king check.
 func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
+	if mg.onlyCaptures {
+		mg.position.moveMask = mg.position.ByColor[mg.position.ToMove.Other()]
+	} else {
+		mg.position.moveMask = BbFull
+	}
+
 	mg.state++
 	toMove := mg.position.ToMove
 	switch mg.state {
 	case 1:
-		moves = mg.position.genPawnMoves(moves)
+		moves = mg.position.genPawnAttackMoves(moves)
 		return ColorFigure(toMove, Pawn), moves
 	case 2:
+		if !mg.onlyCaptures {
+			moves = mg.position.genPawnAdvanceMoves(moves)
+			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
+			moves = mg.position.genPawnEnpassantMoves(moves)
+		}
+		return ColorFigure(toMove, Pawn), moves
+	case 3:
 		moves = mg.position.genKnightMoves(moves)
 		return ColorFigure(toMove, Knight), moves
-	case 3:
+	case 4:
 		moves = mg.position.genBishopMoves(moves, Bishop)
 		return ColorFigure(toMove, Bishop), moves
-	case 4:
+	case 5:
 		moves = mg.position.genRookMoves(moves, Rook)
 		return ColorFigure(toMove, Rook), moves
-	case 5:
+	case 6:
 		moves = mg.position.genBishopMoves(moves, Queen)
 		return ColorFigure(toMove, Queen), moves
-	case 6:
+	case 7:
 		moves = mg.position.genRookMoves(moves, Queen)
 		return ColorFigure(toMove, Queen), moves
-	case 7:
+	case 8:
 		moves = mg.position.genKingMoves(moves)
 		return ColorFigure(toMove, King), moves
 	default:
@@ -627,7 +647,7 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
-	moveGen := NewMoveGenerator(pos)
+	moveGen := NewMoveGenerator(pos, false)
 	for piece := WhitePawn; piece != NoPiece; {
 		piece, moves = moveGen.Next(moves)
 	}
