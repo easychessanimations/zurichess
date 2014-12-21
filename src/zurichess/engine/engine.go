@@ -56,14 +56,16 @@ func (eng *Engine) ParseMove(move string) Move {
 	return eng.position.ParseMove(move)
 }
 
-func (eng *Engine) put(col Color, pi Figure) {
-	eng.pieces[col][pi]++
-	eng.pieceScore += ColorWeight[col] * figureBonus[pi]
+func (eng *Engine) put(col Color, fig Figure) {
+	eng.pieces[col][NoFigure]++
+	eng.pieces[col][fig]++
+	eng.pieceScore += ColorWeight[col] * figureBonus[fig]
 }
 
-func (eng *Engine) remove(col Color, pi Figure) {
-	eng.pieces[col][pi]--
-	eng.pieceScore -= ColorWeight[col] * figureBonus[pi]
+func (eng *Engine) remove(col Color, fig Figure) {
+	eng.pieces[col][NoFigure]--
+	eng.pieces[col][fig]--
+	eng.pieceScore -= ColorWeight[col] * figureBonus[fig]
 }
 
 // DoMove executes a move.
@@ -98,6 +100,7 @@ func (eng *Engine) countMaterial() {
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			cnt := Popcnt(uint64(eng.position.ByPiece(col, fig)))
+			eng.pieces[col][NoFigure] += cnt
 			eng.pieces[col][fig] = cnt
 			eng.pieceScore += ColorWeight[col] * figureBonus[fig] * cnt
 		}
@@ -141,6 +144,20 @@ func (eng *Engine) EndPosition() (int, bool) {
 	if eng.pieces[Black][King] == 0 {
 		return +mateScore, true
 	}
+
+	// K vs K is draw.
+	if eng.pieces[White][NoPiece]+eng.pieces[Black][NoPiece] == 2 {
+		return 0, true
+	}
+
+	// KN vs K and KB vs K are draws
+	if eng.pieces[White][NoPiece]+eng.pieces[Black][NoPiece] == 3 {
+		if eng.pieces[White][Knight]+eng.pieces[White][Bishop]+
+			eng.pieces[Black][Knight]+eng.pieces[Black][Bishop] == 1 {
+			return 0, true
+		}
+	}
+
 	return eng.Score(), false
 }
 
