@@ -613,13 +613,13 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 	toMove := mg.position.ToMove
 	switch mg.state {
 	case 1:
+		moves = mg.position.genPawnEnpassantMoves(moves)
 		moves = mg.position.genPawnAttackMoves(moves)
 		return ColorFigure(toMove, Pawn), moves
 	case 2:
 		if !mg.onlyCaptures {
 			moves = mg.position.genPawnAdvanceMoves(moves)
 			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
-			moves = mg.position.genPawnEnpassantMoves(moves)
 		}
 		return ColorFigure(toMove, Pawn), moves
 	case 3:

@@ -179,7 +179,7 @@ func (eng *Engine) EndPosition() (int, bool) {
 		}
 	}
 
-	return eng.Score(), false
+	return 0, false
 }
 
 // popMove pops last move.
@@ -191,9 +191,10 @@ func (eng *Engine) popMove() Move {
 }
 
 // quiesce searches a quite move.
-func (eng *Engine) quiesce(alpha, beta int, color Color, ply int) int {
+func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 	eng.quiesceNodes++
 	eng.negamaxNodes++
+	color := eng.position.ToMove
 	score := ColorWeight[color] * eng.Score()
 	if score >= beta {
 		return beta
@@ -221,7 +222,7 @@ func (eng *Engine) quiesce(alpha, beta int, color Color, ply int) int {
 
 		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
-			score := -eng.quiesce(-beta, -alpha, color.Other(), ply+1)
+			score := -eng.quiesce(-beta, -alpha, ply+1)
 			if score >= beta {
 				eng.UndoMove(move)
 				eng.moves = eng.moves[:start]
@@ -239,19 +240,19 @@ func (eng *Engine) quiesce(alpha, beta int, color Color, ply int) int {
 
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
-func (eng *Engine) negamax(alpha, beta int, color Color, ply int) (Move, int) {
+func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 	eng.negamaxNodes++
+	color := eng.position.ToMove
 	if score, done := eng.EndPosition(); done {
 		return Move{}, ColorWeight[color] * score
 	}
 	if ply == eng.maxPly {
-		return Move{}, eng.quiesce(alpha, beta, color, 0)
+		return Move{}, eng.quiesce(alpha, beta, 0)
 	}
 
 	bestMove, bestScore := Move{}, -infinityScore
 	start := len(eng.moves)
 	moveGen := NewMoveGenerator(eng.position, false)
-
 	for piece := WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {
 			piece, eng.moves = moveGen.Next(eng.moves)
@@ -261,7 +262,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, ply int) (Move, int) {
 		move := eng.popMove()
 		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
-			_, score := eng.negamax(-beta, -alpha, color.Other(), ply+1)
+			_, score := eng.negamax(-beta, -alpha, ply+1)
 			score = -score
 			if score > knownWinScore {
 				score--
@@ -293,7 +294,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, ply int) (Move, int) {
 }
 
 func (eng *Engine) alphaBeta() (Move, int) {
-	move, score := eng.negamax(-infinityScore, +infinityScore, eng.position.ToMove, 0)
+	move, score := eng.negamax(-infinityScore, +infinityScore, 0)
 	score *= ColorWeight[eng.position.ToMove]
 	return move, score
 }
