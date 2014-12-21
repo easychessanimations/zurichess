@@ -58,6 +58,8 @@ func TestMateIn1(t *testing.T) {
 		{[]string{"d8b8"}, "3Q4/3b4/2Nk4/3P3p/1KP4P/8/5p2/8 w - - 0 87"},
 		{[]string{"g4f2"}, "r3k3/pR4B1/2p1p1p1/2N5/P4nn1/2P5/6r1/7K b - - 5 40"},
 		{[]string{"f6f4", "f6f2"}, "1r6/4k3/5q2/p2pp3/2P5/1P1QK3/2P3rP/1R6 b - - 1 39"},
+		{[]string{"e8e1"}, "4r2k/ppp2pp1/2n4p/1r6/2PP4/5R2/5PPP/2N3KR b - - 0 30"},
+		{[]string{"g1g8", "h5h6"}, "6rk/2pr1p2/p3pN1p/1p5R/5P2/3P4/PP2K2P/6R1 w - - 4 29"},
 	}
 
 	for _, g := range game {

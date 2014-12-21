@@ -17,8 +17,8 @@ var (
 	figureBonus = [FigureMaxValue]int{
 		0,     // NoFigure
 		100,   // Pawn
-		350,   // Knight
-		350,   // Bishop
+		345,   // Knight
+		355,   // Bishop
 		525,   // Rook
 		1000,  // Queen
 		10000, // King
@@ -27,7 +27,7 @@ var (
 	knownWinScore   = 20000
 	mateScore       = 30000
 	infinityScore   = 32000
-	bishopPairBonus = 50
+	bishopPairBonus = 40
 	knightPawnBonus = 6
 	rookPawnPenalty = 12
 )
