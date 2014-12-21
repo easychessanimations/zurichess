@@ -180,6 +180,57 @@ func (eng *Engine) EndPosition() (int, bool) {
 	return eng.Score(), false
 }
 
+// popMove pops last move.
+func (eng *Engine) popMove() Move {
+	last := len(eng.moves) - 1
+	move := eng.moves[last]
+	eng.moves = eng.moves[:last]
+	return move
+}
+
+// quiesce searches a quite move.
+func (eng *Engine) quiesce(alpha, beta int, color Color) int {
+	eng.nodes++
+	score := ColorWeight[color] * eng.Score()
+	if score >= beta {
+		return beta
+	}
+	if score > alpha {
+		alpha = score
+	}
+
+	start := len(eng.moves)
+	moveGen := NewMoveGenerator(eng.position)
+	for piece := WhitePawn; piece != NoPiece; {
+		if len(eng.moves) == start {
+			piece, eng.moves = moveGen.Next(eng.moves)
+			continue
+		}
+
+		move := eng.popMove()
+		if move.Capture == NoPiece {
+			// For quiscence search only captures are considered.
+			continue
+		}
+
+		eng.DoMove(move)
+		if !eng.position.IsChecked(color) {
+			score := -eng.quiesce(-beta, -alpha, color.Other())
+			if score >= beta {
+				eng.UndoMove(move)
+				eng.moves = eng.moves[:start]
+				return beta
+			}
+			if score > alpha {
+				alpha = score
+			}
+		}
+		eng.UndoMove(move)
+	}
+
+	return alpha
+}
+
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) {
@@ -188,7 +239,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 		return Move{}, ColorWeight[color] * score
 	}
 	if depth == 0 {
-		return Move{}, ColorWeight[color] * eng.Score()
+		return Move{}, eng.quiesce(alpha, beta, color)
 	}
 
 	bestMove, bestScore := Move{}, -infinityScore
@@ -201,11 +252,7 @@ func (eng *Engine) negamax(alpha, beta int, color Color, depth int) (Move, int) 
 			continue
 		}
 
-		// Pop & try last move.
-		last := len(eng.moves) - 1
-		move := eng.moves[last]
-		eng.moves = eng.moves[:last]
-
+		move := eng.popMove()
 		eng.DoMove(move)
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, color.Other(), depth-1)
