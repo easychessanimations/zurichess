@@ -7,7 +7,7 @@ mv -f $pgnout $pgnout~
 
 cutechess-cli \
         -concurrency 2 \
-        -games 100 \
+        -games 500 \
         -pgnin 2moves_v1.pgn \
         -pgnout $pgnout \
         -fcp cmd=`pwd`/$1 name=$1 \

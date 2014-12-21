@@ -33,6 +33,8 @@ var (
 )
 
 type Engine struct {
+	AnalyseMode bool
+
 	position *Position // current position
 	moves    []Move    // moves stack
 	nodes    uint64    // number of nodes evaluated
@@ -238,12 +240,12 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		move, score = eng.alphaBeta(depth)
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
-		/*
+		if eng.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
 				depth, score, eng.nodes, elapsed/time.Millisecond,
 				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
 				move)
-		*/
+		}
 	}
 
 	if move.MoveType == NoMove {

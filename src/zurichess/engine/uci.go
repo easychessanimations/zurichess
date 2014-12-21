@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -14,8 +13,9 @@ var (
 )
 
 type UCI struct {
-	Position *Position
-	Engine   *Engine
+	UCI_AnalyseMode bool
+
+	Engine *Engine
 }
 
 func (uci *UCI) Execute(line string) error {
@@ -38,6 +38,8 @@ func (uci *UCI) Execute(line string) error {
 		err = uci.position(args)
 	case "go":
 		uci.go_(args)
+	case "set":
+		err = uci.set(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -48,9 +50,12 @@ func (uci *UCI) Execute(line string) error {
 }
 
 func (uci *UCI) uci(args []string) error {
-	rand.Seed(time.Now().UnixNano())
+	uci.UCI_AnalyseMode = true
+
 	fmt.Println("id name zurichess")
-	fmt.Println("id author Alexandru Moșoi")
+	fmt.Println("id author Alexandru Mosoi")
+	fmt.Println()
+	fmt.Println("option name UCI_AnalyseMode type check default true")
 	fmt.Println("uciok")
 	return nil
 }
@@ -61,7 +66,6 @@ func (uci *UCI) isready(args []string) error {
 }
 
 func (uci *UCI) ucinewgame(args []string) error {
-	uci.Position = nil
 	uci.Engine = nil
 	return nil
 }
@@ -70,14 +74,16 @@ func (uci *UCI) position(args []string) error {
 		return fmt.Errorf("expected argument for 'position'")
 	}
 
+	var pos *Position
+
 	i := 0
 	var err error
 	switch args[i] {
 	case "startpos":
-		uci.Position, err = PositionFromFEN(FENStartPos)
+		pos, err = PositionFromFEN(FENStartPos)
 		i++
 	case "fen":
-		uci.Position, err = PositionFromFEN(strings.Join(args[1:7], " "))
+		pos, err = PositionFromFEN(strings.Join(args[1:7], " "))
 		i += 7
 	default:
 		err = fmt.Errorf("unknown position command: %s", args[0])
@@ -86,7 +92,9 @@ func (uci *UCI) position(args []string) error {
 		return err
 	}
 
-	uci.Engine = NewEngine(uci.Position)
+	uci.Engine = NewEngine(pos)
+	uci.Engine.AnalyseMode = uci.UCI_AnalyseMode
+
 	if i < len(args) {
 		if args[i] != "moves" {
 			return fmt.Errorf("expected 'moves', got '%s'", args[1])
@@ -132,7 +140,7 @@ func (uci *UCI) go_(args []string) {
 	}
 
 	var tc TimeControl
-	if uci.Position.ToMove == White {
+	if uci.Engine.position.ToMove == White {
 		tc = &white
 	} else {
 		tc = &black
@@ -140,6 +148,27 @@ func (uci *UCI) go_(args []string) {
 
 	tc.Start()
 	move, _ := uci.Engine.Play(tc)
-	log.Printf("selected %q (%v); piece %v", move, move, uci.Position.Get(move.From))
 	fmt.Printf("bestmove %v\n", move)
+}
+
+func (uci *UCI) set(args []string) error {
+	if args[0] != "name" {
+		return fmt.Errorf("expected first field 'name', got %s", args[0])
+	}
+	if args[2] != "value" {
+		return fmt.Errorf("expected third field 'value', got %s", args[0])
+	}
+
+	switch args[1] {
+	case "UCI_AnalyseMode":
+		mode, err := strconv.ParseBool(args[3])
+		if err != nil {
+			return err
+		}
+		uci.UCI_AnalyseMode = mode
+	default:
+		return fmt.Errorf("unhandled option %s", args[2])
+	}
+
+	return nil
 }
