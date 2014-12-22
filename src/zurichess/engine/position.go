@@ -491,6 +491,7 @@ func (pos *Position) genRookMoves(moves []Move, fig Figure) []Move {
 	return moves
 }
 
+// Like other gen*Moves functions it might leave the king in check.
 func (pos *Position) genKingMoves(moves []Move) []Move {
 	moves = pos.genKingMovesNear(moves)
 	moves = pos.genKingCastles(moves)

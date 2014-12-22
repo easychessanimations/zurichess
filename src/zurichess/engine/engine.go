@@ -13,23 +13,6 @@ var _ = fmt.Println
 var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
-
-	figureBonus = [FigureMaxValue]int{
-		0,     // NoFigure
-		100,   // Pawn
-		345,   // Knight
-		355,   // Bishop
-		525,   // Rook
-		1000,  // Queen
-		10000, // King
-	}
-
-	knownWinScore   = 20000
-	mateScore       = 30000
-	infinityScore   = 32000
-	bishopPairBonus = 40
-	knightPawnBonus = 6
-	rookPawnPenalty = 12
 )
 
 type Engine struct {
@@ -72,7 +55,7 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 
 	eng.pieces[col][NoFigure] += delta
 	eng.pieces[col][fig] += delta
-	eng.pieceScore += delta * weight * figureBonus[fig]
+	eng.pieceScore += delta * weight * FigureBonus[fig]
 	eng.positionScore += delta * weight * PieceSquareTable[fig][mask^sq]
 }
 
@@ -137,18 +120,18 @@ func (eng *Engine) Score() int {
 
 	// Give bonus for connected bishops.
 	if eng.pieces[White][Bishop] >= 2 {
-		score += bishopPairBonus
+		score += BishopPairBonus
 	}
 	if eng.pieces[Black][Bishop] >= 2 {
-		score -= bishopPairBonus
+		score -= BishopPairBonus
 	}
 
 	// Give bonuses based on number of pawns.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		numPawns := eng.pieces[col][Pawn]
 		if numPawns > 5 {
-			adjust := knightPawnBonus * eng.pieces[col][Knight]
-			adjust -= rookPawnPenalty * eng.pieces[col][Rook]
+			adjust := KnightPawnBonus * eng.pieces[col][Knight]
+			adjust -= RookPawnPenalty * eng.pieces[col][Rook]
 			score += adjust * ColorWeight[col] * (numPawns - 5)
 		}
 	}
@@ -161,10 +144,10 @@ func (eng *Engine) Score() int {
 // Returns score and a bool if the game has ended.
 func (eng *Engine) EndPosition() (int, bool) {
 	if eng.pieces[White][King] == 0 {
-		return -mateScore, true
+		return -MateScore, true
 	}
 	if eng.pieces[Black][King] == 0 {
-		return +mateScore, true
+		return +MateScore, true
 	}
 
 	// K vs K is draw.
@@ -249,7 +232,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 		return Move{}, eng.quiesce(alpha, beta, 0)
 	}
 
-	bestMove, bestScore := Move{}, -infinityScore
+	bestMove, bestScore := Move{}, -InfinityScore
 	start := len(eng.moves)
 	moveGen := NewMoveGenerator(eng.position, false)
 	for piece := WhitePawn; piece != NoPiece; {
@@ -263,7 +246,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 		if !eng.position.IsChecked(color) {
 			_, score := eng.negamax(-beta, -alpha, ply+1)
 			score = -score
-			if score > knownWinScore {
+			if score > KnownWinScore {
 				score--
 			}
 			if score >= beta {
@@ -283,7 +266,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 
 	if bestMove.MoveType == NoMove {
 		if eng.position.IsChecked(color) {
-			bestMove, bestScore = Move{}, -mateScore
+			bestMove, bestScore = Move{}, -MateScore
 		} else {
 			bestMove, bestScore = Move{}, 0
 		}
@@ -293,7 +276,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 }
 
 func (eng *Engine) alphaBeta() (Move, int) {
-	move, score := eng.negamax(-infinityScore, +infinityScore, 0)
+	move, score := eng.negamax(-InfinityScore, +InfinityScore, 0)
 	score *= ColorWeight[eng.position.ToMove]
 	return move, score
 }

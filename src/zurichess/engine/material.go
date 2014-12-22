@@ -3,6 +3,24 @@
 package engine
 
 var (
+	KnownWinScore = 20000
+	MateScore     = 30000
+	InfinityScore = 32000
+
+	BishopPairBonus = 40
+	KnightPawnBonus = 6
+	RookPawnPenalty = 12
+
+	FigureBonus = [FigureMaxValue]int{
+		0,     // NoFigure
+		100,   // Pawn
+		345,   // Knight
+		355,   // Bishop
+		525,   // Rook
+		1000,  // Queen
+		10000, // King
+	}
+
 	// Piece Square Table from White POV.
 	// For black the table is rotated, i.e. black index = 63 - white index.
 	// Theses values were suggested by Tomasz Michniewski as an extremely basic
