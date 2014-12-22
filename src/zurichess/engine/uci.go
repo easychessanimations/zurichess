@@ -40,6 +40,8 @@ func (uci *UCI) Execute(line string) error {
 		uci.go_(args)
 	case "setoption":
 		err = uci.setoption(args)
+	case "setvalue":
+		err = uci.setvalue(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -170,5 +172,37 @@ func (uci *UCI) setoption(args []string) error {
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
 
+	return nil
+}
+
+func (uci *UCI) setvalue(args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("setvalue expected two arguments, got %d", len(args))
+	}
+	value, err := strconv.Atoi(args[1])
+	if err != nil {
+		return err
+	}
+
+	switch args[0] {
+	case "PawnBonus":
+		FigureBonus[Pawn] = value
+	case "KnightBonus":
+		FigureBonus[Knight] = value
+	case "BishopBonus":
+		FigureBonus[Bishop] = value
+	case "RookBonus":
+		FigureBonus[Rook] = value
+	case "QueenBonus":
+		FigureBonus[Queen] = value
+	case "BishopPairBonus":
+		BishopPairBonus = value
+	case "KnightPawnBonus":
+		KnownWinScore = value
+	case "RookPawnPenalty":
+		RookPawnPenalty = value
+	default:
+		return fmt.Errorf("unknown setvalue argument %s", args[0])
+	}
 	return nil
 }

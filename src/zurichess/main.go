@@ -38,7 +38,7 @@ func main() {
 		}
 		if err := uci.Execute(string(line)); err != nil {
 			if err != engine.ErrQuit {
-				log.Println("for line:", line)
+				log.Println("for line:", string(line))
 				log.Println("error:", err)
 			}
 		}
