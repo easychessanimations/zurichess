@@ -24,7 +24,7 @@ type Engine struct {
 	quiesceNodes uint64    // number of nodes evaluated in quiscence searche
 
 	pieces        [ColorMaxValue][FigureMaxValue]int
-	pieceScore    int
+	pieceScore    [2]int
 	positionScore int
 	maxPly        int
 }
@@ -53,9 +53,13 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 	weight := ColorWeight[col]
 	mask := ColorMask[col]
 
+	eng.pieces[NoColor][NoFigure] += delta
 	eng.pieces[col][NoFigure] += delta
+	eng.pieces[NoColor][fig] += delta
 	eng.pieces[col][fig] += delta
-	eng.pieceScore += delta * weight * FigureBonus[fig]
+
+	eng.pieceScore[MidGame] += delta * weight * FigureBonus[fig][MidGame]
+	eng.pieceScore[EndGame] += delta * weight * FigureBonus[fig][EndGame]
 	eng.positionScore += delta * weight * PieceSquareTable[fig][mask^sq]
 }
 
@@ -98,9 +102,10 @@ func (eng *Engine) UndoMove(move Move) {
 	eng.adjust(move, -1)
 }
 
-// countMaterial counts pieces and updates the eng.pieceScore
+// countMaterial counts pieces and updates the eng.pieceMgScore
 func (eng *Engine) countMaterial() {
-	eng.pieceScore = 0
+	eng.pieceScore[MidGame] = 0
+	eng.pieceScore[EndGame] = 0
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			bb := eng.position.ByPiece(col, fig)
@@ -111,12 +116,35 @@ func (eng *Engine) countMaterial() {
 	}
 }
 
+// phase returns current phase and total phase.
+// phase is determined by the number of pieces left in the game where
+// pawn has score 0, knight and bishop 1, rook 2, queen 2.
+// See Tapered Eval:
+// https://chessprogramming.wikispaces.com/Tapered+Eval
+func (eng *Engine) phase() (int, int) {
+	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*2
+	currPhase := totalPhase
+	currPhase -= eng.pieces[NoColor][Pawn] * 0
+	currPhase -= eng.pieces[NoColor][Knight] * 1
+	currPhase -= eng.pieces[NoColor][Bishop] * 1
+	currPhase -= eng.pieces[NoColor][Rook] * 2
+	currPhase -= eng.pieces[NoColor][Queen] * 2
+	currPhase = (currPhase*256 + totalPhase/2) / totalPhase
+	return currPhase, 256
+}
+
 // Evaluate current position from white's POV.
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int {
 	eng.nodes++
-	score := eng.pieceScore + eng.positionScore
+
+	// Piece score is something between MidGame and EndGame
+	// depending on the pieces on the table.
+	scoreMg := eng.pieceScore[MidGame] + eng.positionScore
+	scoreEg := eng.pieceScore[EndGame] + eng.positionScore
+	currPhase, totalPhase := eng.phase()
+	score := (scoreMg*currPhase + scoreEg*(totalPhase-currPhase)) / totalPhase
 
 	// Give bonus for connected bishops.
 	if eng.pieces[White][Bishop] >= 2 {

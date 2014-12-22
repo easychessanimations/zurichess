@@ -5,7 +5,7 @@ if [ -z $1 ] || [ -z $2 ]; then
         exit 1
 fi
 
-pgnout=debug$1.vs.$2.pgn
+pgnout=debug.$1.vs.$2.pgn
 mv -f $pgnout $pgnout~
 echo "Will write game in $pgnout"
 

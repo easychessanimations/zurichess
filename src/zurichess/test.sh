@@ -23,8 +23,8 @@ cutechess-cli \
         -recover \
         -games 500 \
         -concurrency 2 \
-        -resign movecount=3 score=400 \
-        -draw movenumber=34 movecount=8 score=20 \
+        -resign movecount=5 score=500 \
+        -draw movenumber=40 movecount=5 score=20 \
         -openings file=2moves_v1.pgn format=pgn order=random \
         -pgnout $pgnout \
         -engine cmd=`pwd`/$1 name=$1 whitepov \

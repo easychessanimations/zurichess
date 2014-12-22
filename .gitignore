@@ -1,3 +1,4 @@
 *.pgn
+*.pgn~
 *-bench.txt
 zc-*

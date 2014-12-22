@@ -2,16 +2,21 @@ Name FigureBonus
 
 Script ./clop-cutechess-cli.py
 
-IntegerParameter PawnBonus     50  200
-IntegerParameter KnightBonus  150  600
-IntegerParameter BishopBonus  150  600
-IntegerParameter RookBonus    250 1000
-IntegerParameter QueenBonus   450 1800
+#IntegerParameter PawnBonusMg     75  150
+#IntegerParameter KnightBonusMg  250  400
+#IntegerParameter BishopBonusMg  250  400
+#IntegerParameter RookBonusMg    400  600
+#IntegerParameter QueenBonusMg   800 1100
 
-IntegerParameter NumPawnsCrowded  4   8
-IntegerParameter BishopPairBonus  0 100
-IntegerParameter KnightPawnBonus  0  20
-IntegerParameter RookPawnPenalty  0  20
+IntegerParameter PawnBonusEg     75  150
+#IntegerParameter KnightBonusEg  250  400
+#IntegerParameter BishopBonusEg  250  400
+#IntegerParameter RookBonusEg    400  600
+#IntegerParameter QueenBonusEg   800 1100
+
+#IntegerParameter BishopPairBonus  0 100
+#IntegerParameter KnightPawnBonus  0  20
+#IntegerParameter RookPawnPenalty  0  20
 
 Processor machine1
 Processor machine1

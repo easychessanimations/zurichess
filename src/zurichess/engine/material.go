@@ -2,6 +2,11 @@
 // Every piece gets a bonus depending on the position on the table.
 package engine
 
+const (
+	MidGame = 0
+	EndGame = 1
+)
+
 var (
 	KnownWinScore = 20000
 	MateScore     = 30000
@@ -11,14 +16,15 @@ var (
 	KnightPawnBonus = 6
 	RookPawnPenalty = 12
 
-	FigureBonus = [FigureMaxValue]int{
-		0,     // NoFigure
-		100,   // Pawn
-		345,   // Knight
-		355,   // Bishop
-		525,   // Rook
-		1000,  // Queen
-		10000, // King
+	// Figure middle and end game bonuses.
+	FigureBonus = [FigureMaxValue][2]int{
+		{0, 0},         // NoFigure
+		{100, 100},     // Pawn
+		{345, 345},     // Knight
+		{355, 355},     // Bishop
+		{525, 525},     // Rook
+		{1000, 1000},   // Queen
+		{10000, 10000}, // King
 	}
 
 	// Piece Square Table from White POV.

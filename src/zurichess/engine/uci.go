@@ -185,16 +185,28 @@ func (uci *UCI) setvalue(args []string) error {
 	}
 
 	switch args[0] {
-	case "PawnBonus":
-		FigureBonus[Pawn] = value
-	case "KnightBonus":
-		FigureBonus[Knight] = value
-	case "BishopBonus":
-		FigureBonus[Bishop] = value
-	case "RookBonus":
-		FigureBonus[Rook] = value
-	case "QueenBonus":
-		FigureBonus[Queen] = value
+	case "PawnBonusMg":
+		FigureBonus[Pawn][MidGame] = value
+	case "KnightBonusMg":
+		FigureBonus[Knight][MidGame] = value
+	case "BishopBonusMg":
+		FigureBonus[Bishop][MidGame] = value
+	case "RookBonusMg":
+		FigureBonus[Rook][MidGame] = value
+	case "QueenBonusMg":
+		FigureBonus[Queen][MidGame] = value
+
+	case "PawnBonusEg":
+		FigureBonus[Pawn][EndGame] = value
+	case "KnightBonusEg":
+		FigureBonus[Knight][EndGame] = value
+	case "BishopBonusEg":
+		FigureBonus[Bishop][EndGame] = value
+	case "RookBonusEg":
+		FigureBonus[Rook][EndGame] = value
+	case "QueenBonusEg":
+		FigureBonus[Queen][EndGame] = value
+
 	case "BishopPairBonus":
 		BishopPairBonus = value
 	case "KnightPawnBonus":
