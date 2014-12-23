@@ -18,14 +18,13 @@ var (
 type Engine struct {
 	AnalyseMode bool
 
-	position     *Position // current position
-	moves        []Move    // moves stack
-	nodes        uint64    // number of nodes evaluated
-	quiesceNodes uint64    // number of nodes evaluated in quiscence searche
+	position *Position // current position
+	moves    []Move    // moves stack
+	nodes    uint64    // number of nodes evaluated
 
 	pieces        [ColorMaxValue][FigureMaxValue]int
 	pieceScore    [2]int
-	positionScore int
+	positionScore [2]int
 	maxPly        int
 }
 
@@ -60,7 +59,8 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 
 	eng.pieceScore[MidGame] += delta * weight * FigureBonus[fig][MidGame]
 	eng.pieceScore[EndGame] += delta * weight * FigureBonus[fig][EndGame]
-	eng.positionScore += delta * weight * PieceSquareTable[fig][mask^sq]
+	eng.positionScore[MidGame] += delta * weight * PieceSquareTable[fig][mask^sq][MidGame]
+	eng.positionScore[EndGame] += delta * weight * PieceSquareTable[fig][mask^sq][EndGame]
 }
 
 // adjust updates score after making a move.
@@ -122,13 +122,13 @@ func (eng *Engine) countMaterial() {
 // See Tapered Eval:
 // https://chessprogramming.wikispaces.com/Tapered+Eval
 func (eng *Engine) phase() (int, int) {
-	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*2
+	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*4
 	currPhase := totalPhase
 	currPhase -= eng.pieces[NoColor][Pawn] * 0
 	currPhase -= eng.pieces[NoColor][Knight] * 1
 	currPhase -= eng.pieces[NoColor][Bishop] * 1
 	currPhase -= eng.pieces[NoColor][Rook] * 2
-	currPhase -= eng.pieces[NoColor][Queen] * 2
+	currPhase -= eng.pieces[NoColor][Queen] * 4
 	currPhase = (currPhase*256 + totalPhase/2) / totalPhase
 	return currPhase, 256
 }
@@ -141,10 +141,10 @@ func (eng *Engine) Score() int {
 
 	// Piece score is something between MidGame and EndGame
 	// depending on the pieces on the table.
-	scoreMg := eng.pieceScore[MidGame] + eng.positionScore
-	scoreEg := eng.pieceScore[EndGame] + eng.positionScore
+	scoreMg := eng.pieceScore[MidGame] + eng.positionScore[MidGame]
+	scoreEg := eng.pieceScore[EndGame] + eng.positionScore[EndGame]
 	currPhase, totalPhase := eng.phase()
-	score := (scoreMg*currPhase + scoreEg*(totalPhase-currPhase)) / totalPhase
+	score := (scoreMg*(totalPhase-currPhase) + scoreEg*currPhase) / totalPhase
 
 	// Give bonus for connected bishops.
 	if eng.pieces[White][Bishop] >= 2 {
@@ -204,7 +204,6 @@ func (eng *Engine) popMove() Move {
 
 // quiesce searches a quite move.
 func (eng *Engine) quiesce(alpha, beta int, ply int) int {
-	eng.quiesceNodes++
 	color := eng.position.ToMove
 	score := ColorWeight[color] * eng.Score()
 	if score >= beta {
@@ -316,7 +315,6 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var score int
 
 	eng.nodes = 0
-	eng.quiesceNodes = 0
 
 	start := time.Now()
 	for depth := tc.NextDepth(); depth != 0; depth = tc.NextDepth() {
@@ -325,8 +323,6 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
 		if eng.AnalyseMode {
-			fmt.Printf("info string nodes %d quiesce %d\n",
-				eng.nodes, eng.quiesceNodes)
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
 				depth, score, eng.nodes, elapsed/time.Millisecond,
 				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
