@@ -35,6 +35,7 @@ type Position struct {
 	ToMove    Color
 	Castle    Castle
 	Enpassant Square
+	Zobrist   uint64
 
 	// A mask where pieces are not allowed to moved.
 	// Used mainly to generate only captures.
@@ -49,6 +50,7 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
+	pos.Zobrist ^= ZobriestPiece[pi][sq]
 	bb := sq.Bitboard()
 	pos.ByColor[pi.Color()] |= bb
 	pos.ByFigure[pi.Figure()] |= bb
@@ -57,6 +59,7 @@ func (pos *Position) Put(sq Square, pi Piece) {
 // Remove removes a piece from the table.
 // Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
+	pos.Zobrist ^= ZobriestPiece[pi][sq]
 	bb := ^sq.Bitboard()
 	pos.ByColor[pi.Color()] &= bb
 	pos.ByFigure[pi.Figure()] &= bb
@@ -174,6 +177,10 @@ func (pos *Position) ParseMove(s string) Move {
 // DoMovePiece performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
+	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobriestCastle[pos.Castle]
+
 	pi := move.Target
 	if move.MoveType == Promotion {
 		pi = ColorFigure(pos.ToMove, Pawn)
@@ -234,12 +241,20 @@ func (pos *Position) DoMove(move Move) {
 		pos.Put(move.To, move.Target)
 	}
 	pos.ToMove = pos.ToMove.Other()
+
+	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobriestCastle[pos.Castle]
 }
 
 // UndoMovePiece takes back a move.
 // Expects the move to be valid.
 // pi must be the piece moved, i.e. the pawn in case of promotions.
 func (pos *Position) UndoMove(move Move) {
+	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobriestCastle[pos.Castle]
+
 	pos.ToMove = pos.ToMove.Other()
 	pi := move.Target
 	if move.MoveType == Promotion {
@@ -271,6 +286,10 @@ func (pos *Position) UndoMove(move Move) {
 
 	pos.Castle = move.OldCastle
 	pos.Enpassant = move.OldEnpassant
+
+	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobriestCastle[pos.Castle]
 }
 
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move) []Move {

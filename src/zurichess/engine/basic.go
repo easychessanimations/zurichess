@@ -238,8 +238,10 @@ const (
 	BlackOO
 	BlackOOO
 
-	NoCastle  Castle = 0
-	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
+	NoCastle       = Castle(0)
+	AnyCastle      = WhiteOO | WhiteOOO | BlackOO | BlackOOO
+	CastleMinValue = Castle(0)
+	CastleMaxValue = AnyCastle + 1
 )
 
 var castleSymbol = map[Castle]byte{

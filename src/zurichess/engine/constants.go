@@ -72,7 +72,8 @@ const (
 
 // Piece constants must stay in sync with ColorFigure
 const (
-	NoPiece Piece = iota
+	NoPiece       = Piece(0)
+	PieceMaxValue = Piece(FigureMaxValue << 2)
 )
 
 const (

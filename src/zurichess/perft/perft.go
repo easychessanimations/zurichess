@@ -44,6 +44,16 @@ func (co counters) Equals(ot counters) bool {
 		co.castles == ot.castles
 }
 
+type hashEntry struct {
+	zobriest uint64
+	counters counters
+	depth    int
+}
+
+const (
+	hashSize = 1 << 24
+)
+
 var (
 	startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	kiwipete = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
@@ -84,11 +94,18 @@ var (
 			{178633661, 14519036, 294874, 0},
 		},
 	}
+
+	hashTable = make([]hashEntry, hashSize)
 )
 
 func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 	if depth == 0 {
 		return counters{1, 0, 0, 0}
+	}
+
+	index := pos.Zobrist % hashSize
+	if hashTable[index].depth == depth && hashTable[index].zobriest == pos.Zobrist {
+		return hashTable[index].counters
 	}
 
 	r := counters{}
@@ -123,6 +140,12 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 			r.Add(perft(pos, depth-1, moves))
 			pos.UndoMove(move)
 		}
+	}
+
+	hashTable[index] = hashEntry{
+		zobriest: pos.Zobrist,
+		counters: r,
+		depth:    depth,
 	}
 
 	return r
