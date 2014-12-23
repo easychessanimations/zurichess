@@ -22,10 +22,20 @@ func LogN(n uint64) uint {
 	return debrujin64[n*debrujinMul>>debrujinShift]
 }
 
+const (
+	k1 = uint64(0x5555555555555555)
+	k2 = uint64(0x3333333333333333)
+	k4 = uint64(0x0f0f0f0f0f0f0f0f)
+	kf = uint64(0x0101010101010101)
+)
+
 // Popcnt counts number of bits set in n.
-func Popcnt(n uint64) (c int) {
-	for ; n > 0; c++ {
-		n &= n - 1
-	}
-	return c
+// Code take from: https://chessprogramming.wikispaces.com/Population+Count
+// Don't pretend to understand it.
+func Popcnt(x uint64) int {
+	x = x - ((x >> 1) & k1)
+	x = (x & k2) + ((x >> 2) & k2)
+	x = (x + (x >> 4)) & k4
+	x = (x * kf) >> 56
+	return int(x)
 }
