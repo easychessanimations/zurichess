@@ -3,7 +3,6 @@ package engine
 import (
 	"math"
 	"math/rand"
-	// "log"
 )
 
 var (
@@ -96,14 +95,6 @@ func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
 	return bb
 }
 
-// randMagic returns a random magic number
-func randMagic() uint64 {
-	r := uint64(rand.Int63())
-	r &= uint64(rand.Int63())
-	r &= uint64(rand.Int63())
-	return (r << 6) + 1
-}
-
 func spell(magic uint64, shift uint, bb Bitboard) uint {
 	hi := uint32(bb>>32) * uint32(magic)
 	lo := uint32(magic>>32) * uint32(bb)
@@ -127,6 +118,7 @@ type wizard struct {
 	MinShift      uint // Which shifts to search.
 	MaxShift      uint
 	MaxNumEntries uint // How much to search.
+	Rand          *rand.Rand
 
 	numMagicTests uint
 	magics        [64]uint64
@@ -155,6 +147,14 @@ func (wiz *wizard) tryMagicNumber(magic uint64, shift uint) bool {
 		wiz.store[index] = wiz.occupancy[i]
 	}
 	return true
+}
+
+// randMagic returns a random magic number
+func (wiz *wizard) randMagic() uint64 {
+	r := uint64(wiz.Rand.Int63())
+	r &= uint64(wiz.Rand.Int63())
+	r &= uint64(wiz.Rand.Int63())
+	return (r << 6) + 1
 }
 
 func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
@@ -199,7 +199,7 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 		// Pick a good magic and test whether it gives a perfect hash.
 		var magic uint64
 		for Popcnt(uint64(mask)*magic) < 6 {
-			magic = randMagic()
+			magic = wiz.randMagic()
 		}
 		if wiz.tryMagicNumber(magic, shift) {
 			wiz.magics[sq] = magic
@@ -227,11 +227,6 @@ func (wiz *wizard) SearchMagics(mi []magicInfo) {
 			}
 		}
 	}
-	/*
-	   log.Println("numMagicTests =", wiz.numMagicTests,
-	           "; numEntries =", numEntries,
-	           "; minShift =", minShift)
-	*/
 }
 
 func initRookMagic() {
@@ -240,6 +235,7 @@ func initRookMagic() {
 		MinShift:      10,
 		MaxShift:      13,
 		MaxNumEntries: 130000,
+		Rand:          rand.New(rand.NewSource(1)),
 	}
 	wiz.SearchMagics(RookMagic[:])
 }
@@ -250,6 +246,7 @@ func initBishopMagic() {
 		MinShift:      5,
 		MaxShift:      9,
 		MaxNumEntries: 6000,
+		Rand:          rand.New(rand.NewSource(1)),
 	}
 	wiz.SearchMagics(BishopMagic[:])
 }
