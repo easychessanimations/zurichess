@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"unsafe"
 )
 
 var _ = log.Println
@@ -15,24 +16,113 @@ var (
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
-type Engine struct {
-	AnalyseMode bool
-
-	position *Position // current position
-	moves    []Move    // moves stack
-	nodes    uint64    // number of nodes evaluated
-
-	pieces        [ColorMaxValue][FigureMaxValue]int
-	pieceScore    [2]int
-	positionScore [2]int
-	maxPly        int
+type EngineOptions struct {
+	HashSizeMB  uint64 // Hash size in mega bytes
+	AnalyseMode bool   // True to display info strings.
 }
 
-// NewEngine returns a new engine for pos.
-func NewEngine(pos *Position) *Engine {
+var DefaultEngineOptions = EngineOptions{
+	HashSizeMB:  32,
+	AnalyseMode: false,
+}
+
+// SetDefaults sets the default values for opt.
+// TODO: If this is getting large, consider using "reflect"
+func (opt *EngineOptions) SetDefaults() {
+	if opt.HashSizeMB == 0 {
+		opt.HashSizeMB = DefaultEngineOptions.HashSizeMB
+	}
+	if opt.AnalyseMode == false {
+		opt.AnalyseMode = DefaultEngineOptions.AnalyseMode
+	}
+}
+
+type hashKind uint8
+
+const (
+	NoKind hashKind = iota
+	Exact
+)
+
+type HashEntry struct {
+	Lock  uint64   // normally position's zobrist key
+	Kind  hashKind // type of hash
+	Depth int      // searched depth
+	Score int      // score
+	Move  Move     // best move found. TODO: remove me
+}
+
+// HashTable is a transposition table.
+// Engine uses such a table to cache moves so it doesn't recompute them again.
+type HashTable struct {
+	table     []HashEntry
+	mask      uint64 // mask is used to determine the index in the table.
+	hit, miss uint64
+}
+
+// NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
+func NewHashTable(hashSizeMB uint64) HashTable {
+	// Choose hashSize such that it is a power of two.
+	hashEntrySize := uint64(unsafe.Sizeof(HashEntry{}))
+	hashSize := (hashSizeMB << 20) / hashEntrySize
+	for hashSize&(hashSize-1) != 0 {
+		hashSize &= hashSize - 1
+	}
+
+	log.Printf("hashEntrySize %d * hashSize %d = %d MB <= HashSizeMB %d",
+		hashEntrySize, hashSize, hashEntrySize*hashSize>>20, hashSizeMB)
+
+	return HashTable{
+		table: make([]HashEntry, hashSize),
+		mask:  hashSize - 1,
+	}
+}
+
+// Put puts a new entry in the database.
+// Current strategy is to always replace.
+func (ht *HashTable) Put(entry HashEntry) {
+	key := entry.Lock & ht.mask
+	if ht.table[key].Kind == NoKind || entry.Depth <= ht.table[key].Depth+1 {
+		ht.table[key] = entry
+	}
+}
+
+// Get returns an entry from the database.
+// Lock of the returned entry matches lock.
+func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
+	key := lock & ht.mask
+	if ht.table[key].Kind != NoKind && ht.table[key].Lock == lock {
+		ht.hit++
+		return ht.table[key], true
+	} else {
+		ht.miss++
+		return HashEntry{}, false
+	}
+}
+
+type Engine struct {
+	Options  EngineOptions
+	Position *Position // current Position
+
+	moves []Move    // moves stack
+	nodes uint64    // number of nodes evaluated
+	hash  HashTable // transposition table
+
+	pieces        [ColorMaxValue][FigureMaxValue]int
+	pieceScore    [2]int // score for pieces for mid and end game.
+	positionScore [2]int // score for position for mid and end game.
+	maxPly        int    // max ply currently searching at.
+}
+
+// Init initializes the engine.
+func NewEngine(pos *Position, opt EngineOptions) *Engine {
+	opt.SetDefaults()
+
 	eng := &Engine{
-		position: pos,
-		moves:    make([]Move, 0, 128),
+		Options:  opt,
+		Position: pos,
+		moves:    make([]Move, 0, 1024),
+		hash:     NewHashTable(opt.HashSizeMB),
 	}
 	eng.countMaterial()
 	return eng
@@ -40,7 +130,7 @@ func NewEngine(pos *Position) *Engine {
 
 // ParseMove parses the move from a string.
 func (eng *Engine) ParseMove(move string) Move {
-	return eng.position.ParseMove(move)
+	return eng.Position.ParseMove(move)
 }
 
 // put adjusts score after puting piece on sq.
@@ -65,10 +155,10 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 
 // adjust updates score after making a move.
 // delta is -1 if the move is taken back, 1 otherwise.
-// position.ToMove must have not been updated already.
+// Position.ToMove must have not been updated already.
 // TODO: enpassant.
 func (eng *Engine) adjust(move Move, delta int) {
-	color := eng.position.ToMove
+	color := eng.Position.ToMove
 
 	if move.MoveType == Promotion {
 		eng.put(move.From, ColorFigure(color, Pawn), -delta)
@@ -93,12 +183,12 @@ func (eng *Engine) adjust(move Move, delta int) {
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
 	eng.adjust(move, 1)
-	eng.position.DoMove(move)
+	eng.Position.DoMove(move)
 }
 
 // UndoMove undoes a move. Must be the last move.
 func (eng *Engine) UndoMove(move Move) {
-	eng.position.UndoMove(move)
+	eng.Position.UndoMove(move)
 	eng.adjust(move, -1)
 }
 
@@ -108,7 +198,7 @@ func (eng *Engine) countMaterial() {
 	eng.pieceScore[EndGame] = 0
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			bb := eng.position.ByPiece(col, fig)
+			bb := eng.Position.ByPiece(col, fig)
 			for bb > 0 {
 				eng.put(bb.Pop(), ColorFigure(col, fig), 1)
 			}
@@ -133,7 +223,7 @@ func (eng *Engine) phase() (int, int) {
 	return currPhase, 256
 }
 
-// Evaluate current position from white's POV.
+// Evaluate current Position from white's POV.
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int {
@@ -168,7 +258,7 @@ func (eng *Engine) Score() int {
 }
 
 // EndPosition determines whether this is and end game
-// position based on the number of pieces.
+// Position based on the number of pieces.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) EndPosition() (int, bool) {
 	if eng.pieces[White][King] == 0 {
@@ -204,7 +294,7 @@ func (eng *Engine) popMove() Move {
 
 // quiesce searches a quite move.
 func (eng *Engine) quiesce(alpha, beta int, ply int) int {
-	color := eng.position.ToMove
+	color := eng.Position.ToMove
 	score := ColorWeight[color] * eng.Score()
 	if score >= beta {
 		return beta
@@ -217,7 +307,7 @@ func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 	}
 
 	start := len(eng.moves)
-	moveGen := NewMoveGenerator(eng.position, true)
+	moveGen := NewMoveGenerator(eng.Position, true)
 	for piece := WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {
 			piece, eng.moves = moveGen.Next(eng.moves)
@@ -231,7 +321,7 @@ func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 		}
 
 		eng.DoMove(move)
-		if !eng.position.IsChecked(color) {
+		if !eng.Position.IsChecked(color) {
 			score := -eng.quiesce(-beta, -alpha, ply+1)
 			if score >= beta {
 				eng.UndoMove(move)
@@ -250,8 +340,17 @@ func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 
 // negamax implements negamax framework with fail-soft.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
+// alpha, beta represent lower and upper bounds.
+// ply is the move number (increasing).
 func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
-	color := eng.position.ToMove
+	// Check the transposition table.
+	if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
+		if eng.maxPly-ply <= entry.Depth {
+			return entry.Move, entry.Score
+		}
+	}
+
+	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
 		return Move{}, ColorWeight[color] * score
 	}
@@ -259,10 +358,10 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 		return Move{}, eng.quiesce(alpha, beta, 0)
 	}
 
+	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
-	start := len(eng.moves)
-	moveGen := NewMoveGenerator(eng.position, false)
-	for piece := WhitePawn; piece != NoPiece; {
+	moveGen := NewMoveGenerator(eng.Position, false)
+	for start, piece := len(eng.moves), WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {
 			piece, eng.moves = moveGen.Next(eng.moves)
 			continue
@@ -270,8 +369,8 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 
 		move := eng.popMove()
 		eng.DoMove(move)
-		if !eng.position.IsChecked(color) {
-			_, score := eng.negamax(-beta, -alpha, ply+1)
+		if !eng.Position.IsChecked(color) {
+			_, score := eng.negamax(-beta, -localAlpha, ply+1)
 			score = -score
 			if score > KnownWinScore {
 				score--
@@ -283,8 +382,8 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 			}
 			if score > bestScore {
 				bestMove, bestScore = move, score
-				if score > alpha {
-					alpha = score
+				if score > localAlpha {
+					localAlpha = score
 				}
 			}
 		}
@@ -292,11 +391,22 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 	}
 
 	if bestMove.MoveType == NoMove {
-		if eng.position.IsChecked(color) {
+		if eng.Position.IsChecked(color) {
 			bestMove, bestScore = Move{}, -MateScore
 		} else {
 			bestMove, bestScore = Move{}, 0
 		}
+	}
+
+	if alpha <= bestScore && bestScore < beta {
+		// Update the transposition table with the new entry.
+		eng.hash.Put(HashEntry{
+			Lock:  eng.Position.Zobrist,
+			Kind:  Exact,
+			Depth: eng.maxPly - ply,
+			Score: bestScore,
+			Move:  bestMove,
+		})
 	}
 
 	return bestMove, bestScore
@@ -304,7 +414,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 
 func (eng *Engine) alphaBeta() (Move, int) {
 	move, score := eng.negamax(-InfinityScore, +InfinityScore, 0)
-	score *= ColorWeight[eng.position.ToMove]
+	score *= ColorWeight[eng.Position.ToMove]
 	return move, score
 }
 
@@ -322,7 +432,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		move, score = eng.alphaBeta()
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
-		if eng.AnalyseMode {
+		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
 				depth, score, eng.nodes, elapsed/time.Millisecond,
 				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
@@ -330,9 +440,14 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
+	if eng.Options.AnalyseMode {
+		log.Printf("hash: hit = %d, miss = %d, ratio %.2f%%",
+			eng.hash.hit, eng.hash.miss, float32(eng.hash.hit)/float32(eng.hash.hit+eng.hash.miss)*100)
+	}
+
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
-		if eng.position.IsChecked(eng.position.ToMove) {
+		if eng.Position.IsChecked(eng.Position.ToMove) {
 			return Move{}, ErrorCheckMate
 		} else {
 			return Move{}, ErrorStaleMate

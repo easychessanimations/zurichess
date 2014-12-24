@@ -16,7 +16,7 @@ var (
 
 func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos)
+	eng := NewEngine(pos, EngineOptions{})
 	for i := 0; i < 1; i++ {
 		tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
 		tc.Start()
@@ -29,13 +29,13 @@ func TestGame(t *testing.T) {
 func TestScore(t *testing.T) {
 	for _, game := range games {
 		pos, _ := PositionFromFEN(FENStartPos)
-		dynamic := NewEngine(pos)
+		dynamic := NewEngine(pos, EngineOptions{})
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.ParseMove(move)
 			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			dynamic.DoMove(m)
-			static := NewEngine(pos)
+			static := NewEngine(pos, EngineOptions{})
 			if dynamic.Score() != static.Score() {
 				t.Logf("expected static score %v, got dynamic score %v",
 					static.Score(), dynamic.Score())
@@ -53,16 +53,16 @@ func TestScore(t *testing.T) {
 func TestZobrist(t *testing.T) {
 	for _, game := range games {
 		pos, _ := PositionFromFEN(FENStartPos)
-		dynamic := NewEngine(pos)
+		dynamic := NewEngine(pos, EngineOptions{})
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.ParseMove(move)
 			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			dynamic.DoMove(m)
-			static := NewEngine(pos)
-			if dynamic.position.Zobrist != static.position.Zobrist {
+			static := NewEngine(pos, EngineOptions{})
+			if dynamic.Position.Zobrist != static.Position.Zobrist {
 				t.Logf("expected static zobrist hash %v, got dynamic zobrist hash %v",
-					static.position.Zobrist, dynamic.position.Zobrist)
+					static.Position.Zobrist, dynamic.Position.Zobrist)
 				t.FailNow()
 			}
 		}
@@ -84,7 +84,7 @@ func TestMateIn1(t *testing.T) {
 
 	for _, g := range game {
 		pos, _ := PositionFromFEN(g.fen)
-		eng := NewEngine(pos)
+		eng := NewEngine(pos, EngineOptions{})
 
 		for d := 3; d < 5; d++ {
 			tc := &FixedDepthTimeControl{MinDepth: d, MaxDepth: d}
@@ -118,7 +118,7 @@ func BenchmarkStallingFENs(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, fen := range fens {
 			pos, _ := PositionFromFEN(fen)
-			eng := NewEngine(pos)
+			eng := NewEngine(pos, EngineOptions{})
 			tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 5}
 			tc.Start()
 			eng.Play(tc)
@@ -129,7 +129,7 @@ func BenchmarkStallingFENs(b *testing.B) {
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)
-		eng := NewEngine(pos)
+		eng := NewEngine(pos, EngineOptions{})
 		for i := 0; i < 20; i++ {
 			tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 4}
 			tc.Start()
@@ -141,7 +141,7 @@ func BenchmarkGame(b *testing.B) {
 
 func BenchmarkScore(b *testing.B) {
 	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos)
+	eng := NewEngine(pos, EngineOptions{})
 
 	for i := 0; i < b.N; i++ {
 		for _, g := range games {

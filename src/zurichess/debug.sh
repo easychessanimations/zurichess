@@ -21,4 +21,4 @@ cutechess-cli \
         -pgnout $pgnout \
         -engine cmd=`pwd`/$1 name=$1 whitepov \
         -engine cmd=`pwd`/$2 name=$2 whitepov \
-        -each tc=40/60 proto=uci
+        -each tc=40/60 proto=uci initstr="setoption name UCI_AnalyseMode value true"

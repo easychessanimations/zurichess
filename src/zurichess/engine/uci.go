@@ -13,9 +13,8 @@ var (
 )
 
 type UCI struct {
-	UCI_AnalyseMode bool
-
-	Engine *Engine
+	Options EngineOptions
+	Engine  *Engine
 }
 
 func (uci *UCI) Execute(line string) error {
@@ -52,12 +51,11 @@ func (uci *UCI) Execute(line string) error {
 }
 
 func (uci *UCI) uci(args []string) error {
-	uci.UCI_AnalyseMode = true
-
 	fmt.Println("id name zurichess")
 	fmt.Println("id author Alexandru Mosoi")
 	fmt.Println()
-	fmt.Println("option name UCI_AnalyseMode type check default true")
+	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", DefaultEngineOptions.AnalyseMode)
+	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", DefaultEngineOptions.HashSizeMB)
 	fmt.Println("uciok")
 	return nil
 }
@@ -94,8 +92,7 @@ func (uci *UCI) position(args []string) error {
 		return err
 	}
 
-	uci.Engine = NewEngine(pos)
-	uci.Engine.AnalyseMode = uci.UCI_AnalyseMode
+	uci.Engine = NewEngine(pos, uci.Options)
 
 	if i < len(args) {
 		if args[i] != "moves" {
@@ -142,7 +139,7 @@ func (uci *UCI) go_(args []string) {
 	}
 
 	var tc TimeControl
-	if uci.Engine.position.ToMove == White {
+	if uci.Engine.Position.ToMove == White {
 		tc = &white
 	} else {
 		tc = &black
@@ -163,11 +160,18 @@ func (uci *UCI) setoption(args []string) error {
 
 	switch args[1] {
 	case "UCI_AnalyseMode":
-		mode, err := strconv.ParseBool(args[3])
+		analyseMode, err := strconv.ParseBool(args[3])
 		if err != nil {
 			return err
 		}
-		uci.UCI_AnalyseMode = mode
+		uci.Options.AnalyseMode = analyseMode
+	case "Hash":
+		hashSizeMB, err := strconv.ParseUint(args[3], 10, 64)
+		if err != nil {
+			return err
+		}
+		uci.Options.HashSizeMB = hashSizeMB
+
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
