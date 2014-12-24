@@ -345,6 +345,11 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 // alpha, beta represent lower and upper bounds.
 // ply is the move number (increasing).
 func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
+	color := eng.Position.ToMove
+	if score, done := eng.EndPosition(); done {
+		return Move{}, int16(ColorWeight[color]) * score
+	}
+
 	// Check the transposition table.
 	if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
 		if eng.maxPly-ply <= entry.Depth {
@@ -352,10 +357,6 @@ func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 		}
 	}
 
-	color := eng.Position.ToMove
-	if score, done := eng.EndPosition(); done {
-		return Move{}, int16(ColorWeight[color]) * score
-	}
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
 		if alpha <= score && score < beta {
