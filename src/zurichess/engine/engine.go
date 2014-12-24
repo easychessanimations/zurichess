@@ -16,27 +16,6 @@ var (
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
-type EngineOptions struct {
-	HashSizeMB  uint64 // Hash size in mega bytes
-	AnalyseMode bool   // True to display info strings.
-}
-
-var DefaultEngineOptions = EngineOptions{
-	HashSizeMB:  32,
-	AnalyseMode: false,
-}
-
-// SetDefaults sets the default values for opt.
-// TODO: If this is getting large, consider using "reflect"
-func (opt *EngineOptions) SetDefaults() {
-	if opt.HashSizeMB == 0 {
-		opt.HashSizeMB = DefaultEngineOptions.HashSizeMB
-	}
-	if opt.AnalyseMode == false {
-		opt.AnalyseMode = DefaultEngineOptions.AnalyseMode
-	}
-}
-
 type hashKind uint8
 
 const (
@@ -105,6 +84,27 @@ func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
 	} else {
 		ht.miss++
 		return HashEntry{}, false
+	}
+}
+
+type EngineOptions struct {
+	HashSizeMB  uint64 // Hash size in mega bytes
+	AnalyseMode bool   // True to display info strings.
+}
+
+var DefaultEngineOptions = EngineOptions{
+	HashSizeMB:  32,
+	AnalyseMode: false,
+}
+
+// SetDefaults sets the default values for opt.
+// TODO: If this is getting large, consider using "reflect"
+func (opt *EngineOptions) SetDefaults() {
+	if opt.HashSizeMB == 0 {
+		opt.HashSizeMB = DefaultEngineOptions.HashSizeMB
+	}
+	if opt.AnalyseMode == false {
+		opt.AnalyseMode = DefaultEngineOptions.AnalyseMode
 	}
 }
 
@@ -406,7 +406,7 @@ EndCacheCheck:
 
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
-		// eng.updateHash(alpha, beta, eng.maxPly-ply, Move{}, score)
+		eng.updateHash(alpha, beta, eng.maxPly-ply, Move{}, score)
 		return Move{}, score
 	}
 
@@ -421,6 +421,7 @@ EndCacheCheck:
 
 		move := eng.popMove()
 		eng.DoMove(move)
+
 		if eng.Position.IsChecked(color) {
 			eng.UndoMove(move)
 			continue
@@ -433,12 +434,13 @@ EndCacheCheck:
 			// slightly to the search takes the shortest path.
 			score--
 		}
+
 		if score >= beta {
 			// Failed high, minimizing nodes already can choose
 			// a better move.
-			eng.updateHash(alpha, beta, eng.maxPly-ply, move, beta)
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
+			eng.updateHash(alpha, beta, eng.maxPly-ply, move, beta)
 			return Move{}, beta
 		}
 		if score > bestScore {
@@ -478,8 +480,8 @@ func (eng *Engine) alphaBeta() (Move, int16) {
 // getPrincipalVariation returns the moves.
 func (eng *Engine) getPrincipalVariation() []Move {
 	moves := make([]Move, 0)
-	for {
-		if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
+	for len(moves) < 8 {
+		if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok && entry.Move.MoveType != NoMove {
 			moves = append(moves, entry.Move)
 			eng.DoMove(entry.Move)
 		} else {
