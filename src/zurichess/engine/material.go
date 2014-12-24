@@ -8,13 +8,17 @@ const (
 )
 
 var (
-	KnownWinScore = 20000
-	MateScore     = 30000
-	InfinityScore = 32000
+	// Scores returned directly are int16.
+	KnownWinScore int16 = 20000
+	MateScore     int16 = 30000
+	InfinityScore int16 = 32000
 
-	BishopPairBonus = 40
-	KnightPawnBonus = 6
-	RookPawnPenalty = 12
+	// Bonuses and penalties enter score calculation and are ints
+	// to prevent accidental overflows during computation of the final
+	// score.
+	BishopPairBonus int = 40
+	KnightPawnBonus int = 6
+	RookPawnPenalty int = 12
 
 	// Figure middle and end game bonuses.
 	FigureBonus = [FigureMaxValue][2]int{

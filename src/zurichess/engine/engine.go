@@ -47,9 +47,9 @@ const (
 type HashEntry struct {
 	Lock  uint64   // normally position's zobrist key
 	Move  Move     // best move found. TODO: remove me
+	Score int16    // score
+	Depth int16    // searched depth
 	Kind  hashKind // type of hash
-	Depth int      // searched depth
-	Score int      // score
 }
 
 // HashTable is a transposition table.
@@ -113,7 +113,7 @@ type Engine struct {
 	pieces        [ColorMaxValue][FigureMaxValue]int
 	pieceScore    [2]int // score for pieces for mid and end game.
 	positionScore [2]int // score for position for mid and end game.
-	maxPly        int    // max ply currently searching at.
+	maxPly        int16  // max ply currently searching at.
 }
 
 // Init initializes the engine.
@@ -228,7 +228,7 @@ func (eng *Engine) phase() (int, int) {
 // Evaluate current Position from white's POV.
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
-func (eng *Engine) Score() int {
+func (eng *Engine) Score() int16 {
 	eng.nodes++
 
 	// Piece score is something between MidGame and EndGame
@@ -256,13 +256,13 @@ func (eng *Engine) Score() int {
 		}
 	}
 
-	return score
+	return int16(score)
 }
 
 // EndPosition determines whether this is and end game
 // Position based on the number of pieces.
 // Returns score and a bool if the game has ended.
-func (eng *Engine) EndPosition() (int, bool) {
+func (eng *Engine) EndPosition() (int16, bool) {
 	if eng.pieces[White][King] == 0 {
 		return -MateScore, true
 	}
@@ -295,9 +295,9 @@ func (eng *Engine) popMove() Move {
 }
 
 // quiesce searches a quite move.
-func (eng *Engine) quiesce(alpha, beta int, ply int) int {
+func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
-	score := ColorWeight[color] * eng.Score()
+	score := int16(ColorWeight[color]) * eng.Score()
 	if score >= beta {
 		return beta
 	}
@@ -344,7 +344,7 @@ func (eng *Engine) quiesce(alpha, beta int, ply int) int {
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 // alpha, beta represent lower and upper bounds.
 // ply is the move number (increasing).
-func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
+func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 	// Check the transposition table.
 	if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
 		if eng.maxPly-ply <= entry.Depth {
@@ -354,7 +354,7 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 
 	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
-		return Move{}, ColorWeight[color] * score
+		return Move{}, int16(ColorWeight[color]) * score
 	}
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
@@ -425,9 +425,9 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 	return bestMove, bestScore
 }
 
-func (eng *Engine) alphaBeta() (Move, int) {
+func (eng *Engine) alphaBeta() (Move, int16) {
 	move, score := eng.negamax(-InfinityScore, +InfinityScore, 0)
-	score *= ColorWeight[eng.Position.ToMove]
+	score *= int16(ColorWeight[eng.Position.ToMove])
 	return move, score
 }
 
@@ -435,21 +435,20 @@ func (eng *Engine) alphaBeta() (Move, int) {
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var move Move
-	var score int
+	var score int16
 
 	eng.nodes = 0
 
 	start := time.Now()
-	for depth := tc.NextDepth(); depth != 0; depth = tc.NextDepth() {
-		eng.maxPly = depth
+	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
+		eng.maxPly = int16(maxPly)
 		move, score = eng.alphaBeta()
 		elapsed := time.Now().Sub(start)
 		_, _ = score, elapsed
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
-				depth, score, eng.nodes, elapsed/time.Millisecond,
-				eng.nodes*uint64(time.Second)/uint64(elapsed+1),
-				move)
+				maxPly, score, eng.nodes, elapsed/time.Millisecond,
+				eng.nodes*uint64(time.Second)/uint64(elapsed+1), move)
 		}
 	}
 

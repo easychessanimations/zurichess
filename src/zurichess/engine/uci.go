@@ -214,7 +214,7 @@ func (uci *UCI) setvalue(args []string) error {
 	case "BishopPairBonus":
 		BishopPairBonus = value
 	case "KnightPawnBonus":
-		KnownWinScore = value
+		KnightPawnBonus = value
 	case "RookPawnPenalty":
 		RookPawnPenalty = value
 	default:
