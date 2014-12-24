@@ -15,17 +15,13 @@ var (
 	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
 )
 
-func initCastleRights() {
+func InitCastleRights() {
 	lostCastleRights[SquareA1] = WhiteOOO
 	lostCastleRights[SquareE1] = WhiteOOO | WhiteOO
 	lostCastleRights[SquareH1] = WhiteOO
 	lostCastleRights[SquareA8] = BlackOOO
 	lostCastleRights[SquareE8] = BlackOOO | BlackOO
 	lostCastleRights[SquareH8] = BlackOO
-}
-
-func init() {
-	initCastleRights()
 }
 
 // Position encodes the chess board.

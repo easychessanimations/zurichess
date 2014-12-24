@@ -18,8 +18,7 @@ var (
 	bishopDeltas = [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}}
 )
 
-func init() {
-	rand.Seed(5)
+func InitAttack() {
 	initBbPawnAttack()
 	initBbKnightAttack()
 	initBbKingAttack()

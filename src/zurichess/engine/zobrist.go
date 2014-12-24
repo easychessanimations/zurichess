@@ -51,7 +51,7 @@ func initZobriestColor() {
 	}
 }
 
-func init() {
+func InitZobriest() {
 	initZobriestPiece()
 	initZobriestEnpassant()
 	initZobriestCastle()

@@ -17,14 +17,17 @@ var (
 	buildTime    = "(just now)"
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	version    = flag.Bool("version", false, "only print version and exit")
 )
 
-func init() {
+func main() {
 	fmt.Printf("zurichess %v, build with %v at %v, running on %v\n",
 		buildVersion, runtime.Version(), buildTime, runtime.GOARCH)
 
 	flag.Parse()
-
+	if *version {
+		return
+	}
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -37,12 +40,13 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
-}
 
-func main() {
+	engine.InitAttack()
+	engine.InitCastleRights()
+	engine.InitZobriest()
+
 	bio := bufio.NewReader(os.Stdin)
 	uci := &engine.UCI{}
-
 	for {
 		line, _, err := bio.ReadLine()
 		if err != nil {
