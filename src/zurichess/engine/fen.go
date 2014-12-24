@@ -88,7 +88,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 
 	// Parse Enpassant.
 	// TODO: handle error
-	if fld[3] != "-" {
+	if fld[3][:1] != "-" {
 		pos.Enpassant = SquareFromString(fld[3])
 	}
 
