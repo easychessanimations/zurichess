@@ -41,6 +41,7 @@ type HashEntry struct {
 // Engine uses such a table to cache moves so it doesn't recompute them again.
 type HashTable struct {
 	table     []HashEntry
+	root      HashEntry
 	mask      uint64 // mask is used to determine the index in the table.
 	hit, miss uint64
 }
@@ -300,7 +301,7 @@ func (eng *Engine) popMove() Move {
 	return move
 }
 
-func (eng *Engine) updateHash(alpha, beta, depth int16, move Move, score int16) {
+func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	// return
 	kind := Exact
 	if score <= alpha {
@@ -309,13 +310,18 @@ func (eng *Engine) updateHash(alpha, beta, depth int16, move Move, score int16) 
 		kind = FailedHigh
 	}
 
-	eng.hash.Put(HashEntry{
+	entry := HashEntry{
 		Lock:  eng.Position.Zobrist,
 		Score: score,
-		Depth: depth,
+		Depth: eng.maxPly - ply,
 		Move:  move,
 		Kind:  kind,
-	})
+	}
+
+	eng.hash.Put(entry)
+	if ply == 0 {
+		eng.hash.root = entry
+	}
 }
 
 // quiesce searches a quite move.
@@ -406,7 +412,7 @@ EndCacheCheck:
 
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
-		eng.updateHash(alpha, beta, eng.maxPly-ply, Move{}, score)
+		eng.updateHash(alpha, beta, ply, Move{}, score)
 		return Move{}, score
 	}
 
@@ -440,7 +446,7 @@ EndCacheCheck:
 			// a better move.
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
-			eng.updateHash(alpha, beta, eng.maxPly-ply, move, beta)
+			eng.updateHash(alpha, beta, ply, move, beta)
 			return Move{}, beta
 		}
 		if score > bestScore {
@@ -467,7 +473,7 @@ EndCacheCheck:
 		}
 	}
 
-	eng.updateHash(alpha, beta, eng.maxPly-ply, bestMove, bestScore)
+	eng.updateHash(alpha, beta, ply, bestMove, bestScore)
 	return bestMove, bestScore
 }
 
@@ -479,15 +485,18 @@ func (eng *Engine) alphaBeta() (Move, int16) {
 
 // getPrincipalVariation returns the moves.
 func (eng *Engine) getPrincipalVariation() []Move {
+	seen := make(map[uint64]bool)
 	moves := make([]Move, 0)
-	for len(moves) < 8 {
-		if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok && entry.Move.MoveType != NoMove {
-			moves = append(moves, entry.Move)
-			eng.DoMove(entry.Move)
-		} else {
-			break
-		}
+
+	next := eng.hash.root
+	for !seen[next.Lock] && next.Kind != NoKind && next.Move.MoveType != NoMove {
+		seen[next.Lock] = true
+		moves = append(moves, next.Move)
+		eng.DoMove(next.Move)
+		next, _ = eng.hash.Get(eng.Position.Zobrist)
 	}
+
+	// Undo all moves, so we get back to the initial state.
 	for i := len(moves) - 1; i >= 0; i-- {
 		eng.UndoMove(moves[i])
 	}
