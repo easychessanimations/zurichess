@@ -39,10 +39,30 @@ func TestScore(t *testing.T) {
 			if dynamic.Score() != static.Score() {
 				t.Logf("expected static score %v, got dynamic score %v",
 					static.Score(), dynamic.Score())
-				t.Logf(" static pieces %v; pieceScore %d; positionScore %d",
+				t.Logf(" static pieces %v; pieceScore %v; positionScore %v",
 					static.pieces, static.pieceScore, static.positionScore)
-				t.Logf("dynamic pieces %v; pieceScore %d; positionScore %d",
+				t.Logf("dynamic pieces %v; pieceScore %v; positionScore %v",
 					dynamic.pieces, dynamic.pieceScore, dynamic.positionScore)
+				t.FailNow()
+			}
+		}
+	}
+}
+
+// Test zobrist is the same if we start with the position or move.
+func TestZobrist(t *testing.T) {
+	for _, game := range games {
+		pos, _ := PositionFromFEN(FENStartPos)
+		dynamic := NewEngine(pos)
+		moves := strings.Fields(game)
+		for _, move := range moves {
+			m := pos.ParseMove(move)
+			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
+			dynamic.DoMove(m)
+			static := NewEngine(pos)
+			if dynamic.position.Zobrist != static.position.Zobrist {
+				t.Logf("expected static zobrist hash %v, got dynamic zobrist hash %v",
+					static.position.Zobrist, dynamic.position.Zobrist)
 				t.FailNow()
 			}
 		}
