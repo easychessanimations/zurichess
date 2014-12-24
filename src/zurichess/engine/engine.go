@@ -42,13 +42,19 @@ type hashKind uint8
 const (
 	NoKind hashKind = iota
 	Exact
+	FailedLow
+	FailedHigh
 )
 
+func (k hashKind) String() string {
+	return []string{"NoKind", "Exact", "FailedLow", "FailedHigh"}[k]
+}
+
 type HashEntry struct {
-	Lock  uint64   // normally position's zobrist key
-	Move  Move     // best move found. TODO: remove me
-	Score int16    // score
+	Lock  uint64 // normally position's zobrist key
+	Score int16
 	Depth int16    // searched depth
+	Move  Move     // best move found. TODO: remove me
 	Kind  hashKind // type of hash
 }
 
@@ -294,6 +300,24 @@ func (eng *Engine) popMove() Move {
 	return move
 }
 
+func (eng *Engine) updateHash(alpha, beta, depth int16, move Move, score int16) {
+	// return
+	kind := Exact
+	if score <= alpha {
+		kind = FailedLow
+	} else if score >= beta {
+		kind = FailedHigh
+	}
+
+	eng.hash.Put(HashEntry{
+		Lock:  eng.Position.Zobrist,
+		Score: score,
+		Depth: depth,
+		Move:  move,
+		Kind:  kind,
+	})
+}
+
 // quiesce searches a quite move.
 func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
@@ -301,11 +325,11 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	if score >= beta {
 		return beta
 	}
-	if ply == eng.maxPly {
-		return score
-	}
 	if score > alpha {
 		alpha = score
+	}
+	if ply == eng.maxPly {
+		return score
 	}
 
 	start := len(eng.moves)
@@ -344,6 +368,10 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 // alpha, beta represent lower and upper bounds.
 // ply is the move number (increasing).
+// Returns best move and a score.
+// If score <= alpha then it failed low
+// else if score >= beta then if failed high
+// else score is exact.
 func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
@@ -352,23 +380,33 @@ func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 
 	// Check the transposition table.
 	if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
-		if eng.maxPly-ply <= entry.Depth {
+		if eng.maxPly-ply > entry.Depth {
+			// Wrong depth, so search cannot be pruned.
+			// TODO: killer move.
+			goto EndCacheCheck
+		}
+		if entry.Kind == Exact {
+			// Simply return if the score is exact.
 			return entry.Move, entry.Score
 		}
+		if entry.Kind == FailedLow && entry.Score <= alpha {
+			// Previously the move failed low so the actual score
+			// is at most entry.Score. If that's lower than alpha
+			// this will also fail low.
+			// return entry.Move, entry.Score
+		}
+		if entry.Kind == FailedHigh && entry.Score >= beta {
+			// Previously the move failed high so the actual score
+			// is at least entry.Score. If that's higher than beta
+			// this will also fail high.
+			return entry.Move, beta
+		}
 	}
+EndCacheCheck:
 
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
-		if alpha <= score && score < beta {
-			// Updates the database with score at depth 0.
-			eng.hash.Put(HashEntry{
-				Lock:  eng.Position.Zobrist,
-				Kind:  Exact,
-				Depth: 0,
-				Score: score,
-				Move:  Move{},
-			})
-		}
+		// eng.updateHash(alpha, beta, eng.maxPly-ply, Move{}, score)
 		return Move{}, score
 	}
 
@@ -383,46 +421,51 @@ func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 
 		move := eng.popMove()
 		eng.DoMove(move)
-		if !eng.Position.IsChecked(color) {
-			_, score := eng.negamax(-beta, -localAlpha, ply+1)
-			score = -score
-			if score > KnownWinScore {
-				score--
-			}
-			if score >= beta {
-				eng.UndoMove(move)
-				eng.moves = eng.moves[:start]
-				return Move{}, beta
-			}
-			if score > bestScore {
-				bestMove, bestScore = move, score
-				if score > localAlpha {
-					localAlpha = score
-				}
+		if eng.Position.IsChecked(color) {
+			eng.UndoMove(move)
+			continue
+		}
+
+		_, score := eng.negamax(-beta, -localAlpha, ply+1)
+		score = -score
+		if score > KnownWinScore {
+			// If the position is a win the score is decreased
+			// slightly to the search takes the shortest path.
+			score--
+		}
+		if score >= beta {
+			// Failed high, minimizing nodes already can choose
+			// a better move.
+			eng.updateHash(alpha, beta, eng.maxPly-ply, move, beta)
+			eng.UndoMove(move)
+			eng.moves = eng.moves[:start]
+			return Move{}, beta
+		}
+		if score > bestScore {
+			bestMove, bestScore = move, score
+			if score > localAlpha {
+				localAlpha = score
 			}
 		}
 		eng.UndoMove(move)
 	}
 
+	if bestScore >= beta {
+		// Sanity check. We shouldn't have got here if
+		// search failed high.
+		panic(fmt.Sprintf("fail-high not expected: α=%d, β=%d, bestScore=%d",
+			alpha, beta, bestScore))
+	}
+
 	if bestMove.MoveType == NoMove {
 		if eng.Position.IsChecked(color) {
-			bestMove, bestScore = Move{}, -MateScore
+			return Move{}, -MateScore
 		} else {
-			bestMove, bestScore = Move{}, 0
+			return Move{}, 0
 		}
 	}
 
-	if alpha <= bestScore && bestScore < beta {
-		// Update the transposition table with the new entry.
-		eng.hash.Put(HashEntry{
-			Lock:  eng.Position.Zobrist,
-			Kind:  Exact,
-			Depth: eng.maxPly - ply,
-			Score: bestScore,
-			Move:  bestMove,
-		})
-	}
-
+	eng.updateHash(alpha, beta, eng.maxPly-ply, bestMove, bestScore)
 	return bestMove, bestScore
 }
 
