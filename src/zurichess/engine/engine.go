@@ -475,6 +475,23 @@ func (eng *Engine) alphaBeta() (Move, int16) {
 	return move, score
 }
 
+// getPrincipalVariation returns the moves.
+func (eng *Engine) getPrincipalVariation() []Move {
+	moves := make([]Move, 0)
+	for {
+		if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
+			moves = append(moves, entry.Move)
+			eng.DoMove(entry.Move)
+		} else {
+			break
+		}
+	}
+	for i := len(moves) - 1; i >= 0; i-- {
+		eng.UndoMove(moves[i])
+	}
+	return moves
+}
+
 // Play find the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
@@ -482,17 +499,24 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	var score int16
 
 	eng.nodes = 0
-
 	start := time.Now()
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		move, score = eng.alphaBeta()
 		elapsed := time.Now().Sub(start)
-		_, _ = score, elapsed
+
 		if eng.Options.AnalyseMode {
-			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d pv %v\n",
+			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
 				maxPly, score, eng.nodes, elapsed/time.Millisecond,
-				eng.nodes*uint64(time.Second)/uint64(elapsed+1), move)
+				eng.nodes*uint64(time.Second)/uint64(elapsed+1))
+
+			moves := eng.getPrincipalVariation()
+			fmt.Printf("pv")
+			for _, move := range moves {
+				fmt.Printf(" %v", move)
+			}
+			fmt.Printf("\n")
+
 		}
 	}
 
