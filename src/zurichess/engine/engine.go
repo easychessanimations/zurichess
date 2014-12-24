@@ -55,9 +55,6 @@ func NewHashTable(hashSizeMB uint64) HashTable {
 		hashSize &= hashSize - 1
 	}
 
-	log.Printf("hashEntrySize %d * hashSize %d = %d MB <= HashSizeMB %d",
-		hashEntrySize, hashSize, hashEntrySize*hashSize>>20, hashSizeMB)
-
 	return HashTable{
 		table: make([]HashEntry, hashSize),
 		mask:  hashSize - 1,
@@ -126,7 +123,6 @@ type Engine struct {
 // Init initializes the engine.
 func NewEngine(pos *Position, opt EngineOptions) *Engine {
 	opt.SetDefaults()
-
 	eng := &Engine{
 		Options:  opt,
 		Position: pos,
@@ -381,10 +377,10 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 // If score <= alpha then the search failed low
 // else if score >= beta then the search failed high
 // else score is exact.
-func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
+func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
-		return Move{}, int16(ColorWeight[color]) * score
+		return int16(ColorWeight[color]) * score
 	}
 
 	// Check the transposition table.
@@ -396,19 +392,19 @@ func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 		}
 		if entry.Kind == Exact {
 			// Simply return if the score is exact.
-			return entry.Move, entry.Score
+			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= alpha {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
-			return entry.Move, entry.Score
+			return entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
-			return entry.Move, beta
+			return beta
 		}
 	}
 EndCacheCheck:
@@ -416,7 +412,7 @@ EndCacheCheck:
 	if ply == eng.maxPly {
 		score := eng.quiesce(alpha, beta, 0)
 		eng.updateHash(alpha, beta, ply, Move{}, score)
-		return Move{}, score
+		return score
 	}
 
 	// Fail soft, i.e. the score returned can be lower than alpha.
@@ -438,8 +434,7 @@ EndCacheCheck:
 			continue
 		}
 
-		_, score := eng.negamax(-beta, -localAlpha, ply+1)
-		score = -score
+		score := -eng.negamax(-beta, -localAlpha, ply+1)
 		if score > KnownWinScore {
 			// If the position is a win the score is decreased
 			// slightly to the search takes the shortest path.
@@ -453,7 +448,7 @@ EndCacheCheck:
 			eng.moves = eng.moves[:start]
 			// Hash must be updated after the move is undone.
 			eng.updateHash(alpha, beta, ply, move, beta)
-			return Move{}, beta
+			return beta
 		}
 		if score > bestScore {
 			bestMove, bestScore = move, score
@@ -473,20 +468,20 @@ EndCacheCheck:
 
 	if bestMove.MoveType == NoMove {
 		if eng.Position.IsChecked(color) {
-			return Move{}, -MateScore
+			return -MateScore
 		} else {
-			return Move{}, 0
+			return 0
 		}
 	}
 
 	eng.updateHash(alpha, beta, ply, bestMove, bestScore)
-	return bestMove, bestScore
+	return bestScore
 }
 
-func (eng *Engine) alphaBeta() (Move, int16) {
-	move, score := eng.negamax(-InfinityScore, +InfinityScore, 0)
+func (eng *Engine) alphaBeta() int16 {
+	score := eng.negamax(-InfinityScore, +InfinityScore, 0)
 	score *= int16(ColorWeight[eng.Position.ToMove])
-	return move, score
+	return score
 }
 
 // getPrincipalVariation returns the moves.
@@ -512,14 +507,11 @@ func (eng *Engine) getPrincipalVariation() []Move {
 // Play find the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
-	var move Move
-	var score int16
-
 	eng.nodes = 0
 	start := time.Now()
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
-		move, score = eng.alphaBeta()
+		score := eng.alphaBeta()
 		elapsed := time.Now().Sub(start)
 
 		if eng.Options.AnalyseMode {
@@ -538,10 +530,12 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	}
 
 	if eng.Options.AnalyseMode {
-		log.Printf("hash: hit = %d, miss = %d, ratio %.2f%%",
-			eng.hash.hit, eng.hash.miss, float32(eng.hash.hit)/float32(eng.hash.hit+eng.hash.miss)*100)
+		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
+			len(eng.hash.table), eng.hash.hit, eng.hash.miss,
+			float32(eng.hash.hit)/float32(eng.hash.hit+eng.hash.miss)*100)
 	}
 
+	move := eng.hash.root.Move
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
