@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"runtime/pprof"
 
 	"zurichess/engine"
 )
@@ -14,16 +15,28 @@ import (
 var (
 	buildVersion = "(devel)"
 	buildTime    = "(just now)"
+
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 )
 
 func init() {
 	fmt.Printf("zurichess %v, build with %v at %v, running on %v\n",
 		buildVersion, runtime.Version(), buildTime, runtime.GOARCH)
 
+	flag.Parse()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	log.SetOutput(os.Stdout)
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
-	flag.Parse()
 }
 
 func main() {
