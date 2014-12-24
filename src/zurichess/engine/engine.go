@@ -328,14 +328,14 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	score := int16(ColorWeight[color]) * eng.Score()
+	if ply == eng.maxPly {
+		return score
+	}
 	if score >= beta {
 		return beta
 	}
 	if score > alpha {
 		alpha = score
-	}
-	if ply == eng.maxPly {
-		return score
 	}
 
 	start := len(eng.moves)
@@ -353,16 +353,19 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 		}
 
 		eng.DoMove(move)
-		if !eng.Position.IsChecked(color) {
-			score := -eng.quiesce(-beta, -alpha, ply+1)
-			if score >= beta {
-				eng.UndoMove(move)
-				eng.moves = eng.moves[:start]
-				return beta
-			}
-			if score > alpha {
-				alpha = score
-			}
+		if eng.Position.IsChecked(color) {
+			eng.UndoMove(move)
+			continue
+		}
+
+		score := -eng.quiesce(-beta, -alpha, ply+1)
+		if score >= beta {
+			eng.UndoMove(move)
+			eng.moves = eng.moves[:start]
+			return beta
+		}
+		if score > alpha {
+			alpha = score
 		}
 		eng.UndoMove(move)
 	}
@@ -375,8 +378,8 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 // alpha, beta represent lower and upper bounds.
 // ply is the move number (increasing).
 // Returns best move and a score.
-// If score <= alpha then it failed low
-// else if score >= beta then if failed high
+// If score <= alpha then the search failed low
+// else if score >= beta then the search failed high
 // else score is exact.
 func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 	color := eng.Position.ToMove
@@ -399,7 +402,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) (Move, int16) {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
-			// return entry.Move, entry.Score
+			return entry.Move, entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
@@ -416,6 +419,8 @@ EndCacheCheck:
 		return Move{}, score
 	}
 
+	// Fail soft, i.e. the score returned can be lower than alpha.
+	// https://chessprogramming.wikispaces.com/Fail-Soft
 	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
 	moveGen := NewMoveGenerator(eng.Position, false)
@@ -442,10 +447,11 @@ EndCacheCheck:
 		}
 
 		if score >= beta {
-			// Failed high, minimizing nodes already can choose
-			// a better move.
+			// Failing high because the minimizing nodes already
+			// have a better alternative.
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
+			// Hash must be updated after the move is undone.
 			eng.updateHash(alpha, beta, ply, move, beta)
 			return Move{}, beta
 		}
