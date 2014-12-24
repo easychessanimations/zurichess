@@ -46,10 +46,10 @@ const (
 
 type HashEntry struct {
 	Lock  uint64   // normally position's zobrist key
+	Move  Move     // best move found. TODO: remove me
 	Kind  hashKind // type of hash
 	Depth int      // searched depth
 	Score int      // score
-	Move  Move     // best move found. TODO: remove me
 }
 
 // HashTable is a transposition table.
@@ -82,7 +82,9 @@ func NewHashTable(hashSizeMB uint64) HashTable {
 // Current strategy is to always replace.
 func (ht *HashTable) Put(entry HashEntry) {
 	key := entry.Lock & ht.mask
-	if ht.table[key].Kind == NoKind || entry.Depth <= ht.table[key].Depth+1 {
+	if ht.table[key].Kind == NoKind ||
+		ht.table[key].Lock == entry.Lock ||
+		entry.Depth <= ht.table[key].Depth+1 {
 		ht.table[key] = entry
 	}
 }
@@ -355,7 +357,18 @@ func (eng *Engine) negamax(alpha, beta int, ply int) (Move, int) {
 		return Move{}, ColorWeight[color] * score
 	}
 	if ply == eng.maxPly {
-		return Move{}, eng.quiesce(alpha, beta, 0)
+		score := eng.quiesce(alpha, beta, 0)
+		if alpha <= score && score < beta {
+			// Updates the database with score at depth 0.
+			eng.hash.Put(HashEntry{
+				Lock:  eng.Position.Zobrist,
+				Kind:  Exact,
+				Depth: 0,
+				Score: score,
+				Move:  Move{},
+			})
+		}
+		return Move{}, score
 	}
 
 	localAlpha := alpha
