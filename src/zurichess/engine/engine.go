@@ -124,13 +124,21 @@ type Engine struct {
 func NewEngine(pos *Position, opt EngineOptions) *Engine {
 	opt.SetDefaults()
 	eng := &Engine{
-		Options:  opt,
-		Position: pos,
-		moves:    make([]Move, 0, 1024),
-		hash:     NewHashTable(opt.HashSizeMB),
+		Options: opt,
+		moves:   make([]Move, 0, 1024),
+		hash:    NewHashTable(opt.HashSizeMB),
+	}
+	eng.SetPosition(pos)
+	return eng
+}
+
+func (eng *Engine) SetPosition(pos *Position) {
+	if pos != nil {
+		eng.Position = pos
+	} else {
+		eng.Position, _ = PositionFromFEN(FENStartPos)
 	}
 	eng.countMaterial()
-	return eng
 }
 
 // ParseMove parses the move from a string.
@@ -200,7 +208,15 @@ func (eng *Engine) UndoMove(move Move) {
 // countMaterial counts pieces and updates the eng.pieceMgScore
 func (eng *Engine) countMaterial() {
 	eng.pieceScore[MidGame] = 0
+	eng.positionScore[MidGame] = 0
 	eng.pieceScore[EndGame] = 0
+	eng.positionScore[EndGame] = 0
+	for col := NoColor; col < ColorMaxValue; col++ {
+		for fig := NoFigure; fig < FigureMaxValue; fig++ {
+			eng.pieces[col][fig] = 0
+		}
+	}
+
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
 			bb := eng.Position.ByPiece(col, fig)
@@ -392,18 +408,21 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 		}
 		if entry.Kind == Exact {
 			// Simply return if the score is exact.
+			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
 			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= alpha {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
+			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
 			return entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
+			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
 			return beta
 		}
 	}
@@ -507,6 +526,10 @@ func (eng *Engine) getPrincipalVariation() []Move {
 // Play find the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
+	if len(eng.moves) != 0 {
+		panic("not nil moves")
+	}
+
 	eng.nodes = 0
 	start := time.Now()
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {

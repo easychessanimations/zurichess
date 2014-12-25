@@ -30,12 +30,15 @@ func TestScore(t *testing.T) {
 	for _, game := range games {
 		pos, _ := PositionFromFEN(FENStartPos)
 		dynamic := NewEngine(pos, EngineOptions{})
+		static := NewEngine(pos, EngineOptions{})
+
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.ParseMove(move)
-			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			dynamic.DoMove(m)
-			static := NewEngine(pos, EngineOptions{})
+			static.SetPosition(pos)
+
+			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			if dynamic.Score() != static.Score() {
 				t.Logf("expected static score %v, got dynamic score %v",
 					static.Score(), dynamic.Score())
@@ -54,12 +57,15 @@ func TestZobrist(t *testing.T) {
 	for _, game := range games {
 		pos, _ := PositionFromFEN(FENStartPos)
 		dynamic := NewEngine(pos, EngineOptions{})
+		static := NewEngine(nil, EngineOptions{})
+
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.ParseMove(move)
-			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			dynamic.DoMove(m)
-			static := NewEngine(pos, EngineOptions{})
+			static.SetPosition(pos)
+
+			t.Log("move", m, "piece", m.Target, "capture", m.Capture)
 			if dynamic.Position.Zobrist != static.Position.Zobrist {
 				t.Logf("expected static zobrist hash %v, got dynamic zobrist hash %v",
 					static.Position.Zobrist, dynamic.Position.Zobrist)

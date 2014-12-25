@@ -66,9 +66,10 @@ func (uci *UCI) isready(args []string) error {
 }
 
 func (uci *UCI) ucinewgame(args []string) error {
-	uci.Engine = nil
+	uci.Engine = NewEngine(nil, uci.Options)
 	return nil
 }
+
 func (uci *UCI) position(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("expected argument for 'position'")
@@ -92,7 +93,7 @@ func (uci *UCI) position(args []string) error {
 		return err
 	}
 
-	uci.Engine = NewEngine(pos, uci.Options)
+	uci.Engine.SetPosition(pos)
 
 	if i < len(args) {
 		if args[i] != "moves" {

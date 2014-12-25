@@ -11,7 +11,7 @@ echo "Will write game in $pgnout"
 
 cutechess-cli \
         -debug \
-        -srand $RANDOM \
+        -srand 1 \
         -repeat \
         -recover \
         -games 1 \
