@@ -6,7 +6,7 @@ import (
 
 const (
 	defaultMovesToGo    = 30 // default number of more moves expected to play
-	defaultbranchFactor = 10 // default branching factor
+	defaultbranchFactor = 8  // default branching factor
 )
 
 type TimeControl interface {
@@ -59,6 +59,16 @@ func (tc *OnClockTimeControl) Start() {
 	movesToGo := time.Duration(defaultMovesToGo)
 	if tc.MovesToGo != 0 {
 		movesToGo = time.Duration(tc.MovesToGo)
+	}
+
+	// Increase the branchFactor a bit to be on the
+	// safe side when there are only a few moves left.
+	branchFactor := time.Duration(defaultbranchFactor)
+	if movesToGo < 8 {
+		branchFactor++
+	}
+	if movesToGo < 4 {
+		branchFactor++
 	}
 
 	// Compute how much time to think according to the formula below.
