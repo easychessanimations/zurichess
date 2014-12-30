@@ -338,9 +338,6 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	score := int16(ColorWeight[color]) * eng.Score()
-	if ply == eng.maxPly {
-		return score
-	}
 	if score >= beta {
 		return beta
 	}
