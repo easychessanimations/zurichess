@@ -268,11 +268,9 @@ func (eng *Engine) Score() int16 {
 	// Give bonuses based on number of pawns.
 	for col := ColorMinValue; col < ColorMaxValue; col++ {
 		numPawns := eng.pieces[col][Pawn]
-		if numPawns > 5 {
-			adjust := KnightPawnBonus * eng.pieces[col][Knight]
-			adjust -= RookPawnPenalty * eng.pieces[col][Rook]
-			score += adjust * ColorWeight[col] * (numPawns - 5)
-		}
+		adjust := KnightPawnBonus * eng.pieces[col][Knight]
+		adjust -= RookPawnPenalty * eng.pieces[col][Rook]
+		score += adjust * ColorWeight[col] * (numPawns - 5)
 	}
 
 	return int16(score)
