@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-	"unsafe"
 )
 
 var _ = log.Println
@@ -16,94 +15,8 @@ var (
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
-type hashKind uint8
-
-const (
-	NoKind hashKind = iota
-	Exact
-	FailedLow
-	FailedHigh
-)
-
-func (k hashKind) String() string {
-	return []string{"NoKind", "Exact", "FailedLow", "FailedHigh"}[k]
-}
-
-type HashEntry struct {
-	Lock  uint64 // normally position's zobrist key
-	Score int16
-	Depth int16    // searched depth
-	Move  Move     // best move found. TODO: remove me
-	Kind  hashKind // type of hash
-}
-
-// HashTable is a transposition table.
-// Engine uses such a table to cache moves so it doesn't recompute them again.
-type HashTable struct {
-	table     []HashEntry
-	root      HashEntry
-	mask      uint64 // mask is used to determine the index in the table.
-	hit, miss uint64
-}
-
-// NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
-func NewHashTable(hashSizeMB uint64) HashTable {
-	// Choose hashSize such that it is a power of two.
-	hashEntrySize := uint64(unsafe.Sizeof(HashEntry{}))
-	hashSize := (hashSizeMB << 20) / hashEntrySize
-	for hashSize&(hashSize-1) != 0 {
-		hashSize &= hashSize - 1
-	}
-
-	return HashTable{
-		table: make([]HashEntry, hashSize),
-		mask:  hashSize - 1,
-	}
-}
-
-// Put puts a new entry in the database.
-// Current strategy is to always replace.
-func (ht *HashTable) Put(entry HashEntry) {
-	key := entry.Lock & ht.mask
-	if ht.table[key].Kind == NoKind ||
-		ht.table[key].Lock == entry.Lock ||
-		entry.Depth <= ht.table[key].Depth+1 {
-		ht.table[key] = entry
-	}
-}
-
-// Get returns an entry from the database.
-// Lock of the returned entry matches lock.
-func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
-	key := lock & ht.mask
-	if ht.table[key].Kind != NoKind && ht.table[key].Lock == lock {
-		ht.hit++
-		return ht.table[key], true
-	} else {
-		ht.miss++
-		return HashEntry{}, false
-	}
-}
-
 type EngineOptions struct {
-	HashSizeMB  uint64 // Hash size in mega bytes
-	AnalyseMode bool   // True to display info strings.
-}
-
-var DefaultEngineOptions = EngineOptions{
-	HashSizeMB:  32,
-	AnalyseMode: false,
-}
-
-// SetDefaults sets the default values for opt.
-// TODO: If this is getting large, consider using "reflect"
-func (opt *EngineOptions) SetDefaults() {
-	if opt.HashSizeMB == 0 {
-		opt.HashSizeMB = DefaultEngineOptions.HashSizeMB
-	}
-	if opt.AnalyseMode == false {
-		opt.AnalyseMode = DefaultEngineOptions.AnalyseMode
-	}
+	AnalyseMode bool // True to display info strings.
 }
 
 type Engine struct {
@@ -112,7 +25,7 @@ type Engine struct {
 
 	moves []Move    // moves stack
 	nodes uint64    // number of nodes evaluated
-	hash  HashTable // transposition table
+	root  HashEntry // transposition table
 
 	pieces        [ColorMaxValue][FigureMaxValue]int
 	pieceScore    [2]int // score for pieces for mid and end game.
@@ -122,11 +35,9 @@ type Engine struct {
 
 // Init initializes the engine.
 func NewEngine(pos *Position, opt EngineOptions) *Engine {
-	opt.SetDefaults()
 	eng := &Engine{
 		Options: opt,
 		moves:   make([]Move, 0, 1024),
-		hash:    NewHashTable(opt.HashSizeMB),
 	}
 	eng.SetPosition(pos)
 	return eng
@@ -328,9 +239,9 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 		Kind:  kind,
 	}
 
-	eng.hash.Put(entry)
+	GlobalHashTable.Put(entry)
 	if ply == 0 {
-		eng.hash.root = entry
+		eng.root = entry
 	}
 }
 
@@ -395,7 +306,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	}
 
 	// Check the transposition table.
-	if entry, ok := eng.hash.Get(eng.Position.Zobrist); ok {
+	if entry, ok := GlobalHashTable.Get(eng.Position.Zobrist); ok {
 		if eng.maxPly-ply > entry.Depth {
 			// Wrong depth, so search cannot be pruned.
 			// TODO: killer move.
@@ -503,12 +414,12 @@ func (eng *Engine) getPrincipalVariation() []Move {
 	seen := make(map[uint64]bool)
 	moves := make([]Move, 0)
 
-	next := eng.hash.root
+	next := eng.root
 	for !seen[next.Lock] && next.Kind != NoKind && next.Move.MoveType != NoMove {
 		seen[next.Lock] = true
 		moves = append(moves, next.Move)
 		eng.DoMove(next.Move)
-		next, _ = eng.hash.Get(eng.Position.Zobrist)
+		next, _ = GlobalHashTable.Get(eng.Position.Zobrist)
 	}
 
 	// Undo all moves, so we get back to the initial state.
@@ -548,12 +459,13 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	}
 
 	if eng.Options.AnalyseMode {
+		hit, miss := GlobalHashTable.Hit, GlobalHashTable.Miss
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-			len(eng.hash.table), eng.hash.hit, eng.hash.miss,
-			float32(eng.hash.hit)/float32(eng.hash.hit+eng.hash.miss)*100)
+			GlobalHashTable.SizeMB(), hit, miss,
+			float32(hit)/float32(hit+miss)*100)
 	}
 
-	move := eng.hash.root.Move
+	move := eng.root.Move
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {

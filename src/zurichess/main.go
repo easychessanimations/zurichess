@@ -46,7 +46,7 @@ func main() {
 	engine.InitZobriest()
 
 	bio := bufio.NewReader(os.Stdin)
-	uci := &engine.UCI{}
+	uci := engine.NewUCI()
 	for {
 		line, _, err := bio.ReadLine()
 		if err != nil {

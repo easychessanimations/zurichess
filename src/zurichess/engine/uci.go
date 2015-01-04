@@ -13,8 +13,13 @@ var (
 )
 
 type UCI struct {
-	Options EngineOptions
-	Engine  *Engine
+	Engine *Engine
+}
+
+func NewUCI() *UCI {
+	return &UCI{
+		Engine: NewEngine(nil, EngineOptions{}),
+	}
 }
 
 func (uci *UCI) Execute(line string) error {
@@ -54,8 +59,8 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println("id name zurichess")
 	fmt.Println("id author Alexandru Mosoi")
 	fmt.Println()
-	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", DefaultEngineOptions.AnalyseMode)
-	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", DefaultEngineOptions.HashSizeMB)
+	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", uci.Engine.Options.AnalyseMode)
+	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", GlobalHashTable.SizeMB())
 	fmt.Println("uciok")
 	return nil
 }
@@ -66,7 +71,6 @@ func (uci *UCI) isready(args []string) error {
 }
 
 func (uci *UCI) ucinewgame(args []string) error {
-	uci.Engine = NewEngine(nil, uci.Options)
 	return nil
 }
 
@@ -165,13 +169,13 @@ func (uci *UCI) setoption(args []string) error {
 		if err != nil {
 			return err
 		}
-		uci.Options.AnalyseMode = analyseMode
+		uci.Engine.Options.AnalyseMode = analyseMode
 	case "Hash":
-		hashSizeMB, err := strconv.ParseUint(args[3], 10, 64)
+		hashSizeMB, err := strconv.ParseInt(args[3], 10, 64)
 		if err != nil {
 			return err
 		}
-		uci.Options.HashSizeMB = hashSizeMB
+		GlobalHashTable = NewHashTable(int(hashSizeMB))
 
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
