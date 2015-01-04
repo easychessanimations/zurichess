@@ -60,7 +60,7 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println("id author Alexandru Mosoi")
 	fmt.Println()
 	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", uci.Engine.Options.AnalyseMode)
-	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", GlobalHashTable.SizeMB())
+	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", DefaultHashTableSizeMB)
 	fmt.Println("uciok")
 	return nil
 }

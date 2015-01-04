@@ -49,9 +49,9 @@ func NewHashTable(hashSizeMB int) *HashTable {
 	}
 }
 
-// SizeMB returns the size of the table in MB.
-func (ht *HashTable) SizeMB() int {
-	return len(ht.table) >> 20
+// Size returns the number of entries in the table.
+func (ht *HashTable) Size() int {
+	return len(ht.table)
 }
 
 // Put puts a new entry in the database.
@@ -78,14 +78,11 @@ func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
 	}
 }
 
-const (
-	defaultHashTableSizeMB = 32
-)
-
 var (
-	GlobalHashTable *HashTable
+	DefaultHashTableSizeMB = 32
+	GlobalHashTable        *HashTable
 )
 
 func init() {
-	GlobalHashTable = NewHashTable(defaultHashTableSizeMB)
+	GlobalHashTable = NewHashTable(DefaultHashTableSizeMB)
 }
