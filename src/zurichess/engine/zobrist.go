@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	ZobriestPiece     [PieceMaxValue][SquareMaxValue]uint64
-	ZobriestEnpassant [SquareMaxValue]uint64
-	ZobriestCastle    [CastleMaxValue]uint64
-	ZobriestColor     [ColorMaxValue]uint64
+	ZobriestPiece     [PieceArraySize][SquareArraySize]uint64
+	ZobriestEnpassant [SquareArraySize]uint64
+	ZobriestCastle    [CastleArraySize]uint64
+	ZobriestColor     [ColorArraySize]uint64
 )
 
 func rand64(r *rand.Rand) uint64 {
@@ -18,9 +18,9 @@ func rand64(r *rand.Rand) uint64 {
 
 func initZobriestPiece() {
 	r := rand.New(rand.NewSource(1))
-	for col := ColorMinValue; col < ColorMaxValue; col++ {
-		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
-			for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+	for col := ColorMinValue; col <= ColorMaxValue; col++ {
+		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
+			for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
 				ZobriestPiece[ColorFigure(col, fig)][sq] = rand64(r)
 			}
 		}
@@ -46,7 +46,7 @@ func initZobriestCastle() {
 
 func initZobriestColor() {
 	r := rand.New(rand.NewSource(4))
-	for col := ColorMinValue; col < ColorMaxValue; col++ {
+	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		ZobriestColor[col] = rand64(r)
 	}
 }

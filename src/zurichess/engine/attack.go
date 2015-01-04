@@ -67,7 +67,7 @@ func initBbKingAttack() {
 }
 
 func initBbSuperAttack() {
-	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+	for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
 		BbSuperAttack[sq] = slidingAttack(sq, rookDeltas, BbEmpty) | slidingAttack(sq, bishopDeltas, BbEmpty)
 	}
 }
@@ -218,7 +218,7 @@ func (wiz *wizard) SearchMagics(mi []magicInfo) {
 	minShift := uint(math.MaxUint32)
 	for numEntries > wiz.MaxNumEntries {
 		numEntries = 0
-		for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+		for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
 			wiz.searchMagic(sq, &mi[sq])
 			numEntries += 1 << wiz.shifts[sq]
 			if minShift > wiz.shifts[sq] {

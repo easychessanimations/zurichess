@@ -26,8 +26,8 @@ func InitCastleRights() {
 
 // Position encodes the chess board.
 type Position struct {
-	ByFigure  [FigureMaxValue]Bitboard
-	ByColor   [ColorMaxValue]Bitboard
+	ByFigure  [FigureArraySize]Bitboard
+	ByColor   [ColorArraySize]Bitboard
 	ToMove    Color
 	Castle    Castle
 	Enpassant Square
@@ -74,9 +74,9 @@ func (pos *Position) GetColor(sq Square) Color {
 
 // GetFigure returns the piece's type at sq.
 func (pos *Position) GetFigure(sq Square) Figure {
-	for pt := FigureMinValue; pt < FigureMaxValue; pt++ {
-		if pos.ByFigure[pt]&sq.Bitboard() != 0 {
-			return pt
+	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
+		if pos.ByFigure[fig]&sq.Bitboard() != 0 {
+			return fig
 		}
 	}
 	return NoFigure

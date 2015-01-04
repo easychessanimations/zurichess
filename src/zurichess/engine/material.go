@@ -21,7 +21,7 @@ var (
 	RookPawnPenalty int = 12
 
 	// Figure middle and end game bonuses.
-	FigureBonus = [FigureMaxValue][2]int{
+	FigureBonus = [FigureArraySize][2]int{
 		{0, 0},         // NoFigure
 		{100, 100},     // Pawn
 		{345, 345},     // Knight
@@ -37,7 +37,7 @@ var (
 	// evaluation. The original values were copied from:
 	// https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 	// The tables are indexed from SquareA1 to SquareH8.
-	PieceSquareTable = [FigureMaxValue][64][2]int{
+	PieceSquareTable = [FigureArraySize][64][2]int{
 		{ // NoFigure
 		},
 		{ // Pawn

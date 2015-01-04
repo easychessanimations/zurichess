@@ -11,7 +11,7 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 		return
 	}
 
-	for sq := SquareMinValue; sq < SquareMaxValue; sq++ {
+	for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
 		epi := expected.Get(sq)
 		api := actual.Get(sq)
 		if epi != api {

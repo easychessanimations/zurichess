@@ -67,7 +67,7 @@ func checkPiece(t *testing.T, pi Piece, co Color, pt Figure) {
 func TestPiece(t *testing.T) {
 	checkPiece(t, NoPiece, NoColor, NoFigure)
 	for co := ColorMinValue; co < ColorMaxValue; co++ {
-		for pt := FigureMinValue; pt < FigureMaxValue; pt++ {
+		for pt := FigureMinValue; pt <= FigureMaxValue; pt++ {
 			checkPiece(t, ColorFigure(co, pt), co, pt)
 		}
 	}

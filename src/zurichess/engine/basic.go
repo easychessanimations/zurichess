@@ -1,3 +1,6 @@
+//go:generate stringer -type Figure
+//go:generate stringer -type Color
+//go:generate stringer -type Piece
 package engine
 
 // Square identifies the location on the board.
@@ -61,71 +64,39 @@ func (sq Square) String() string {
 type Figure uint
 
 const (
-	NoFigure Figure = iota
-	Pawn
+	NoFigure        = Figure(iota)
+	Pawn     Figure = iota
 	Knight
 	Bishop
 	Rook
 	Queen
 	King
 
-	FigureMaxValue
-	FigureMinValue = Pawn
+	FigureArraySize = int(iota)
+	FigureMinValue  = Pawn
+	FigureMaxValue  = King
 )
-
-func (pt Figure) String() string {
-	switch pt {
-	case NoFigure:
-		return "(nopiecetype)"
-	case Pawn:
-		return "Pawn"
-	case Knight:
-		return "Knight"
-	case Bishop:
-		return "Bishop"
-	case Rook:
-		return "Rook"
-	case Queen:
-		return "Queen"
-	case King:
-		return "King"
-	default:
-		return "(badpiecetype)"
-	}
-}
 
 // Color represents a color.
 type Color uint
 
 const (
-	NoColor Color = iota
-	White
+	NoColor       = Color(iota)
+	White   Color = iota
 	Black
 
-	ColorMaxValue
-	ColorMinValue = White
+	ColorArraySize = int(iota)
+	ColorMinValue  = White
+	ColorMaxValue  = Black
 )
 
 var (
-	ColorWeight = [ColorMaxValue]int{0, 1, -1}
-	ColorMask   = [ColorMaxValue]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
+	ColorWeight = [ColorArraySize]int{0, 1, -1}
+	ColorMask   = [ColorArraySize]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
 )
 
 func (co Color) Other() Color {
 	return White + Black - co
-}
-
-func (co Color) String() string {
-	switch co {
-	case NoColor:
-		return "(nocolor)"
-	case White:
-		return "White"
-	case Black:
-		return "Black"
-	default:
-		return "(badcolor)"
-	}
 }
 
 // Piece is a combination of piece type and color
@@ -155,13 +126,6 @@ func (pi Piece) Symbol() string {
 	co := pi.Color()
 	pt := pi.Figure()
 	return pieceSymbol[co][pt : pt+1]
-}
-
-func (pi Piece) String() string {
-	if pi == NoPiece {
-		return "(nopiece)"
-	}
-	return pi.Color().String() + " " + pi.Figure().String()
 }
 
 // An 8x8 bitboard.
@@ -238,10 +202,12 @@ const (
 	BlackOO
 	BlackOOO
 
-	NoCastle       = Castle(0)
-	AnyCastle      = WhiteOO | WhiteOOO | BlackOO | BlackOOO
-	CastleMinValue = Castle(0)
-	CastleMaxValue = AnyCastle + 1
+	NoCastle  Castle = 0
+	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
+
+	CastleArraySize = int(AnyCastle + 1)
+	CastleMinValue  = NoCastle
+	CastleMaxValue  = AnyCastle
 )
 
 var castleSymbol = map[Castle]byte{

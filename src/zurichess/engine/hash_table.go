@@ -1,3 +1,4 @@
+//go:generate stringer -type HashKind
 // hash_table.go implements a global transposition table.
 package engine
 
@@ -13,10 +14,6 @@ const (
 	FailedLow
 	FailedHigh
 )
-
-func (hk HashKind) String() string {
-	return []string{"NoKind", "Exact", "FailedLow", "FailedHigh"}[hk]
-}
 
 // HashEntry is a value in the transposition table.
 type HashEntry struct {

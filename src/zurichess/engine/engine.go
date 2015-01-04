@@ -27,7 +27,7 @@ type Engine struct {
 	nodes uint64    // number of nodes evaluated
 	root  HashEntry // transposition table
 
-	pieces        [ColorMaxValue][FigureMaxValue]int
+	pieces        [ColorArraySize][FigureArraySize]int
 	pieceScore    [2]int // score for pieces for mid and end game.
 	positionScore [2]int // score for position for mid and end game.
 	maxPly        int16  // max ply currently searching at.
@@ -122,14 +122,14 @@ func (eng *Engine) countMaterial() {
 	eng.positionScore[MidGame] = 0
 	eng.pieceScore[EndGame] = 0
 	eng.positionScore[EndGame] = 0
-	for col := NoColor; col < ColorMaxValue; col++ {
-		for fig := NoFigure; fig < FigureMaxValue; fig++ {
+	for col := NoColor; col <= ColorMaxValue; col++ {
+		for fig := NoFigure; fig <= FigureMaxValue; fig++ {
 			eng.pieces[col][fig] = 0
 		}
 	}
 
-	for col := ColorMinValue; col < ColorMaxValue; col++ {
-		for fig := FigureMinValue; fig < FigureMaxValue; fig++ {
+	for col := ColorMinValue; col <= ColorMaxValue; col++ {
+		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
 			bb := eng.Position.ByPiece(col, fig)
 			for bb > 0 {
 				eng.put(bb.Pop(), ColorFigure(col, fig), 1)
@@ -177,7 +177,7 @@ func (eng *Engine) Score() int16 {
 	}
 
 	// Give bonuses based on number of pawns.
-	for col := ColorMinValue; col < ColorMaxValue; col++ {
+	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		numPawns := eng.pieces[col][Pawn]
 		adjust := KnightPawnBonus * eng.pieces[col][Knight]
 		adjust -= RookPawnPenalty * eng.pieces[col][Rook]

@@ -66,14 +66,15 @@ const (
 	SquareG8
 	SquareH8
 
-	SquareMaxValue
-	SquareMinValue = SquareA1
+	SquareArraySize = int(iota)
+	SquareMinValue  = SquareA1
+	SquareMaxValue  = SquareH8
 )
 
 // Piece constants must stay in sync with ColorFigure
 const (
-	NoPiece       = Piece(0)
-	PieceMaxValue = Piece(FigureMaxValue << 2)
+	NoPiece        = Piece(0)
+	PieceArraySize = Piece(FigureArraySize << 2)
 )
 
 const (
