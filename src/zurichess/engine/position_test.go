@@ -11,10 +11,6 @@ var (
 	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w KQkq - 0 1"
 )
 
-func init() {
-	InitCastleRights()
-}
-
 // testEngine is an simple engine to simplify move testing.
 type testEngine struct {
 	T     *testing.T

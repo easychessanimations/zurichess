@@ -18,7 +18,7 @@ var (
 	bishopDeltas = [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}}
 )
 
-func InitAttack() {
+func init() {
 	initBbPawnAttack()
 	initBbKnightAttack()
 	initBbKingAttack()

@@ -4,10 +4,6 @@ import (
 	"testing"
 )
 
-func init() {
-	InitAttack()
-}
-
 func TestRookAttack(t *testing.T) {
 	data := []struct {
 		sq  Square

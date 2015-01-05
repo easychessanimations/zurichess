@@ -15,7 +15,7 @@ var (
 	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
 )
 
-func InitCastleRights() {
+func init() {
 	lostCastleRights[SquareA1] = WhiteOOO
 	lostCastleRights[SquareE1] = WhiteOOO | WhiteOO
 	lostCastleRights[SquareH1] = WhiteOO

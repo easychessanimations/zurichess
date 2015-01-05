@@ -41,10 +41,6 @@ func main() {
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
 
-	engine.InitAttack()
-	engine.InitCastleRights()
-	engine.InitZobriest()
-
 	bio := bufio.NewReader(os.Stdin)
 	uci := engine.NewUCI()
 	for {

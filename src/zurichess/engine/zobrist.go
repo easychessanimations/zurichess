@@ -47,7 +47,7 @@ func initZobriestColor(r *rand.Rand) {
 	}
 }
 
-func InitZobriest() {
+func init() {
 	r := rand.New(rand.NewSource(1))
 	initZobriestPiece(r)
 	initZobriestEnpassant(r)
