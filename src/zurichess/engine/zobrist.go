@@ -16,8 +16,7 @@ func rand64(r *rand.Rand) uint64 {
 	return uint64(r.Int63())<<32 ^ uint64(r.Int63())
 }
 
-func initZobriestPiece() {
-	r := rand.New(rand.NewSource(1))
+func initZobriestPiece(r *rand.Rand) {
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
 			for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
@@ -27,8 +26,7 @@ func initZobriestPiece() {
 	}
 }
 
-func initZobriestEnpassant() {
-	r := rand.New(rand.NewSource(2))
+func initZobriestEnpassant(r *rand.Rand) {
 	for sq := SquareA3; sq <= SquareH3; sq++ {
 		ZobriestEnpassant[sq] = rand64(r)
 	}
@@ -37,23 +35,22 @@ func initZobriestEnpassant() {
 	}
 }
 
-func initZobriestCastle() {
-	r := rand.New(rand.NewSource(3))
+func initZobriestCastle(r *rand.Rand) {
 	for i := CastleMinValue; i < CastleMaxValue; i++ {
 		ZobriestCastle[i] = rand64(r)
 	}
 }
 
-func initZobriestColor() {
-	r := rand.New(rand.NewSource(4))
+func initZobriestColor(r *rand.Rand) {
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		ZobriestColor[col] = rand64(r)
 	}
 }
 
 func InitZobriest() {
-	initZobriestPiece()
-	initZobriestEnpassant()
-	initZobriestCastle()
-	initZobriestColor()
+	r := rand.New(rand.NewSource(1))
+	initZobriestPiece(r)
+	initZobriestEnpassant(r)
+	initZobriestCastle(r)
+	initZobriestColor(r)
 }
