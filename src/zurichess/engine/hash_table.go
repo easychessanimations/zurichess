@@ -49,9 +49,15 @@ func NewHashTable(hashSizeMB int) *HashTable {
 	}
 }
 
+// ResetStats resets statistics.
+func (ht *HashTable) ResetStats() {
+	ht.Hit = 0
+	ht.Miss = 0
+}
+
 // Size returns the number of entries in the table.
 func (ht *HashTable) Size() int {
-	return len(ht.table)
+	return int(ht.mask + 1)
 }
 
 // Put puts a new entry in the database.

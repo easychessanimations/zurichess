@@ -149,10 +149,18 @@ func (uci *UCI) go_(args []string) {
 	} else {
 		tc = &black
 	}
-
 	tc.Start()
+
+	GlobalHashTable.ResetStats()
 	move, _ := uci.Engine.Play(tc)
 	fmt.Printf("bestmove %v\n", move)
+
+	if uci.Engine.Options.AnalyseMode {
+		hit, miss := GlobalHashTable.Hit, GlobalHashTable.Miss
+		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
+			GlobalHashTable.Size(), hit, miss,
+			float32(hit)/float32(hit+miss)*100)
+	}
 }
 
 func (uci *UCI) setoption(args []string) error {

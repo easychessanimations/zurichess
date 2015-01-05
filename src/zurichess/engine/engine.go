@@ -458,13 +458,6 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
-	if eng.Options.AnalyseMode {
-		hit, miss := GlobalHashTable.Hit, GlobalHashTable.Miss
-		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-			GlobalHashTable.Size(), hit, miss,
-			float32(hit)/float32(hit+miss)*100)
-	}
-
 	move := eng.root.Move
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
