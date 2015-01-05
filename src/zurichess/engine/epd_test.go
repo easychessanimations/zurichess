@@ -5,12 +5,13 @@ import (
 )
 
 func testFENHelper(t *testing.T, expected *Position, fen string) {
-	actual, err := PositionFromFEN(fen)
+	epd, err := ParseFEN(fen)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
+	actual := epd.Position
 	for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
 		epi := expected.Get(sq)
 		api := actual.Get(sq)
@@ -18,15 +19,17 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 			t.Errorf("expected %v at %v, got %v", epi, sq, api)
 		}
 	}
-
 	if expected.ToMove != actual.ToMove {
 		t.Errorf("expected to move %v, got %v",
 			expected.ToMove, actual.ToMove)
 	}
-
 	if expected.Castle != actual.Castle {
 		t.Errorf("expected Castle rights %v, got %v",
 			expected.Castle, actual.Castle)
+	}
+	if expected.Enpassant != actual.Enpassant {
+		t.Errorf("expected enpassant square %v, got %v",
+			expected.Enpassant, actual.Enpassant)
 	}
 }
 
