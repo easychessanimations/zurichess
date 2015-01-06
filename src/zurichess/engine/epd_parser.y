@@ -17,12 +17,14 @@ import (
         epd       *epdNode
         position  *positionNode
         operation *operationNode
+        argument  *argumentNode
         token     *tokenNode
 }
 
 %type <epd> epd fen
 %type <position> position
-%type <token> piecePlacement castlingAbility enpassantSquare sideToMove
+%type <operation> operations
+%type <argument> arguments
 
 %token <token> _token
 %token <result> _hiddenFEN _hiddenEPD
@@ -46,16 +48,17 @@ fen
         ;
 
 epd
-        : position ';'
+        : position operations
         {
                 $$ = &epdNode{
-                        position: $1,
+                        position:   $1,
+                        operations: $2,
                 }
         }
         ;
 
 position
-        : piecePlacement ' ' sideToMove ' ' castlingAbility ' ' enpassantSquare
+        : _token ' ' _token ' ' _token ' ' _token
         {
                 $$ = &positionNode{
                         piecePlacement:  $1,
@@ -66,24 +69,35 @@ position
         }
         ;
 
-piecePlacement
-        : _token
-        { $$ = $1 }
+operations
+        :
+        { $$ = nil }
+        | operations ' ' _token arguments ';'
+        {
+                $$ = &operationNode{
+                       operator:  $3,
+                       arguments: $4,
+                }
+                if $1 != nil {
+                        $1.next = $$
+                        $$ = $1
+                }
+        }
         ;
 
-sideToMove
-        : _token
-        { $$ = $1 }
-        ;
-
-castlingAbility
-        : _token
-        { $$ = $1 }
-        ;
-
-enpassantSquare
-        : _token
-        { $$ = $1 }
+arguments
+        :
+        { $$ = nil }
+        | arguments ' ' _token
+        {
+                $$ = &argumentNode{
+                        param: $3,
+                }
+                if $1 != nil {
+                        $1.next = $$
+                        $$ = $1
+                }
+        }
         ;
 
 %%

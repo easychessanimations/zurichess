@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -36,7 +37,8 @@ var (
 )
 
 type epdNode struct {
-	position *positionNode
+	position   *positionNode
+	operations *operationNode
 }
 
 type positionNode struct {
@@ -47,8 +49,14 @@ type positionNode struct {
 }
 
 type operationNode struct {
-	token     *tokenNode
-	operators *tokenNode
+	operator  *tokenNode
+	arguments *argumentNode
+	next      *operationNode
+}
+
+type argumentNode struct {
+	param *tokenNode
+	next  *argumentNode
 }
 
 type tokenNode struct {
@@ -119,8 +127,15 @@ func parseEnpassantSquare(str string) (Square, error) {
 	return SquareFromString(str), nil
 }
 
+func newLeafError(n *tokenNode, err error) error {
+	return fmt.Errorf("at %d %s: %v", n.pos, n.str, err)
+}
+
 func handleEPDNode(epd *EPD, n *epdNode) error {
 	if err := handlePositionNode(epd, n.position); err != nil {
+		return err
+	}
+	if err := handleOperationNode(epd, n.operations); err != nil {
 		return err
 	}
 	return nil
@@ -129,22 +144,49 @@ func handleEPDNode(epd *EPD, n *epdNode) error {
 func handlePositionNode(epd *EPD, n *positionNode) error {
 	var err error
 	if epd.Position, err = parsePiecePlacement(n.piecePlacement.str); err != nil {
-		return fmt.Errorf("at %d: %v", n.piecePlacement.pos, err)
+		return newLeafError(n.piecePlacement, err)
 	}
 	if sideToMove, err := parseSideToMove(n.sideToMove.str); err != nil {
-		return fmt.Errorf("at %d: %v", n.sideToMove.pos, err)
+		return newLeafError(n.sideToMove, err)
 	} else {
 		epd.Position.SetSideToMove(sideToMove)
 	}
 	if castlingAbility, err := parseCastlingAbility(n.castlingAbility.str); err != nil {
-		return fmt.Errorf("at %d: %v", n.castlingAbility.pos, err)
+		return newLeafError(n.castlingAbility, err)
 	} else {
 		epd.Position.SetCastlingAbility(castlingAbility)
 	}
 	if enpassantSquare, err := parseEnpassantSquare(n.enpassantSquare.str); err != nil {
-		return fmt.Errorf("at %d: %v", n.enpassantSquare.pos, err)
+		return newLeafError(n.enpassantSquare, err)
 	} else {
 		epd.Position.SetEnpassantSquare(enpassantSquare)
+	}
+	return nil
+}
+
+func handleId(epd *EPD, n *operationNode) error {
+	if n.arguments == nil {
+		return newLeafError(n.operator, fmt.Errorf("id missing argument"))
+	}
+	if n.arguments.next != nil {
+		return newLeafError(n.operator, fmt.Errorf("id has to many arguments"))
+	}
+	epd.Id = n.arguments.param.str
+	return nil
+}
+
+var handleMap = map[string]func(edp *EPD, n *operationNode) error{
+	"id": handleId,
+}
+
+func handleOperationNode(epd *EPD, n *operationNode) error {
+	for ; n != nil; n = n.next {
+		if f, ok := handleMap[n.operator.str]; !ok {
+			log.Println("unhandled operation", n.operator.str)
+			continue
+		} else if err := f(epd, n); err != nil {
+			return err
+		}
 	}
 	return nil
 }

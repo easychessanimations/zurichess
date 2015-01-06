@@ -105,3 +105,17 @@ func TestFENKiwipete(t *testing.T) {
 	expected.Castle = AnyCastle
 	testFENHelper(t, expected, FENKiwipete)
 }
+
+func TestEPDParser(t *testing.T) {
+	// An EPD taken from http://www.stmintz.com/ccc/index.php?id=20631
+	line := "rnb2r1k/pp2p2p/2pp2p1/q2P1p2/8/1Pb2NP1/PB2PPBP/R2Q1RK1 w - - bm Qd2 Qe1; id \"BK.14\";"
+	epd, err := ParseEPD(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expecteId := "\"BK.14\""
+	if expecteId != epd.Id {
+		t.Fatal("expected id %s, got %s", expecteId, epd.Id)
+	}
+}

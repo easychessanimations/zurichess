@@ -5,6 +5,7 @@ package engine
 // Extended Position Description
 type EPD struct {
 	Position *Position
+	Id       string
 }
 
 func parse(what int, line string) (*EPD, error) {

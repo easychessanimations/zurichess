@@ -21,6 +21,7 @@ type yySymType struct {
 	epd       *epdNode
 	position  *positionNode
 	operation *operationNode
+	argument  *argumentNode
 	token     *tokenNode
 }
 
@@ -39,7 +40,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line epd_parser.y:89
+//line epd_parser.y:103
 const eof = 0
 
 // epdLexer is a tokenizer.
@@ -118,43 +119,43 @@ const yyPrivate = 57344
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 23
+const yyLast = 25
 
 var yyAct = []int{
 
-	12, 21, 17, 16, 11, 10, 2, 3, 23, 20,
-	18, 15, 13, 7, 5, 1, 14, 22, 9, 19,
-	6, 4, 8,
+	23, 22, 21, 16, 15, 14, 10, 9, 2, 3,
+	25, 24, 19, 18, 17, 13, 12, 6, 5, 1,
+	20, 11, 8, 4, 7,
 }
 var yyPact = []int{
 
-	1, -1000, 9, 9, -1000, -2, -3, -1000, -1000, -8,
-	8, 7, -1000, -4, -5, -1000, 6, 5, -1000, -6,
-	-1000, 4, -1000, -1000,
+	3, -1000, 13, 13, -1000, 0, -1, -1000, -1000, 12,
+	11, -2, -3, -4, 10, 9, 8, -1000, -1000, -5,
+	-7, 7, -1000, 6, -1000, -1000,
 }
 var yyPgo = []int{
 
-	0, 22, 21, 14, 20, 19, 17, 16, 15,
+	0, 24, 23, 18, 21, 20, 19,
 }
 var yyR1 = []int{
 
-	0, 8, 8, 2, 1, 3, 4, 7, 5, 6,
+	0, 6, 6, 2, 1, 3, 4, 4, 5, 5,
 }
 var yyR2 = []int{
 
-	0, 2, 2, 5, 2, 7, 1, 1, 1, 1,
+	0, 2, 2, 5, 2, 7, 0, 5, 0, 3,
 }
 var yyChk = []int{
 
-	-1000, -8, 5, 6, -2, -3, -4, 4, -1, -3,
-	7, 7, 8, 4, -7, 4, 7, 7, 4, -5,
-	4, 7, -6, 4,
+	-1000, -6, 5, 6, -2, -3, 4, -1, -3, 7,
+	7, -4, 4, 4, 7, 7, 7, 4, 4, 4,
+	-5, 7, 8, 7, 4, 4,
 }
 var yyDef = []int{
 
-	0, -2, 0, 0, 1, 0, 0, 6, 2, 0,
-	0, 0, 4, 0, 0, 7, 0, 0, 3, 0,
-	8, 0, 5, 9,
+	0, -2, 0, 0, 1, 0, 0, 2, 6, 0,
+	0, 4, 0, 0, 0, 0, 0, 8, 3, 0,
+	0, 0, 7, 0, 5, 9,
 }
 var yyTok1 = []int{
 
@@ -399,31 +400,32 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line epd_parser.y:34
-		{
-			*yyS[yypt-1].result = yyS[yypt-0].epd
-		}
-	case 2:
 		//line epd_parser.y:36
 		{
 			*yyS[yypt-1].result = yyS[yypt-0].epd
 		}
+	case 2:
+		//line epd_parser.y:38
+		{
+			*yyS[yypt-1].result = yyS[yypt-0].epd
+		}
 	case 3:
-		//line epd_parser.y:41
+		//line epd_parser.y:43
 		{
 			yyVAL.epd = &epdNode{
 				position: yyS[yypt-4].position,
 			}
 		}
 	case 4:
-		//line epd_parser.y:50
+		//line epd_parser.y:52
 		{
 			yyVAL.epd = &epdNode{
-				position: yyS[yypt-1].position,
+				position:   yyS[yypt-1].position,
+				operations: yyS[yypt-0].operation,
 			}
 		}
 	case 5:
-		//line epd_parser.y:59
+		//line epd_parser.y:62
 		{
 			yyVAL.position = &positionNode{
 				piecePlacement:  yyS[yypt-6].token,
@@ -433,24 +435,37 @@ yydefault:
 			}
 		}
 	case 6:
-		//line epd_parser.y:71
+		//line epd_parser.y:74
 		{
-			yyVAL.token = yyS[yypt-0].token
+			yyVAL.operation = nil
 		}
 	case 7:
 		//line epd_parser.y:76
 		{
-			yyVAL.token = yyS[yypt-0].token
+			yyVAL.operation = &operationNode{
+				operator:  yyS[yypt-2].token,
+				arguments: yyS[yypt-1].argument,
+			}
+			if yyS[yypt-4].operation != nil {
+				yyS[yypt-4].operation.next = yyVAL.operation
+				yyVAL.operation = yyS[yypt-4].operation
+			}
 		}
 	case 8:
-		//line epd_parser.y:81
+		//line epd_parser.y:90
 		{
-			yyVAL.token = yyS[yypt-0].token
+			yyVAL.argument = nil
 		}
 	case 9:
-		//line epd_parser.y:86
+		//line epd_parser.y:92
 		{
-			yyVAL.token = yyS[yypt-0].token
+			yyVAL.argument = &argumentNode{
+				param: yyS[yypt-0].token,
+			}
+			if yyS[yypt-2].argument != nil {
+				yyS[yypt-2].argument.next = yyVAL.argument
+				yyVAL.argument = yyS[yypt-2].argument
+			}
 		}
 	}
 	goto yystack /* stack new state and value */
