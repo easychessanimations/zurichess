@@ -65,31 +65,33 @@ func PositionFromFEN(fen string) (*Position, error) {
 	// Parse next to move.
 	switch fld[1] {
 	case "w":
-		pos.ToMove = White
+		pos.SetToMove(White)
 	case "b":
-		pos.ToMove = Black
+		pos.SetToMove(Black)
 	default:
 		return nil, fmt.Errorf("unknown color %s", fld[1])
 	}
 
 	// Parse castling rights.
+	castle := NoCastle
 	for _, p := range fld[2] {
 		switch p {
 		case 'K':
-			pos.Castle |= WhiteOO
+			castle |= WhiteOO
 		case 'Q':
-			pos.Castle |= WhiteOOO
+			castle |= WhiteOOO
 		case 'k':
-			pos.Castle |= BlackOO
+			castle |= BlackOO
 		case 'q':
-			pos.Castle |= BlackOOO
+			castle |= BlackOOO
 		}
 	}
+	pos.SetCastle(castle)
 
 	// Parse Enpassant.
 	// TODO: handle error
 	if fld[3][:1] != "-" {
-		pos.Enpassant = SquareFromString(fld[3])
+		pos.SetEnpassant(SquareFromString(fld[3]))
 	}
 
 	// TODO: halfmove, fullmove

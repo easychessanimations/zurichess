@@ -21,7 +21,7 @@ cutechess-cli \
         -srand $RANDOM \
         -repeat \
         -recover \
-        -games 500 \
+        -games 5000 \
         -concurrency 2 \
         -resign movecount=8 score=500 \
         -draw movenumber=40 movecount=8 score=20 \
