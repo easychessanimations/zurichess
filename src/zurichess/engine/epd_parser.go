@@ -1,6 +1,6 @@
 //line epd_parser.y:2
 
-// epd_parser.y implements parsing of chess positions in EPD and FEN notations.
+// epd_parser.y defines the grammar for chess positions in EPD and FEN notations.
 // For EPD see https://chessprogramming.wikispaces.com/Extended+Position+Description
 // For FEN see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation
 package engine
@@ -11,30 +11,27 @@ import __yyfmt__ "fmt"
 import (
 	"fmt"
 	"log"
-	"strings"
 	"unicode"
 )
 
-//line epd_parser.y:16
+//line epd_parser.y:15
 type yySymType struct {
-	yys      int
-	str      string
-	result   **EPD
-	epd      *EPD
-	position *Position
-	castling Castle
-	square   Square
-	toMove   Color
+	yys       int
+	result    **epdNode
+	epd       *epdNode
+	position  *positionNode
+	operation *operationNode
+	token     *tokenNode
 }
 
-const OPERAND = 57346
-const HIDDEN_FEN = 57347
-const HIDDEN_EPD = 57348
+const _token = 57346
+const _hiddenFEN = 57347
+const _hiddenEPD = 57348
 
 var yyToknames = []string{
-	"OPERAND",
-	"HIDDEN_FEN",
-	"HIDDEN_EPD",
+	"_token",
+	"_hiddenFEN",
+	"_hiddenEPD",
 }
 var yyStatenames = []string{}
 
@@ -42,98 +39,15 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line epd_parser.y:93
+//line epd_parser.y:89
 const eof = 0
 
-var (
-	symbolToPiece = map[rune]Piece{
-		'p': BlackPawn,
-		'n': BlackKnight,
-		'b': BlackBishop,
-		'r': BlackRook,
-		'q': BlackQueen,
-		'k': BlackKing,
-
-		'P': WhitePawn,
-		'N': WhiteKnight,
-		'B': WhiteBishop,
-		'R': WhiteRook,
-		'Q': WhiteQueen,
-		'K': WhiteKing,
-	}
-
-	symbolToCastle = map[rune]Castle{
-		'K': WhiteOO,
-		'Q': WhiteOOO,
-		'k': BlackOO,
-		'q': BlackOOO,
-	}
-)
-
-// Parse position.
-func parsePiecePlacement(str string) *Position {
-	pos := &Position{}
-
-	ranks := strings.Split(str, "/")
-	if len(ranks) != 8 {
-		// TODO: handle error
-		return nil
-	}
-	for r := range ranks {
-		sq := RankFile(7-r, 0) // FEN describes the table from 8th rank.
-		for _, p := range ranks[r] {
-			pi := symbolToPiece[p]
-			if pi == NoPiece {
-				if '1' <= p && p <= '8' {
-					sq = sq.Relative(0, int(p)-int('0')-1)
-				} else {
-					// TODO: handle error
-					return nil
-				}
-			}
-			pos.Put(sq, pi)
-			sq = sq.Relative(0, 1)
-		}
-	}
-	return pos
-}
-
-func parseSideToMove(str string) Color {
-	if str == "w" {
-		return White
-	}
-	if str == "b" {
-		return Black
-	}
-	return NoColor
-}
-
-func parseCastlingAbility(str string) Castle {
-	if str == "-" {
-		return NoCastle
-	}
-
-	ability := NoCastle
-	for _, p := range str {
-		// If p is an invalid symbol, this does nothing.
-		ability |= symbolToCastle[p]
-	}
-	return ability
-}
-
-// TODO: handle error
-func parseEnpassantSquare(str string) Square {
-	if str[:1] == "-" {
-		return SquareA1
-	}
-	return SquareFromString(str)
-}
-
+// epdLexer is a tokenizer.
 type epdLexer struct {
 	what      int // FEN or EPD
-	result    **EPD
 	line      string
 	prev, pos int
+	result    **epdNode
 	error     error
 }
 
@@ -177,8 +91,11 @@ func (lex *epdLexer) Lex(lval *yySymType) int {
 		}
 	}
 
-	lval.str = lex.line[start:lex.pos]
-	return OPERAND
+	lval.token = &tokenNode{
+		pos: start,
+		str: lex.line[start:lex.pos],
+	}
+	return _token
 }
 
 func (lex *epdLexer) Error(s string) {
@@ -186,42 +103,6 @@ func (lex *epdLexer) Error(s string) {
 		lex.prev, lex.line[:lex.prev], lex.line[lex.prev:], s)
 	lex.pos = len(lex.line) // next call Lex() will return eof.
 	log.Println(lex.error)
-}
-
-// ParseFEN parses a FEN string.
-func ParseFEN(line string) (*EPD, error) {
-	lex := &epdLexer{
-		what:   HIDDEN_FEN,
-		result: new(*EPD),
-		line:   line,
-		pos:    -1,
-	}
-
-	yyParse(lex)
-	return *lex.result, lex.error
-}
-
-// Same as ParseFEN, but returns only the position.
-// Mostly useful for testing.
-func PositionFromFEN(fen string) (*Position, error) {
-	epd, err := ParseFEN(fen)
-	if err != nil {
-		return nil, err
-	}
-	return epd.Position, nil
-}
-
-// ParseEPD parses a EPD string.
-func ParseEPD(line string) (*EPD, error) {
-	lex := &epdLexer{
-		what:   HIDDEN_EPD,
-		result: new(*EPD),
-		line:   line,
-		pos:    -1,
-	}
-
-	yyParse(lex)
-	return *lex.result, lex.error
 }
 
 //line yacctab:1
@@ -518,56 +399,58 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line epd_parser.y:40
+		//line epd_parser.y:34
 		{
 			*yyS[yypt-1].result = yyS[yypt-0].epd
 		}
 	case 2:
-		//line epd_parser.y:42
+		//line epd_parser.y:36
 		{
 			*yyS[yypt-1].result = yyS[yypt-0].epd
 		}
 	case 3:
-		//line epd_parser.y:47
+		//line epd_parser.y:41
 		{
-			yyVAL.epd = &EPD{
-				Position: yyS[yypt-4].position,
+			yyVAL.epd = &epdNode{
+				position: yyS[yypt-4].position,
 			}
 		}
 	case 4:
-		//line epd_parser.y:56
+		//line epd_parser.y:50
 		{
-			yyVAL.epd = &EPD{
-				Position: yyS[yypt-1].position,
+			yyVAL.epd = &epdNode{
+				position: yyS[yypt-1].position,
 			}
 		}
 	case 5:
-		//line epd_parser.y:65
+		//line epd_parser.y:59
 		{
-			yyVAL.position = yyS[yypt-6].position
-			yyVAL.position.ToMove = yyS[yypt-4].toMove
-			yyVAL.position.Castle = yyS[yypt-2].castling
-			yyVAL.position.Enpassant = yyS[yypt-0].square
+			yyVAL.position = &positionNode{
+				piecePlacement:  yyS[yypt-6].token,
+				sideToMove:      yyS[yypt-4].token,
+				castlingAbility: yyS[yypt-2].token,
+				enpassantSquare: yyS[yypt-0].token,
+			}
 		}
 	case 6:
-		//line epd_parser.y:75
+		//line epd_parser.y:71
 		{
-			yyVAL.position = parsePiecePlacement(yyS[yypt-0].str)
+			yyVAL.token = yyS[yypt-0].token
 		}
 	case 7:
-		//line epd_parser.y:80
+		//line epd_parser.y:76
 		{
-			yyVAL.toMove = parseSideToMove(yyS[yypt-0].str)
+			yyVAL.token = yyS[yypt-0].token
 		}
 	case 8:
-		//line epd_parser.y:85
+		//line epd_parser.y:81
 		{
-			yyVAL.castling = parseCastlingAbility(yyS[yypt-0].str)
+			yyVAL.token = yyS[yypt-0].token
 		}
 	case 9:
-		//line epd_parser.y:90
+		//line epd_parser.y:86
 		{
-			yyVAL.square = parseEnpassantSquare(yyS[yypt-0].str)
+			yyVAL.token = yyS[yypt-0].token
 		}
 	}
 	goto yystack /* stack new state and value */
