@@ -6,7 +6,7 @@ import (
 
 const (
 	defaultMovesToGo    = 30 // default number of more moves expected to play
-	defaultbranchFactor = 8  // default branching factor
+	defaultbranchFactor = 10 // default branching factor
 )
 
 type TimeControl interface {
@@ -64,11 +64,14 @@ func (tc *OnClockTimeControl) Start() {
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
 	branchFactor := time.Duration(defaultbranchFactor)
+	if movesToGo < 16 {
+		branchFactor += 1
+	}
 	if movesToGo < 8 {
-		branchFactor++
+		branchFactor += 2
 	}
 	if movesToGo < 4 {
-		branchFactor++
+		branchFactor += 3
 	}
 
 	// Compute how much time to think according to the formula below.
@@ -76,7 +79,7 @@ func (tc *OnClockTimeControl) Start() {
 	// and rely more on the inc time later.
 	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
 	tc.timeLimit = time.Now().Add(thinkTime / defaultbranchFactor)
-	tc.currDepth = 2
+	tc.currDepth = 0
 }
 
 func (tc *OnClockTimeControl) NextDepth() int {
