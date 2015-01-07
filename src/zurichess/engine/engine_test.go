@@ -34,7 +34,7 @@ func TestScore(t *testing.T) {
 
 		moves := strings.Fields(game)
 		for _, move := range moves {
-			m := pos.ParseMove(move)
+			m := pos.UCIToMove(move)
 			dynamic.DoMove(m)
 			static.SetPosition(pos)
 
@@ -61,7 +61,7 @@ func TestZobrist(t *testing.T) {
 
 		moves := strings.Fields(game)
 		for _, move := range moves {
-			m := pos.ParseMove(move)
+			m := pos.UCIToMove(move)
 			dynamic.DoMove(m)
 			static.SetPosition(pos)
 
@@ -155,7 +155,7 @@ func BenchmarkScore(b *testing.B) {
 			done := make([]Move, 0)
 
 			for i := range todo {
-				move := eng.ParseMove(todo[i])
+				move := eng.UCIToMove(todo[i])
 				done = append(done, move)
 				eng.DoMove(move)
 				_ = eng.Score()

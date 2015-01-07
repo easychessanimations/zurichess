@@ -13,6 +13,26 @@ var (
 
 	// Pieces into which a pawn can be promoted.
 	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
+
+	// Maps a piece to a symbol. ☒ is invalid.
+	pieceToSymbol = ".????pP??nN??bB??rR??qQ??kK?"
+
+	// Maps a byte to a Piece. It's the reverse of the previous array.
+	symbolToPiece = map[rune]Piece{
+		'p': BlackPawn,
+		'n': BlackKnight,
+		'b': BlackBishop,
+		'r': BlackRook,
+		'q': BlackQueen,
+		'k': BlackKing,
+
+		'P': WhitePawn,
+		'N': WhiteKnight,
+		'B': WhiteBishop,
+		'R': WhiteRook,
+		'Q': WhiteQueen,
+		'K': WhiteKing,
+	}
 )
 
 func init() {
@@ -124,7 +144,12 @@ func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
 		line := ""
 		for f := 0; f < 8; f++ {
-			line += pos.Get(RankFile(r, f)).Symbol()
+			sq := RankFile(r, f)
+			if sq == pos.Enpassant {
+				line += ","
+			} else {
+				line += string(pieceToSymbol[pos.Get(sq)])
+			}
 		}
 		if r == 7 && pos.ToMove == Black {
 			line += " *"
@@ -140,50 +165,50 @@ func (pos *Position) PrettyPrint() {
 // fix updates move so that it can be undone.
 // Does not set capture.
 func (pos *Position) fix(move Move) Move {
-	move.OldCastle = pos.Castle
-	move.OldEnpassant = pos.Enpassant
+	move.SavedCastle = pos.Castle
+	move.SavedEnpassant = pos.Enpassant
 	return move
 }
 
-var symbolToFigure = map[byte]Figure{
-	'N': Knight,
-	'n': Knight,
-	'B': Bishop,
-	'b': Bishop,
-	'R': Rook,
-	'r': Rook,
-	'Q': Queen,
-	'q': Queen,
+// MoveToUCI converts a move to UCI format.
+// The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
+// incorrectly states that this is long algebraic notation (LAN).
+func (pos *Position) MoveToUCI(m Move) string {
+	r := m.From.String() + m.To.String()
+	if m.MoveType == Promotion {
+		r += string(pieceToSymbol[m.Target])
+	}
+	return r
 }
 
-// ParseMove parses a move given in standard algebraic notation.
+// UCIToMove parses a move given in UCI format.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
-func (pos *Position) ParseMove(s string) Move {
+func (pos *Position) UCIToMove(s string) Move {
 	from := SquareFromString(s[0:2])
 	to := SquareFromString(s[2:4])
 
-	mvtp := Normal
+	moveType := Normal
 	capt := pos.Get(to)
 	promo := pos.Get(from)
 
 	pi := pos.Get(from)
 	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
-		mvtp = Enpassant
+		moveType = Enpassant
 		capt = ColorFigure(pos.ToMove.Other(), Pawn)
 	}
 	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
-		mvtp = Castling
+		moveType = Castling
 	}
 	if pi == BlackKing && from == SquareE8 && (to == SquareC8 || to == SquareG8) {
-		mvtp = Castling
+		moveType = Castling
 	}
 	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
-		mvtp = Promotion
-		promo = ColorFigure(pos.ToMove, symbolToFigure[s[4]])
+		moveType = Promotion
+		promo = ColorFigure(pos.ToMove, symbolToPiece[rune(s[4])].Figure())
 	}
 
 	return pos.fix(Move{
-		MoveType: mvtp,
+		MoveType: moveType,
 		From:     from,
 		To:       to,
 		Capture:  capt,
@@ -243,14 +268,10 @@ func (pos *Position) DoMove(move Move) {
 			move.Capture, captSq, pos.Get(captSq), move))
 	}
 
-	// Modify the chess board.
+	// Update the pieces the chess board.
 	pos.Remove(move.From, pi)
 	pos.Remove(captSq, move.Capture)
-	if move.MoveType != Promotion {
-		pos.Put(move.To, pi)
-	} else {
-		pos.Put(move.To, move.Target)
-	}
+	pos.Put(move.To, move.Target)
 	pos.SetSideToMove(pos.ToMove.Other())
 }
 
@@ -287,19 +308,19 @@ func (pos *Position) UndoMove(move Move) {
 		pos.Remove(rookEnd, rook)
 	}
 
-	pos.SetCastlingAbility(move.OldCastle)
-	pos.SetEnpassantSquare(move.OldEnpassant)
+	pos.SetCastlingAbility(move.SavedCastle)
+	pos.SetEnpassantSquare(move.SavedEnpassant)
 }
 
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move) []Move {
 	pr := to.Rank()
 	if pr != 0 && pr != 7 {
-		mvtp := Normal
+		moveType := Normal
 		if to == pos.Enpassant {
-			mvtp = Enpassant
+			moveType = Enpassant
 		}
 		moves = append(moves, pos.fix(Move{
-			MoveType: mvtp,
+			MoveType: moveType,
 			From:     from,
 			To:       to,
 			Capture:  capt,

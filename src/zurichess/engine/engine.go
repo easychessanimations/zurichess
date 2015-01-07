@@ -52,9 +52,9 @@ func (eng *Engine) SetPosition(pos *Position) {
 	eng.countMaterial()
 }
 
-// ParseMove parses the move from a string.
-func (eng *Engine) ParseMove(move string) Move {
-	return eng.Position.ParseMove(move)
+// UCIToMove parses the move from a string.
+func (eng *Engine) UCIToMove(move string) Move {
+	return eng.Position.UCIToMove(move)
 }
 
 // put adjusts score after puting piece on sq.

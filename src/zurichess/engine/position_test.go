@@ -19,7 +19,7 @@ type testEngine struct {
 }
 
 func (te *testEngine) Move(m string) {
-	move := te.Pos.ParseMove(m)
+	move := te.Pos.UCIToMove(m)
 	if te.Pos.ToMove == move.Capture.Color() {
 		te.T.Errorf("%v cannot capture its own color (move %v)",
 			te.Pos.ToMove, move)

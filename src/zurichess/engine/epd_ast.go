@@ -7,22 +7,6 @@ import (
 )
 
 var (
-	symbolToPiece = map[rune]Piece{
-		'p': BlackPawn,
-		'n': BlackKnight,
-		'b': BlackBishop,
-		'r': BlackRook,
-		'q': BlackQueen,
-		'k': BlackKing,
-
-		'P': WhitePawn,
-		'N': WhiteKnight,
-		'B': WhiteBishop,
-		'R': WhiteRook,
-		'Q': WhiteQueen,
-		'K': WhiteKing,
-	}
-
 	symbolToCastle = map[rune]Castle{
 		'K': WhiteOO,
 		'Q': WhiteOOO,

@@ -119,15 +119,6 @@ func (pi Piece) Figure() Figure {
 	return Figure(pi >> 2)
 }
 
-var pieceSymbol = []string{"       ", " PNBRQK", " pnbrqk "}
-
-// Symbol returns the piece as a string.
-func (pi Piece) Symbol() string {
-	co := pi.Color()
-	pt := pi.Figure()
-	return pieceSymbol[co][pt : pt+1]
-}
-
 // An 8x8 bitboard.
 type Bitboard uint64
 
@@ -176,19 +167,18 @@ const (
 )
 
 type Move struct {
-	From, To     Square // Source and destination
-	Capture      Piece  // Which piece is captured
-	Target       Piece  // Target is the piece on To, after the move.
-	MoveType     MoveType
-	OldEnpassant Square // Old enpassant square
-	OldCastle    Castle // Old castle rights
+	From, To       Square // Source and destination
+	Capture        Piece  // Which piece is captured
+	Target         Piece  // Target is the piece on To, after the move.
+	MoveType       MoveType
+	SavedEnpassant Square // Old enpassant square
+	SavedCastle    Castle // Old castle rights
 }
 
-func (mo Move) String() string {
-	r := mo.From.String() + mo.To.String()
-	if mo.MoveType == Promotion {
-		s := mo.Target.Figure()
-		r += string(pieceSymbol[White][s : s+1])
+func (m Move) String() string {
+	r := m.From.String() + m.To.String()
+	if m.MoveType == Promotion {
+		r += string(pieceToSymbol[m.Target])
 	}
 	return r
 }
