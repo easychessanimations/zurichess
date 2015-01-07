@@ -631,25 +631,25 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 
 // GenerateMoves is a helper to generate moves in stages.
 type MoveGenerator struct {
-	position     *Position
-	state        int
-	onlyCaptures bool
+	position *Position
+	state    int
+	violent  bool
 }
 
 // NewMoveGenerator returns a MoveGenerator for pos.
-// If onlyCaptures is set then the MoveGenerator will try to limit generated
+// If violent is set then the MoveGenerator will try to limit generated
 // moves to captures only. It's possible a few non-captures will be returned.
-func NewMoveGenerator(pos *Position, onlyCaptures bool) *MoveGenerator {
+func NewMoveGenerator(pos *Position, violent bool) *MoveGenerator {
 	return &MoveGenerator{
-		position:     pos,
-		state:        0,
-		onlyCaptures: onlyCaptures,
+		position: pos,
+		state:    0,
+		violent:  violent,
 	}
 }
 
 // Next generates pseudo-legal moves,i.e. doesn't check for king check.
 func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
-	if mg.onlyCaptures {
+	if mg.violent {
 		mg.position.moveMask = ^mg.position.ByColor[mg.position.ToMove.Other()]
 	} else {
 		mg.position.moveMask = BbEmpty
@@ -681,12 +681,12 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 		moves = mg.position.genKingMovesNear(moves)
 		return ColorFigure(toMove, King), moves
 	case 8:
-		if !mg.onlyCaptures {
+		if !mg.violent {
 			moves = mg.position.genKingCastles(moves)
 			return ColorFigure(toMove, King), moves
 		}
 	case 9:
-		if !mg.onlyCaptures {
+		if !mg.violent {
 			moves = mg.position.genPawnAdvanceMoves(moves)
 			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
 			return ColorFigure(toMove, Pawn), moves
