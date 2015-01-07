@@ -113,6 +113,7 @@ type epdLexer struct {
 	error     error
 }
 
+// TODO: Handle spaces between quotes, e.g. "foo bar".
 func (lex *epdLexer) Lex(lval *yySymType) int {
 	lex.prev = lex.pos
 	if lex.pos == -1 {

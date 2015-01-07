@@ -1,3 +1,5 @@
+// epd_ast.go interprests the ast tree parsed from an EPD line.
+// *Node structures correspond to grammar nodes in epd_parser.y.
 package engine
 
 import (
@@ -46,6 +48,85 @@ type argumentNode struct {
 type tokenNode struct {
 	pos int
 	str string
+}
+
+func newLeafError(n *tokenNode, err error) error {
+	return fmt.Errorf("at %d %s: %v", n.pos, n.str, err)
+}
+
+func handleEPDNode(epd *EPD, n *epdNode) error {
+	if err := handlePositionNode(epd, n.position); err != nil {
+		return err
+	}
+	if err := handleOperationNode(epd, n.operations); err != nil {
+		return err
+	}
+	return nil
+}
+
+func handlePositionNode(epd *EPD, n *positionNode) error {
+	var err error
+	if epd.Position, err = parsePiecePlacement(n.piecePlacement.str); err != nil {
+		return newLeafError(n.piecePlacement, err)
+	}
+	if sideToMove, err := parseSideToMove(n.sideToMove.str); err != nil {
+		return newLeafError(n.sideToMove, err)
+	} else {
+		epd.Position.SetSideToMove(sideToMove)
+	}
+	if castlingAbility, err := parseCastlingAbility(n.castlingAbility.str); err != nil {
+		return newLeafError(n.castlingAbility, err)
+	} else {
+		epd.Position.SetCastlingAbility(castlingAbility)
+	}
+	if enpassantSquare, err := parseEnpassantSquare(n.enpassantSquare.str); err != nil {
+		return newLeafError(n.enpassantSquare, err)
+	} else {
+		epd.Position.SetEnpassantSquare(enpassantSquare)
+	}
+	return nil
+}
+
+// handleBestMove handles "id" operator.
+func handleId(epd *EPD, n *operationNode) error {
+	if n.arguments == nil {
+		return newLeafError(n.operator, fmt.Errorf("id is missing an argument"))
+	}
+	if n.arguments.next != nil {
+		return newLeafError(n.operator, fmt.Errorf("id has too many arguments"))
+	}
+	epd.Id = n.arguments.param.str
+	return nil
+}
+
+// handleBestMove handles "bm" operator.
+func handleBestMove(epd *EPD, n *operationNode) error {
+	for ptr := n.arguments; ptr != nil; ptr = ptr.next {
+		if move, err := epd.Position.SANToMove(ptr.param.str); err != nil {
+			return newLeafError(ptr.param, fmt.Errorf("invalid move: %v", err))
+		} else {
+			epd.BestMove = append(epd.BestMove, move)
+		}
+	}
+	return nil
+}
+
+// handleMap is a map from operator to a function handling the node.
+var handleMap = map[string]func(edp *EPD, n *operationNode) error{
+	"id": handleId,
+	"bm": handleBestMove,
+}
+
+func handleOperationNode(epd *EPD, n *operationNode) error {
+	for ; n != nil; n = n.next {
+		if f, ok := handleMap[n.operator.str]; !ok {
+			log.Println("unhandled operation", n.operator.str)
+			continue
+		} else if err := f(epd, n); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func parsePiecePlacement(str string) (*Position, error) {
@@ -109,68 +190,4 @@ func parseEnpassantSquare(str string) (Square, error) {
 	} else {
 		return SquareFromString(str)
 	}
-}
-
-func newLeafError(n *tokenNode, err error) error {
-	return fmt.Errorf("at %d %s: %v", n.pos, n.str, err)
-}
-
-func handleEPDNode(epd *EPD, n *epdNode) error {
-	if err := handlePositionNode(epd, n.position); err != nil {
-		return err
-	}
-	if err := handleOperationNode(epd, n.operations); err != nil {
-		return err
-	}
-	return nil
-}
-
-func handlePositionNode(epd *EPD, n *positionNode) error {
-	var err error
-	if epd.Position, err = parsePiecePlacement(n.piecePlacement.str); err != nil {
-		return newLeafError(n.piecePlacement, err)
-	}
-	if sideToMove, err := parseSideToMove(n.sideToMove.str); err != nil {
-		return newLeafError(n.sideToMove, err)
-	} else {
-		epd.Position.SetSideToMove(sideToMove)
-	}
-	if castlingAbility, err := parseCastlingAbility(n.castlingAbility.str); err != nil {
-		return newLeafError(n.castlingAbility, err)
-	} else {
-		epd.Position.SetCastlingAbility(castlingAbility)
-	}
-	if enpassantSquare, err := parseEnpassantSquare(n.enpassantSquare.str); err != nil {
-		return newLeafError(n.enpassantSquare, err)
-	} else {
-		epd.Position.SetEnpassantSquare(enpassantSquare)
-	}
-	return nil
-}
-
-func handleId(epd *EPD, n *operationNode) error {
-	if n.arguments == nil {
-		return newLeafError(n.operator, fmt.Errorf("id missing argument"))
-	}
-	if n.arguments.next != nil {
-		return newLeafError(n.operator, fmt.Errorf("id has to many arguments"))
-	}
-	epd.Id = n.arguments.param.str
-	return nil
-}
-
-var handleMap = map[string]func(edp *EPD, n *operationNode) error{
-	"id": handleId,
-}
-
-func handleOperationNode(epd *EPD, n *operationNode) error {
-	for ; n != nil; n = n.next {
-		if f, ok := handleMap[n.operator.str]; !ok {
-			log.Println("unhandled operation", n.operator.str)
-			continue
-		} else if err := f(epd, n); err != nil {
-			return err
-		}
-	}
-	return nil
 }

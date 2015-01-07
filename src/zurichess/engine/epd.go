@@ -6,6 +6,7 @@ package engine
 type EPD struct {
 	Position *Position
 	Id       string
+	BestMove []Move
 }
 
 func parse(what int, line string) (*EPD, error) {
