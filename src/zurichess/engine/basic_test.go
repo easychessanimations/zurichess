@@ -19,8 +19,10 @@ func TestSquareFromString(t *testing.T) {
 		if d.sq.String() != d.str {
 			t.Errorf("expected %v, got %v", d.str, d.sq.String())
 		}
-		if d.sq != SquareFromString(d.str) {
-			t.Errorf("expected %v, got %v", d.sq, SquareFromString(d.str))
+		if sq, err := SquareFromString(d.str); err != nil {
+			t.Errorf("parse error: %v", err)
+		} else if d.sq != sq {
+			t.Errorf("expected %v, got %v", d.sq, sq)
 		}
 	}
 }

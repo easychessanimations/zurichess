@@ -3,6 +3,14 @@
 //go:generate stringer -type Piece
 package engine
 
+import (
+	"fmt"
+)
+
+var (
+	errorInvalidSquare = fmt.Errorf("invalid square")
+)
+
 // Square identifies the location on the board.
 type Square uint8
 
@@ -10,10 +18,26 @@ func RankFile(r, f int) Square {
 	return Square(r*8 + f)
 }
 
-func SquareFromString(s string) Square {
-	r := int(s[1] - '1')
-	f := int(s[0] - 'a')
-	return RankFile(r, f)
+func SquareFromString(s string) (Square, error) {
+	if len(s) != 2 {
+		return SquareA1, errorInvalidSquare
+	}
+
+	f, r := -1, -1
+	if 'a' <= s[0] && s[0] <= 'h' {
+		f = int(s[0] - 'a')
+	}
+	if 'A' <= s[0] && s[0] <= 'H' {
+		f = int(s[0] - 'A')
+	}
+	if '1' <= s[1] && s[1] <= '8' {
+		r = int(s[1] - '1')
+	}
+	if f == -1 || r == -1 {
+		return SquareA1, errorInvalidSquare
+	}
+
+	return RankFile(r, f), nil
 }
 
 // RookStartSquare returns the rook starts square on castling.

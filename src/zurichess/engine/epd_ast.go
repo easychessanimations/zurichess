@@ -106,9 +106,9 @@ func parseCastlingAbility(str string) (Castle, error) {
 func parseEnpassantSquare(str string) (Square, error) {
 	if str[:1] == "-" {
 		return SquareA1, nil
+	} else {
+		return SquareFromString(str)
 	}
-	// TODO: handle error
-	return SquareFromString(str), nil
 }
 
 func newLeafError(n *tokenNode, err error) error {

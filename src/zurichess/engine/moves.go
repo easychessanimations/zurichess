@@ -79,7 +79,11 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	if e-2 < b {
 		return Move{}, errorWrongLength
 	}
-	m.To = SquareFromString(s[e-2 : e])
+	var err error
+	m.To, err = SquareFromString(s[e-2 : e])
+	if err != nil {
+		return Move{}, err
+	}
 	if m.To == pos.Enpassant {
 		m.MoveType = Enpassant
 		m.Capture = ColorFigure(pos.ToMove.Other(), Pawn)
@@ -143,8 +147,8 @@ func (pos *Position) MoveToUCI(m Move) string {
 // UCIToMove parses a move given in UCI format.
 // s can be "a2a4" or "h7h8Q" (pawn promotion).
 func (pos *Position) UCIToMove(s string) Move {
-	from := SquareFromString(s[0:2])
-	to := SquareFromString(s[2:4])
+	from, _ := SquareFromString(s[0:2])
+	to, _ := SquareFromString(s[2:4])
 
 	moveType := Normal
 	capt := pos.Get(to)
