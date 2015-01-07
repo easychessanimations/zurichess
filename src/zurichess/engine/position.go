@@ -14,10 +14,10 @@ var (
 	// Pieces into which a pawn can be promoted.
 	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
 
-	// Maps a piece to a symbol. ☒ is invalid.
+	// Maps pieces to symbols. ? means invalid.
 	pieceToSymbol = ".????pP??nN??bB??rR??qQ??kK?"
 
-	// Maps a byte to a Piece. It's the reverse of the previous array.
+	// Maps runes to pieces. It's the reverse of the previous array.
 	symbolToPiece = map[rune]Piece{
 		'p': BlackPawn,
 		'n': BlackKnight,
@@ -32,6 +32,23 @@ var (
 		'R': WhiteRook,
 		'Q': WhiteQueen,
 		'K': WhiteKing,
+	}
+
+	// Maps runes to figures.
+	symbolToFigure = map[rune]Figure{
+		'p': Pawn,
+		'n': Knight,
+		'b': Bishop,
+		'r': Rook,
+		'q': Queen,
+		'k': King,
+
+		'P': Pawn,
+		'N': Knight,
+		'B': Bishop,
+		'R': Rook,
+		'Q': Queen,
+		'K': King,
 	}
 )
 
@@ -168,52 +185,6 @@ func (pos *Position) fix(move Move) Move {
 	move.SavedCastle = pos.Castle
 	move.SavedEnpassant = pos.Enpassant
 	return move
-}
-
-// MoveToUCI converts a move to UCI format.
-// The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
-// incorrectly states that this is long algebraic notation (LAN).
-func (pos *Position) MoveToUCI(m Move) string {
-	r := m.From.String() + m.To.String()
-	if m.MoveType == Promotion {
-		r += string(pieceToSymbol[m.Target])
-	}
-	return r
-}
-
-// UCIToMove parses a move given in UCI format.
-// s can be "a2a4" or "h7h8Q" (pawn promotion).
-func (pos *Position) UCIToMove(s string) Move {
-	from := SquareFromString(s[0:2])
-	to := SquareFromString(s[2:4])
-
-	moveType := Normal
-	capt := pos.Get(to)
-	promo := pos.Get(from)
-
-	pi := pos.Get(from)
-	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
-		moveType = Enpassant
-		capt = ColorFigure(pos.ToMove.Other(), Pawn)
-	}
-	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
-		moveType = Castling
-	}
-	if pi == BlackKing && from == SquareE8 && (to == SquareC8 || to == SquareG8) {
-		moveType = Castling
-	}
-	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
-		moveType = Promotion
-		promo = ColorFigure(pos.ToMove, symbolToPiece[rune(s[4])].Figure())
-	}
-
-	return pos.fix(Move{
-		MoveType: moveType,
-		From:     from,
-		To:       to,
-		Capture:  capt,
-		Target:   promo,
-	})
 }
 
 // DoMovePiece performs a move of known piece.
@@ -721,6 +692,30 @@ func (pos *Position) GenerateMoves(moves []Move) []Move {
 	moveGen := NewMoveGenerator(pos, false)
 	for piece := WhitePawn; piece != NoPiece; {
 		piece, moves = moveGen.Next(moves)
+	}
+	return moves
+}
+
+// GenerateFigureMoves generate moves for a given figure.
+func (pos *Position) GenerateFigureMoves(fig Figure, moves []Move) []Move {
+	switch fig {
+	case Pawn:
+		moves = pos.genPawnEnpassantMoves(moves)
+		moves = pos.genPawnAttackMoves(moves)
+		moves = pos.genPawnAdvanceMoves(moves)
+		moves = pos.genPawnDoubleAdvanceMoves(moves)
+	case Knight:
+		moves = pos.genKnightMoves(moves)
+	case Bishop:
+		moves = pos.genBishopMoves(moves, Bishop)
+	case Rook:
+		moves = pos.genRookMoves(moves, Rook)
+	case Queen:
+		moves = pos.genBishopMoves(moves, Queen)
+		moves = pos.genRookMoves(moves, Queen)
+	case King:
+		moves = pos.genKingMovesNear(moves)
+		moves = pos.genKingCastles(moves)
 	}
 	return moves
 }
