@@ -1,6 +1,7 @@
 //go:generate stringer -type Figure
 //go:generate stringer -type Color
 //go:generate stringer -type Piece
+//go:generate stringer -type MoveType
 package engine
 
 import (
@@ -88,8 +89,8 @@ func (sq Square) String() string {
 type Figure uint
 
 const (
-	NoFigure        = Figure(iota)
-	Pawn     Figure = iota
+	NoFigure Figure = iota
+	Pawn
 	Knight
 	Bishop
 	Rook
@@ -105,8 +106,8 @@ const (
 type Color uint
 
 const (
-	NoColor       = Color(iota)
-	White   Color = iota
+	NoColor Color = iota
+	White
 	Black
 
 	ColorArraySize = int(iota)

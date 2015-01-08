@@ -4,14 +4,13 @@ package engine
 
 import "fmt"
 
-const _Figure_name = "PawnKnightBishopRookQueenKing"
+const _Figure_name = "NoFigurePawnKnightBishopRookQueenKing"
 
-var _Figure_index = [...]uint8{4, 10, 16, 20, 25, 29}
+var _Figure_index = [...]uint8{8, 12, 18, 24, 28, 33, 37}
 
 func (i Figure) String() string {
-	i -= 1
 	if i >= Figure(len(_Figure_index)) {
-		return fmt.Sprintf("Figure(%d)", i+1)
+		return fmt.Sprintf("Figure(%d)", i)
 	}
 	hi := _Figure_index[i]
 	lo := uint8(0)

@@ -4,14 +4,13 @@ package engine
 
 import "fmt"
 
-const _Color_name = "WhiteBlack"
+const _Color_name = "NoColorWhiteBlack"
 
-var _Color_index = [...]uint8{5, 10}
+var _Color_index = [...]uint8{7, 12, 17}
 
 func (i Color) String() string {
-	i -= 1
 	if i >= Color(len(_Color_index)) {
-		return fmt.Sprintf("Color(%d)", i+1)
+		return fmt.Sprintf("Color(%d)", i)
 	}
 	hi := _Color_index[i]
 	lo := uint8(0)
