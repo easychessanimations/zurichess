@@ -151,10 +151,9 @@ func (uci *UCI) go_(args []string) {
 	}
 	tc.Start()
 
-	GlobalHashTable.ResetStats()
 	move, _ := uci.Engine.Play(tc)
 	if uci.Engine.Options.AnalyseMode {
-		hit, miss := GlobalHashTable.Hit, GlobalHashTable.Miss
+		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
 			GlobalHashTable.Size(), hit, miss,
 			float32(hit)/float32(hit+miss)*100)

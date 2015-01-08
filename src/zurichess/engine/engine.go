@@ -19,12 +19,18 @@ type EngineOptions struct {
 	AnalyseMode bool // True to display info strings.
 }
 
+type EngineStats struct {
+	CacheHit  uint64
+	CacheMiss uint64
+	Nodes     uint64
+}
+
 type Engine struct {
 	Options  EngineOptions
 	Position *Position // current Position
+	Stats    EngineStats
 
 	moves []Move    // moves stack
-	nodes uint64    // number of nodes evaluated
 	root  HashEntry // transposition table
 
 	pieces        [ColorArraySize][FigureArraySize]int
@@ -159,7 +165,7 @@ func (eng *Engine) phase() (int, int) {
 // Figure values and bonuses are taken from:
 // http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int16 {
-	eng.nodes++
+	eng.Stats.Nodes++
 
 	// Piece score is something between MidGame and EndGame
 	// depending on the pieces on the table.
@@ -222,8 +228,19 @@ func (eng *Engine) popMove() Move {
 	return move
 }
 
+// retrieveHash gets from GlobalHashTable the current position.
+func (eng *Engine) retrieveHash() (HashEntry, bool) {
+	entry, ok := GlobalHashTable.Get(eng.Position.Zobrist)
+	if ok {
+		eng.Stats.CacheHit++
+	} else {
+		eng.Stats.CacheMiss++
+	}
+	return entry, ok
+}
+
+// updateHash updates GlobalHashTable with current position.
 func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
-	// return
 	kind := Exact
 	if score <= alpha {
 		kind = FailedLow
@@ -306,7 +323,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	}
 
 	// Check the transposition table.
-	if entry, ok := GlobalHashTable.Get(eng.Position.Zobrist); ok {
+	if entry, ok := eng.retrieveHash(); ok {
 		if eng.maxPly-ply > entry.Depth {
 			// Wrong depth, so search cannot be pruned.
 			// TODO: killer move.
@@ -436,7 +453,8 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		panic("not nil moves")
 	}
 
-	eng.nodes = 0
+	eng.Stats = EngineStats{}
+
 	start := time.Now()
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
@@ -445,8 +463,8 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-				maxPly, score, eng.nodes, elapsed/time.Millisecond,
-				eng.nodes*uint64(time.Second)/uint64(elapsed+1))
+				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
+				eng.Stats.Nodes*uint64(time.Second)/uint64(elapsed+1))
 
 			moves := eng.getPrincipalVariation()
 			fmt.Printf("pv")

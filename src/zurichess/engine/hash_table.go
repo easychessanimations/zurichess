@@ -29,9 +29,8 @@ type HashEntry struct {
 // HashTable is a transposition table.
 // Engine uses such a table to cache moves so it doesn't recompute them again.
 type HashTable struct {
-	table     []HashEntry
-	mask      uint64 // mask is used to determine the index in the table.
-	Hit, Miss uint64
+	table []HashEntry
+	mask  uint64 // mask is used to determine the index in the table.
 }
 
 // NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
@@ -47,12 +46,6 @@ func NewHashTable(hashSizeMB int) *HashTable {
 		table: make([]HashEntry, hashSize),
 		mask:  hashSize - 1,
 	}
-}
-
-// ResetStats resets statistics.
-func (ht *HashTable) ResetStats() {
-	ht.Hit = 0
-	ht.Miss = 0
 }
 
 // Size returns the number of entries in the table.
@@ -76,10 +69,8 @@ func (ht *HashTable) Put(entry HashEntry) {
 func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
 	key := lock & ht.mask
 	if ht.table[key].Kind != NoKind && ht.table[key].Lock == lock {
-		ht.Hit++
 		return ht.table[key], true
 	} else {
-		ht.Miss++
 		return HashEntry{}, false
 	}
 }
