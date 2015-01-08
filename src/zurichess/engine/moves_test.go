@@ -98,7 +98,7 @@ var (
 	}
 )
 
-func TestSANToMove(t *testing.T) {
+func TestSANToMovePlay(t *testing.T) {
 	pos, _ := PositionFromFEN(FENKiwipete)
 	for i, test := range sanMoves {
 		actual, err := pos.SANToMove(test.san)
@@ -108,5 +108,23 @@ func TestSANToMove(t *testing.T) {
 			t.Fatalf("#%d %s expected %#v, got %#v", i, test.san, &test.move, &actual)
 		}
 		pos.DoMove(actual)
+	}
+}
+
+func TestSANToMoveFixed(t *testing.T) {
+	pos, _ := PositionFromFEN("2r3k1/6pp/4pp2/3bp3/1Pq5/3R1P2/r1PQ2PP/1K1RN3 b - - 0 1")
+	actual, err := pos.SANToMove("Ra1+")
+	if err != nil {
+		t.Fatal("could not parse move:", err)
+	}
+
+	expected := Move{
+		MoveType: Normal,
+		From:     SquareA2,
+		To:       SquareA1,
+		Target:   BlackRook,
+	}
+	if expected != actual {
+		t.Errorf("expected %v, got %v", expected, actual)
 	}
 }

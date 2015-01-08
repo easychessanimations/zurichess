@@ -84,7 +84,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	if err != nil {
 		return Move{}, err
 	}
-	if m.To == pos.Enpassant {
+	if m.To != SquareA1 && m.To == pos.Enpassant {
 		m.MoveType = Enpassant
 		m.Capture = ColorFigure(pos.ToMove.Other(), Pawn)
 	} else {
@@ -92,8 +92,8 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	}
 	e -= 2
 
-	// Ignore capture info.
-	if e-1 >= b && s[e-1] == 'x' {
+	// Ignore 'x' (capture) or '-' (no capture) if present.
+	if e-1 >= b && (s[e-1] == 'x' || s[e-1] == '-') {
 		e--
 	}
 
