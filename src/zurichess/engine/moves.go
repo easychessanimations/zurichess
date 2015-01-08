@@ -24,102 +24,140 @@ var (
 //
 // TODO: Handle castling.
 func (pos *Position) SANToMove(s string) (Move, error) {
-	b, e := 0, len(s)
-	m := Move{MoveType: Normal}
+	piece := NoPiece
+	move := Move{MoveType: Normal}
+	r, f := -1, -1
 
-	// Get the piece.
+	// s[b:e] is the part that still needs to be parsed.
+	b, e := 0, len(s)
 	if b == e {
 		return Move{}, errorWrongLength
 	}
-	piece := NoPiece
-	if ('a' <= s[b] && s[b] <= 'h') || s[b] == 'x' {
-		piece = ColorFigure(pos.ToMove, Pawn)
-	} else {
-		if fig := symbolToFigure[rune(s[b])]; fig == NoFigure {
-			return Move{}, errorUnknownFigure
-		} else {
-			piece = ColorFigure(pos.ToMove, fig)
-		}
-		b++
-	}
-	m.Target = piece
-
-	// Skips + (check) and # (checkmate) at the end.
+	// Skip + (check) and # (checkmate) at the end.
 	for e > b && (s[e-1] == '#' || s[e-1] == '+') {
 		e--
 	}
-	// Skips e.p. when enpassant.
-	if e-4 > b && s[e-4:e] == "e.p." {
-		e -= 4
-	}
 
-	// Check pawn promotion.
-	if e-1 < b {
-		return Move{}, errorWrongLength
-	}
-	if !('1' <= s[e-1] && s[e-1] <= '8') {
-		// Not a rank, but a promotion.
-		if piece.Figure() != Pawn {
-			return Move{}, errorBadPromotion
-		}
-		if fig := symbolToFigure[rune(s[e-1])]; fig == NoFigure {
-			return Move{}, errorUnknownFigure
+	if s[b:e] == "o-o" || s[b:e] == "O-O" { // king side castling
+		if pos.ToMove == White {
+			move = Move{
+				MoveType: Castling,
+				From:     SquareE1,
+				To:       SquareG1,
+				Target:   WhiteKing,
+			}
 		} else {
-			m.MoveType = Promotion
-			m.Target = ColorFigure(pos.ToMove, fig)
+			move = Move{
+				MoveType: Castling,
+				From:     SquareE8,
+				To:       SquareG8,
+				Target:   BlackKing,
+			}
 		}
-		e--
-		if e-1 >= b && s[e-1] == '=' {
-			// Sometimes = is inserted before promotion figure.
+		piece = move.Target
+	} else if s[b:e] == "o-o-o" || s[b:e] == "O-O-O" { // queen side castling
+		if pos.ToMove == White {
+			move = Move{
+				MoveType: Castling,
+				From:     SquareE1,
+				To:       SquareC1,
+				Target:   WhiteKing,
+			}
+		} else {
+			move = Move{
+				MoveType: Castling,
+				From:     SquareE8,
+				To:       SquareC8,
+				Target:   BlackKing,
+			}
+		}
+		piece = move.Target
+	} else { // all other movess
+		// Get the piece.
+		if ('a' <= s[b] && s[b] <= 'h') || s[b] == 'x' {
+			piece = ColorFigure(pos.ToMove, Pawn)
+		} else {
+			if fig := symbolToFigure[rune(s[b])]; fig == NoFigure {
+				return Move{}, errorUnknownFigure
+			} else {
+				piece = ColorFigure(pos.ToMove, fig)
+			}
+			b++
+		}
+		move.Target = piece
+
+		// Skip e.p. when enpassant.
+		if e-4 > b && s[e-4:e] == "e.p." {
+			e -= 4
+		}
+
+		// Check pawn promotion.
+		if e-1 < b {
+			return Move{}, errorWrongLength
+		}
+		if !('1' <= s[e-1] && s[e-1] <= '8') {
+			// Not a rank, but a promotion.
+			if piece.Figure() != Pawn {
+				return Move{}, errorBadPromotion
+			}
+			if fig := symbolToFigure[rune(s[e-1])]; fig == NoFigure {
+				return Move{}, errorUnknownFigure
+			} else {
+				move.MoveType = Promotion
+				move.Target = ColorFigure(pos.ToMove, fig)
+			}
+			e--
+			if e-1 >= b && s[e-1] == '=' {
+				// Sometimes = is inserted before promotion figure.
+				e--
+			}
+		}
+
+		// Handle destination square.
+		if e-2 < b {
+			return Move{}, errorWrongLength
+		}
+		var err error
+		move.To, err = SquareFromString(s[e-2 : e])
+		if err != nil {
+			return Move{}, err
+		}
+		if move.To != SquareA1 && move.To == pos.Enpassant {
+			move.MoveType = Enpassant
+			move.Capture = ColorFigure(pos.ToMove.Other(), Pawn)
+		} else {
+			move.Capture = pos.Get(move.To)
+		}
+		e -= 2
+
+		// Ignore 'x' (capture) or '-' (no capture) if present.
+		if e-1 >= b && (s[e-1] == 'x' || s[e-1] == '-') {
 			e--
 		}
-	}
 
-	// Handle destination square.
-	if e-2 < b {
-		return Move{}, errorWrongLength
-	}
-	var err error
-	m.To, err = SquareFromString(s[e-2 : e])
-	if err != nil {
-		return Move{}, err
-	}
-	if m.To != SquareA1 && m.To == pos.Enpassant {
-		m.MoveType = Enpassant
-		m.Capture = ColorFigure(pos.ToMove.Other(), Pawn)
-	} else {
-		m.Capture = pos.Get(m.To)
-	}
-	e -= 2
-
-	// Ignore 'x' (capture) or '-' (no capture) if present.
-	if e-1 >= b && (s[e-1] == 'x' || s[e-1] == '-') {
-		e--
-	}
-
-	// Parse disambiguation.
-	r, f := -1, -1
-	if e-b > 2 {
-		return Move{}, errorBadDisambiguation
-	}
-	for ; b < e; b++ {
-		switch {
-		case 'a' <= s[b] && s[b] <= 'h':
-			f = int(s[b] - 'a')
-		case '1' <= s[b] && s[b] <= '8':
-			r = int(s[b] - '1')
-		default:
+		// Parse disambiguation.
+		if e-b > 2 {
 			return Move{}, errorBadDisambiguation
+		}
+		for ; b < e; b++ {
+			switch {
+			case 'a' <= s[b] && s[b] <= 'h':
+				f = int(s[b] - 'a')
+			case '1' <= s[b] && s[b] <= '8':
+				r = int(s[b] - '1')
+			default:
+				return Move{}, errorBadDisambiguation
+			}
 		}
 	}
 
 	// Loop through all moves and find out one that matches.
 	moves := pos.GenerateFigureMoves(piece.Figure(), nil)
 	for _, pm := range moves {
-		if pm.MoveType != m.MoveType || pm.Capture != m.Capture {
+		if pm.MoveType != move.MoveType || pm.Capture != move.Capture {
 			continue
 		}
-		if pm.To != m.To || pm.Target != m.Target {
+		if pm.To != move.To || pm.Target != move.Target {
 			continue
 		}
 		if r != -1 && pm.From.Rank() != r {
@@ -136,10 +174,10 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 // MoveToUCI converts a move to UCI format.
 // The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
 // incorrectly states that this is long algebraic notation (LAN).
-func (pos *Position) MoveToUCI(m Move) string {
-	r := m.From.String() + m.To.String()
-	if m.MoveType == Promotion {
-		r += string(pieceToSymbol[m.Target])
+func (pos *Position) MoveToUCI(move Move) string {
+	r := move.From.String() + move.To.String()
+	if move.MoveType == Promotion {
+		r += string(pieceToSymbol[move.Target])
 	}
 	return r
 }
