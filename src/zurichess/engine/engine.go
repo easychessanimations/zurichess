@@ -249,11 +249,11 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	}
 
 	entry := HashEntry{
-		Lock:  eng.Position.Zobrist,
-		Score: score,
-		Depth: eng.maxPly - ply,
-		Move:  move,
-		Kind:  kind,
+		Lock:   eng.Position.Zobrist,
+		Score:  score,
+		Depth:  eng.maxPly - ply,
+		Killer: move,
+		Kind:   kind,
 	}
 
 	GlobalHashTable.Put(entry)
@@ -308,14 +308,41 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	return alpha
 }
 
-// negamax implements negamax framework with fail-soft.
+func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
+	color := eng.Position.ToMove
+	eng.DoMove(move)
+	if eng.Position.IsChecked(color) {
+		eng.UndoMove(move)
+		return -InfinityScore
+	}
+	score := -eng.negamax(-beta, -alpha, ply+1)
+	if score > KnownWinScore {
+		// If the position is a win the score is decreased
+		// slightly to the search takes the shortest path.
+		score--
+	}
+	eng.UndoMove(move)
+	return score
+}
+
+// negamax implements negamax framework.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
+//
+// negamax fails soft, i.e. the score returned can be outside the bounds.
+// https://chessprogramming.wikispaces.com/Fail-Soft
+//
 // alpha, beta represent lower and upper bounds.
 // ply is the move number (increasing).
-// Returns best move and a score.
-// If score <= alpha then the search failed low
-// else if score >= beta then the search failed high
-// else score is exact.
+// Returns the score of the current position up to maxPly - ply depth.
+// Returned score is from current player's POV.
+//
+// Invariants:
+//   If score <= alpha then the search failed low
+//   else if score >= beta then the search failed high
+//   else score is exact.
+//
+// Assuming this is a maximizing nodes, failing high means that an ancestore
+// minimizing nodes already have a better alternative.
 func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
@@ -323,29 +350,29 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	}
 
 	// Check the transposition table.
-	if entry, ok := eng.retrieveHash(); ok {
+	entry, has := eng.retrieveHash()
+	if has {
 		if eng.maxPly-ply > entry.Depth {
 			// Wrong depth, so search cannot be pruned.
-			// TODO: killer move.
 			goto EndCacheCheck
 		}
 		if entry.Kind == Exact {
 			// Simply return if the score is exact.
-			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
+			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
 			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= alpha {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
-			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
+			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
 			return entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
-			eng.updateHash(alpha, beta, ply, entry.Move, entry.Score)
+			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
 			return beta
 		}
 	}
@@ -357,10 +384,26 @@ EndCacheCheck:
 		return score
 	}
 
-	// Fail soft, i.e. the score returned can be lower than alpha.
-	// https://chessprogramming.wikispaces.com/Fail-Soft
 	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
+
+	// Try the killer move first.
+	// Entry may not have a killer move for cached quiesce moves.
+	if has && entry.Killer.MoveType != NoMove {
+		score := eng.tryMove(localAlpha, beta, ply, entry.Killer)
+		if score >= beta { // Fail high.
+			eng.updateHash(alpha, beta, ply, entry.Killer, beta)
+			return beta
+		}
+		if score > bestScore {
+			bestMove, bestScore = entry.Killer, score
+			if score > localAlpha {
+				localAlpha = score
+			}
+		}
+	}
+
+	// Try all moves if the killer move failed to produce a cut-off.
 	moveGen := NewMoveGenerator(eng.Position, false)
 	for start, piece := len(eng.moves), WhitePawn; piece != NoPiece; {
 		if len(eng.moves) == start {
@@ -369,26 +412,9 @@ EndCacheCheck:
 		}
 
 		move := eng.popMove()
-		eng.DoMove(move)
-
-		if eng.Position.IsChecked(color) {
-			eng.UndoMove(move)
-			continue
-		}
-
-		score := -eng.negamax(-beta, -localAlpha, ply+1)
-		if score > KnownWinScore {
-			// If the position is a win the score is decreased
-			// slightly to the search takes the shortest path.
-			score--
-		}
-
-		if score >= beta {
-			// Failing high because the minimizing nodes already
-			// have a better alternative.
-			eng.UndoMove(move)
+		score := eng.tryMove(localAlpha, beta, ply, move)
+		if score >= beta { // Fail high.
 			eng.moves = eng.moves[:start]
-			// Hash must be updated after the move is undone.
 			eng.updateHash(alpha, beta, ply, move, beta)
 			return beta
 		}
@@ -398,16 +424,9 @@ EndCacheCheck:
 				localAlpha = score
 			}
 		}
-		eng.UndoMove(move)
 	}
 
-	if bestScore >= beta {
-		// Sanity check. We shouldn't have got here if
-		// search failed high.
-		panic(fmt.Sprintf("fail-high not expected: α=%d, β=%d, bestScore=%d",
-			alpha, beta, bestScore))
-	}
-
+	// If no move was found current then the game is over.
 	if bestMove.MoveType == NoMove {
 		if eng.Position.IsChecked(color) {
 			return -MateScore
@@ -420,6 +439,7 @@ EndCacheCheck:
 	return bestScore
 }
 
+// Returned score is from current White's POV.
 func (eng *Engine) alphaBeta() int16 {
 	score := eng.negamax(-InfinityScore, +InfinityScore, 0)
 	score *= int16(ColorWeight[eng.Position.ToMove])
@@ -432,10 +452,10 @@ func (eng *Engine) getPrincipalVariation() []Move {
 	moves := make([]Move, 0)
 
 	next := eng.root
-	for !seen[next.Lock] && next.Kind != NoKind && next.Move.MoveType != NoMove {
+	for !seen[next.Lock] && next.Kind != NoKind && next.Killer.MoveType != NoMove {
 		seen[next.Lock] = true
-		moves = append(moves, next.Move)
-		eng.DoMove(next.Move)
+		moves = append(moves, next.Killer)
+		eng.DoMove(next.Killer)
 		next, _ = GlobalHashTable.Get(eng.Position.Zobrist)
 	}
 
@@ -472,11 +492,10 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 				fmt.Printf(" %v", move)
 			}
 			fmt.Printf("\n")
-
 		}
 	}
 
-	move := eng.root.Move
+	move := eng.root.Killer
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalement or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {

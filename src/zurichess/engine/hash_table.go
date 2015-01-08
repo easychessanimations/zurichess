@@ -19,11 +19,11 @@ const (
 type HashEntry struct {
 	// Lock is used to handle hasing confligs.
 	// Normally, Lock is the position's zobrist key.
-	Lock  uint64
-	Score int16    // score of the position
-	Depth int16    // remaingin searching depth
-	Move  Move     // best move found
-	Kind  HashKind // type of hash
+	Lock   uint64
+	Score  int16    // score of the position
+	Depth  int16    // remaingin searching depth
+	Killer Move     // killer or best move found
+	Kind   HashKind // type of hash
 }
 
 // HashTable is a transposition table.
