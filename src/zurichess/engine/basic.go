@@ -168,6 +168,7 @@ const (
 	Enpassant
 )
 
+// Move stores a position dependent move.
 type Move struct {
 	From, To       Square // Source and destination
 	Capture        Piece  // Which piece is captured
@@ -177,7 +178,23 @@ type Move struct {
 	SavedCastle    Castle // Old castle rights
 }
 
-func (m Move) String() string {
+// Piece returns the piece moved.
+func (m *Move) Piece() Piece {
+	if m.MoveType != Promotion {
+		return m.Target
+	}
+	return ColorFigure(m.Target.Color(), Pawn)
+}
+
+// Promotion return the promovated piece if any.
+func (m *Move) Promotion() Piece {
+	if m.MoveType != Promotion {
+		return NoPiece
+	}
+	return m.Target
+}
+
+func (m *Move) String() string {
 	r := m.From.String() + m.To.String()
 	if m.MoveType == Promotion {
 		r += string(pieceToSymbol[m.Target])
