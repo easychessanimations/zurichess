@@ -162,7 +162,7 @@ func (pos *Position) PrettyPrint() {
 		line := ""
 		for f := 0; f < 8; f++ {
 			sq := RankFile(r, f)
-			if sq == pos.Enpassant {
+			if sq != SquareA1 && sq == pos.Enpassant {
 				line += ","
 			} else {
 				line += string(pieceToSymbol[pos.Get(sq)])
