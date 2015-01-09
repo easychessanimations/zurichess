@@ -194,7 +194,7 @@ func (m *Move) Promotion() Piece {
 	return m.Target
 }
 
-func (m *Move) String() string {
+func (m Move) String() string {
 	r := m.From.String() + m.To.String()
 	if m.MoveType == Promotion {
 		r += string(pieceToSymbol[m.Target])

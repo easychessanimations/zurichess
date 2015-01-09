@@ -23,7 +23,7 @@ type moveSorter []Move
 
 // aggressor returns the aggressor's score.
 func aggressor(m Move) int {
-	return FigureBonus[m.Piece().Figure()][MidGame]
+	return 1 + FigureBonus[m.Piece().Figure()][MidGame]
 }
 
 // victim return the victim's score.
@@ -44,10 +44,12 @@ func (c moveSorter) Less(i, j int) bool {
 	return aggressor(c[i])*victim(c[j]) > aggressor(c[j])*victim(c[i])
 }
 
+// EngineOptions keeps engine's optins.
 type EngineOptions struct {
 	AnalyseMode bool // True to display info strings.
 }
 
+// EngineStats stores some basic stats on the engine.
 type EngineStats struct {
 	CacheHit  uint64
 	CacheMiss uint64

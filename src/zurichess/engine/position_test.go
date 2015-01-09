@@ -64,23 +64,23 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 }
 
 func (te *testEngine) Knight(expected []string) {
-	actual := te.Pos.genKnightMoves(nil)
+	actual := te.Pos.genKnightMoves(false, nil)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Bishop(expected []string) {
-	actual := te.Pos.genBishopMoves(nil, Bishop)
+	actual := te.Pos.genBishopMoves(Bishop, false, nil)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Rook(expected []string) {
-	actual := te.Pos.genRookMoves(nil, Rook)
+	actual := te.Pos.genRookMoves(Rook, false, nil)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Queen(expected []string) {
-	actual := te.Pos.genBishopMoves(nil, Queen)
-	actual = te.Pos.genRookMoves(actual, Queen)
+	actual := te.Pos.genBishopMoves(Queen, false, nil)
+	actual = te.Pos.genRookMoves(Queen, false, actual)
 	testMoves(te.T, actual, expected)
 }
 
@@ -379,11 +379,11 @@ func TestgenPawnAdvanceMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.ToMove = White
-	moves := pos.genPawnAdvanceMoves(nil)
+	moves := pos.genPawnAdvanceMoves(false, nil)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
 	pos.ToMove = Black
-	moves = pos.genPawnAdvanceMoves(nil)
+	moves = pos.genPawnAdvanceMoves(false, nil)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
 

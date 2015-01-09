@@ -69,10 +69,6 @@ type Position struct {
 	Castle    Castle
 	Enpassant Square
 	Zobrist   uint64
-
-	// A mask where pieces are not allowed to moved.
-	// Used mainly to generate only captures and promotions.
-	moveMask Bitboard
 }
 
 // SetCastle sets the side to move, correctly updating the zobriest key.
@@ -279,37 +275,38 @@ func (pos *Position) UndoMove(move Move) {
 	pos.SetEnpassantSquare(move.SavedEnpassant)
 }
 
-func (pos *Position) genPawnPromotions(from, to Square, capt Piece, moves []Move) []Move {
+func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool, moves []Move) []Move {
 	pr := to.Rank()
 	if pr != 0 && pr != 7 {
-		moveType := Normal
-		if to == pos.Enpassant {
-			moveType = Enpassant
+		if !violent || capt != NoPiece {
+			moveType := Normal
+			if pos.Enpassant != SquareA1 && to == pos.Enpassant {
+				moveType = Enpassant
+			}
+			moves = append(moves, pos.fix(Move{
+				MoveType: moveType,
+				From:     from,
+				To:       to,
+				Capture:  capt,
+				Target:   ColorFigure(pos.ToMove, Pawn),
+			}))
 		}
-		moves = append(moves, pos.fix(Move{
-			MoveType: moveType,
-			From:     from,
-			To:       to,
-			Capture:  capt,
-			Target:   ColorFigure(pos.ToMove, Pawn),
-		}))
-		return moves
-	}
-
-	for _, promo := range pawnPromotions {
-		moves = append(moves, pos.fix(Move{
-			MoveType: Promotion,
-			From:     from,
-			To:       to,
-			Capture:  capt,
-			Target:   ColorFigure(pos.ToMove, promo),
-		}))
+	} else {
+		for _, promo := range pawnPromotions {
+			moves = append(moves, pos.fix(Move{
+				MoveType: Promotion,
+				From:     from,
+				To:       to,
+				Capture:  capt,
+				Target:   ColorFigure(pos.ToMove, promo),
+			}))
+		}
 	}
 	return moves
 }
 
 // GenPawnAdvanceMoves moves pawns one square.
-func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
+func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
 	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
@@ -325,7 +322,7 @@ func (pos *Position) genPawnAdvanceMoves(moves []Move) []Move {
 	for bb != 0 {
 		from := bb.Pop()
 		to := from + forward
-		moves = pos.genPawnPromotions(from, to, NoPiece, moves)
+		moves = pos.genPawnPromotions(from, to, NoPiece, violent, moves)
 	}
 	return moves
 }
@@ -347,7 +344,7 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	for bb != 0 {
 		from := bb.Pop()
 		to := from + forward
-		moves = pos.genPawnPromotions(from, to, NoPiece, moves)
+		moves = pos.genPawnPromotions(from, to, NoPiece, false, moves)
 	}
 	return moves
 }
@@ -372,7 +369,7 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 		from := bbl.Pop()
 		to := from + att
 		capt := pos.Get(to)
-		moves = pos.genPawnPromotions(from, to, capt, moves)
+		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	// Right
@@ -382,7 +379,7 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 		from := bbr.Pop()
 		to := from + att
 		capt := pos.Get(to)
-		moves = pos.genPawnPromotions(from, to, capt, moves)
+		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	return moves
@@ -408,7 +405,7 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 		from := bbl.AsSquare()
 		to := pos.Enpassant
 		capt := ColorFigure(pos.ToMove.Other(), Pawn)
-		moves = pos.genPawnPromotions(from, to, capt, moves)
+		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	// Right
@@ -417,7 +414,7 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 		from := bbr.AsSquare()
 		to := pos.Enpassant
 		capt := ColorFigure(pos.ToMove.Other(), Pawn)
-		moves = pos.genPawnPromotions(from, to, capt, moves)
+		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	return moves
@@ -426,32 +423,20 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 
 // GenPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(moves []Move) []Move {
-	moves = pos.genPawnAdvanceMoves(moves)
+	moves = pos.genPawnAdvanceMoves(false, moves)
 	moves = pos.genPawnDoubleAdvanceMoves(moves)
 	moves = pos.genPawnEnpassantMoves(moves)
 	moves = pos.genPawnAttackMoves(moves)
 	return moves
 }
 
-func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
-	att &= ^pos.moveMask
-	att &= ^pos.ByColor[pos.ToMove]
-	other := pos.ByColor[pos.ToMove.Other()]
-
-	// First generate non-captures.
-	for bb := att &^ other; bb != 0; {
-		to := bb.Pop()
-		moves = append(moves, pos.fix(Move{
-			MoveType: Normal,
-			From:     from,
-			To:       to,
-			Capture:  NoPiece,
-			Target:   pi,
-		}))
+func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, violent bool, moves []Move) []Move {
+	if violent {
+		att &= pos.ByColor[pos.ToMove.Other()]
 	}
 
-	// Second generate captures.
-	for bb := att & other; bb != 0; {
+	att &= ^pos.ByColor[pos.ToMove]
+	for bb := att; bb != 0; {
 		to := bb.Pop()
 		moves = append(moves, pos.fix(Move{
 			MoveType: Normal,
@@ -461,54 +446,53 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves
 			Target:   pi,
 		}))
 	}
-
 	return moves
 }
 
-func (pos *Position) genKnightMoves(moves []Move) []Move {
+func (pos *Position) genKnightMoves(violent bool, moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, Knight)
 	for bb := pos.ByPiece(pos.ToMove, Knight); bb != 0; {
 		from := bb.Pop()
 		att := BbKnightAttack[from]
-		moves = pos.genBitboardMoves(pi, from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
 	}
 	return moves
 }
 
-func (pos *Position) genBishopMoves(moves []Move, fig Figure) []Move {
+func (pos *Position) genBishopMoves(fig Figure, violent bool, moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := BishopMagic[from].Attack(ref)
-		moves = pos.genBitboardMoves(pi, from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
 	}
 	return moves
 }
 
-func (pos *Position) genRookMoves(moves []Move, fig Figure) []Move {
+func (pos *Position) genRookMoves(fig Figure, violent bool, moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := RookMagic[from].Attack(ref)
-		moves = pos.genBitboardMoves(pi, from, att, moves)
+		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
 	}
 	return moves
 }
 
 // Like other gen*Moves functions it might leave the king in check.
 func (pos *Position) genKingMoves(moves []Move) []Move {
-	moves = pos.genKingMovesNear(moves)
+	moves = pos.genKingMovesNear(false, moves)
 	moves = pos.genKingCastles(moves)
 	return moves
 }
 
-func (pos *Position) genKingMovesNear(moves []Move) []Move {
+func (pos *Position) genKingMovesNear(violent bool, moves []Move) []Move {
 	pi := ColorFigure(pos.ToMove, King)
 	from := pos.ByPiece(pos.ToMove, King).AsSquare()
 	att := BbKingAttack[from]
-	moves = pos.genBitboardMoves(pi, from, att, moves)
+	moves = pos.genBitboardMoves(pi, from, att, violent, moves)
 	return moves
 }
 
@@ -617,86 +601,33 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	return false
 }
 
-// GenerateMoves is a helper to generate moves in stages.
-type MoveGenerator struct {
-	position *Position
-	state    int
-	violent  bool
-}
-
-// NewMoveGenerator returns a MoveGenerator for pos.
-// If violent is set then the MoveGenerator will try to limit generated
-// moves to captures only. It's possible a few non-captures will be returned.
-func NewMoveGenerator(pos *Position, violent bool) *MoveGenerator {
-	return &MoveGenerator{
-		position: pos,
-		state:    0,
-		violent:  violent,
-	}
-}
-
-// Next generates pseudo-legal moves,i.e. doesn't check for king check.
-func (mg *MoveGenerator) Next(moves []Move) ([]Move, bool) {
-	if mg.violent {
-		mg.position.moveMask = ^mg.position.ByColor[mg.position.ToMove.Other()]
-	} else {
-		mg.position.moveMask = BbEmpty
-	}
-
-	mg.state++
-	switch mg.state {
-	case 1:
-		moves = mg.position.genPawnEnpassantMoves(moves)
-		moves = mg.position.genPawnAttackMoves(moves)
-		return moves, true
-	case 2:
-		moves = mg.position.genKnightMoves(moves)
-		return moves, true
-	case 3:
-		moves = mg.position.genBishopMoves(moves, Bishop)
-		return moves, true
-	case 4:
-		moves = mg.position.genRookMoves(moves, Rook)
-		return moves, true
-	case 5:
-		moves = mg.position.genBishopMoves(moves, Queen)
-		return moves, true
-	case 6:
-		moves = mg.position.genRookMoves(moves, Queen)
-		return moves, true
-	case 7:
-		moves = mg.position.genKingMovesNear(moves)
-		return moves, true
-	case 8:
-		if !mg.violent {
-			moves = mg.position.genKingCastles(moves)
-			return moves, true
-		}
-	case 9:
-		if !mg.violent {
-			moves = mg.position.genPawnAdvanceMoves(moves)
-			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
-			return moves, true
-		}
-	}
-	return moves, false
-}
-
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
-	moveGen := NewMoveGenerator(pos, false)
-	for hasMore := true; hasMore; {
-		moves, hasMore = moveGen.Next(moves)
-	}
+	moves = pos.genPawnAdvanceMoves(false, moves)
+	moves = pos.genPawnAttackMoves(moves)
+	moves = pos.genPawnDoubleAdvanceMoves(moves)
+	moves = pos.genPawnEnpassantMoves(moves)
+	moves = pos.genKnightMoves(false, moves)
+	moves = pos.genBishopMoves(Bishop, false, moves)
+	moves = pos.genBishopMoves(Queen, false, moves)
+	moves = pos.genRookMoves(Rook, false, moves)
+	moves = pos.genRookMoves(Queen, false, moves)
+	moves = pos.genKingCastles(moves)
+	moves = pos.genKingMovesNear(false, moves)
 	return moves
 }
 
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateViolentMoves(moves []Move) []Move {
-	moveGen := NewMoveGenerator(pos, true)
-	for hasMore := true; hasMore; {
-		moves, hasMore = moveGen.Next(moves)
-	}
+	moves = pos.genPawnAdvanceMoves(true, moves)
+	moves = pos.genPawnAttackMoves(moves)
+	moves = pos.genPawnEnpassantMoves(moves)
+	moves = pos.genKnightMoves(true, moves)
+	moves = pos.genBishopMoves(Bishop, true, moves)
+	moves = pos.genBishopMoves(Queen, true, moves)
+	moves = pos.genRookMoves(Rook, true, moves)
+	moves = pos.genRookMoves(Queen, true, moves)
+	moves = pos.genKingMovesNear(true, moves)
 	return moves
 }
 
@@ -706,19 +637,19 @@ func (pos *Position) GenerateFigureMoves(fig Figure, moves []Move) []Move {
 	case Pawn:
 		moves = pos.genPawnEnpassantMoves(moves)
 		moves = pos.genPawnAttackMoves(moves)
-		moves = pos.genPawnAdvanceMoves(moves)
+		moves = pos.genPawnAdvanceMoves(false, moves)
 		moves = pos.genPawnDoubleAdvanceMoves(moves)
 	case Knight:
-		moves = pos.genKnightMoves(moves)
+		moves = pos.genKnightMoves(false, moves)
 	case Bishop:
-		moves = pos.genBishopMoves(moves, Bishop)
+		moves = pos.genBishopMoves(Bishop, false, moves)
 	case Rook:
-		moves = pos.genRookMoves(moves, Rook)
+		moves = pos.genRookMoves(Rook, false, moves)
 	case Queen:
-		moves = pos.genBishopMoves(moves, Queen)
-		moves = pos.genRookMoves(moves, Queen)
+		moves = pos.genBishopMoves(Queen, false, moves)
+		moves = pos.genRookMoves(Queen, false, moves)
 	case King:
-		moves = pos.genKingMovesNear(moves)
+		moves = pos.genKingMovesNear(false, moves)
 		moves = pos.genKingCastles(moves)
 	}
 	return moves
