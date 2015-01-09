@@ -98,11 +98,9 @@ func (eng *Engine) adjust(move Move, delta int) {
 	eng.put(move.To, move.Target, delta)
 
 	if move.MoveType == Castling {
-		rookStart := RookStartSquare(move.To)
-		rookEnd := RookEndSquare(move.To)
-		rook := CastlingRook(move.To)
-		eng.put(rookStart, rook, -delta)
-		eng.put(rookEnd, rook, delta)
+		rook, start, end := CastlingRook(move.To)
+		eng.put(start, rook, -delta)
+		eng.put(end, rook, delta)
 	}
 
 	if move.Capture != NoPiece {

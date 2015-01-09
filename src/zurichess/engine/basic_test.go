@@ -38,8 +38,7 @@ func TestRookSquare(t *testing.T) {
 	}
 
 	for _, d := range data {
-		rookStart := RookStartSquare(d.kingEnd)
-		rookEnd := RookEndSquare(d.kingEnd)
+		_, rookStart, rookEnd := CastlingRook(d.kingEnd)
 		if rookStart != d.rookStart || rookEnd != d.rookEnd {
 			t.Errorf("for king to %v, expected rook from %v to %v, got rook from %v to %v",
 				d.kingEnd, d.rookStart, d.rookEnd, rookStart, rookEnd)
@@ -87,10 +86,9 @@ func TestCastlingRook(t *testing.T) {
 	}
 
 	for _, d := range data {
-		rook := CastlingRook(d.kingEnd)
+		rook, _, _ := CastlingRook(d.kingEnd)
 		if rook != d.rook {
 			t.Errorf("for king to %v, expected %v, got %v", d.kingEnd, d.rook, rook)
 		}
 	}
-
 }

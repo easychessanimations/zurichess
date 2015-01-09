@@ -212,11 +212,9 @@ func (pos *Position) DoMove(move Move) {
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
-		rookStart := RookStartSquare(move.To)
-		rookEnd := RookEndSquare(move.To)
-		rook := CastlingRook(move.To)
-		pos.Remove(rookStart, rook)
-		pos.Put(rookEnd, rook)
+		rook, start, end := CastlingRook(move.To)
+		pos.Remove(start, rook)
+		pos.Put(end, rook)
 	}
 
 	// Set Enpassant square for capturing.
@@ -272,11 +270,9 @@ func (pos *Position) UndoMove(move Move) {
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
-		rookStart := RookStartSquare(move.To)
-		rookEnd := RookEndSquare(move.To)
-		rook := CastlingRook(move.To)
-		pos.Put(rookStart, rook)
-		pos.Remove(rookEnd, rook)
+		rook, start, end := CastlingRook(move.To)
+		pos.Put(start, rook)
+		pos.Remove(end, rook)
 	}
 
 	pos.SetCastlingAbility(move.SavedCastle)
