@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -14,6 +15,34 @@ var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
+
+// moveSorter implements sort.Interface.
+// Compares moves by Most Valuable Victim / Least Valuable Aggressor
+// https://chessprogramming.wikispaces.com/MVV-LVA
+type moveSorter []Move
+
+// aggressor returns the aggressor's score.
+func aggressor(m Move) int {
+	return FigureBonus[m.Piece().Figure()][MidGame]
+}
+
+// victim return the victim's score.
+// victim score also include pawn's promotion.
+func victim(m Move) int {
+	return FigureBonus[m.Capture.Figure()][MidGame] + FigureBonus[m.Promotion().Figure()][MidGame]
+}
+
+func (c moveSorter) Len() int {
+	return len(c)
+}
+
+func (c moveSorter) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+
+func (c moveSorter) Less(i, j int) bool {
+	return aggressor(c[i])*victim(c[j]) > aggressor(c[j])*victim(c[i])
+}
 
 type EngineOptions struct {
 	AnalyseMode bool // True to display info strings.
@@ -272,25 +301,15 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 	}
 
 	start := len(eng.moves)
-	moveGen := NewMoveGenerator(eng.Position, true)
-	for piece := WhitePawn; piece != NoPiece; {
-		if len(eng.moves) == start {
-			piece, eng.moves = moveGen.Next(eng.moves)
-			continue
-		}
-
+	eng.moves = eng.Position.GenerateViolentMoves(eng.moves)
+	sort.Sort(moveSorter(eng.moves[start:]))
+	for start < len(eng.moves) {
 		move := eng.popMove()
-		if move.Capture == NoPiece {
-			// For quiscence search only captures are considered.
-			continue
-		}
-
 		eng.DoMove(move)
 		if eng.Position.IsChecked(color) {
 			eng.UndoMove(move)
 			continue
 		}
-
 		score := -eng.quiesce(-beta, -alpha, ply+1)
 		if score >= beta {
 			eng.UndoMove(move)
@@ -402,13 +421,10 @@ EndCacheCheck:
 	}
 
 	// Try all moves if the killer move failed to produce a cut-off.
-	moveGen := NewMoveGenerator(eng.Position, false)
-	for start, piece := len(eng.moves), WhitePawn; piece != NoPiece; {
-		if len(eng.moves) == start {
-			piece, eng.moves = moveGen.Next(eng.moves)
-			continue
-		}
-
+	start := len(eng.moves)
+	eng.moves = eng.Position.GenerateMoves(eng.moves)
+	sort.Sort(moveSorter(eng.moves[start:]))
+	for start < len(eng.moves) {
 		move := eng.popMove()
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.

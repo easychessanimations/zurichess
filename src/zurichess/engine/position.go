@@ -71,7 +71,7 @@ type Position struct {
 	Zobrist   uint64
 
 	// A mask where pieces are not allowed to moved.
-	// Used mainly to generate only captures.
+	// Used mainly to generate only captures and promotions.
 	moveMask Bitboard
 }
 
@@ -162,7 +162,7 @@ func (pos *Position) PrettyPrint() {
 		line := ""
 		for f := 0; f < 8; f++ {
 			sq := RankFile(r, f)
-			if sq != SquareA1 && sq == pos.Enpassant {
+			if sq == pos.Enpassant {
 				line += ","
 			} else {
 				line += string(pieceToSymbol[pos.Get(sq)])
@@ -636,7 +636,7 @@ func NewMoveGenerator(pos *Position, violent bool) *MoveGenerator {
 }
 
 // Next generates pseudo-legal moves,i.e. doesn't check for king check.
-func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
+func (mg *MoveGenerator) Next(moves []Move) ([]Move, bool) {
 	if mg.violent {
 		mg.position.moveMask = ^mg.position.ByColor[mg.position.ToMove.Other()]
 	} else {
@@ -644,50 +644,58 @@ func (mg *MoveGenerator) Next(moves []Move) (Piece, []Move) {
 	}
 
 	mg.state++
-	toMove := mg.position.ToMove
 	switch mg.state {
 	case 1:
 		moves = mg.position.genPawnEnpassantMoves(moves)
 		moves = mg.position.genPawnAttackMoves(moves)
-		return ColorFigure(toMove, Pawn), moves
+		return moves, true
 	case 2:
 		moves = mg.position.genKnightMoves(moves)
-		return ColorFigure(toMove, Knight), moves
+		return moves, true
 	case 3:
 		moves = mg.position.genBishopMoves(moves, Bishop)
-		return ColorFigure(toMove, Bishop), moves
+		return moves, true
 	case 4:
 		moves = mg.position.genRookMoves(moves, Rook)
-		return ColorFigure(toMove, Rook), moves
+		return moves, true
 	case 5:
 		moves = mg.position.genBishopMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves
+		return moves, true
 	case 6:
 		moves = mg.position.genRookMoves(moves, Queen)
-		return ColorFigure(toMove, Queen), moves
+		return moves, true
 	case 7:
 		moves = mg.position.genKingMovesNear(moves)
-		return ColorFigure(toMove, King), moves
+		return moves, true
 	case 8:
 		if !mg.violent {
 			moves = mg.position.genKingCastles(moves)
-			return ColorFigure(toMove, King), moves
+			return moves, true
 		}
 	case 9:
 		if !mg.violent {
 			moves = mg.position.genPawnAdvanceMoves(moves)
 			moves = mg.position.genPawnDoubleAdvanceMoves(moves)
-			return ColorFigure(toMove, Pawn), moves
+			return moves, true
 		}
 	}
-	return NoPiece, moves
+	return moves, false
 }
 
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
 	moveGen := NewMoveGenerator(pos, false)
-	for piece := WhitePawn; piece != NoPiece; {
-		piece, moves = moveGen.Next(moves)
+	for hasMore := true; hasMore; {
+		moves, hasMore = moveGen.Next(moves)
+	}
+	return moves
+}
+
+// GenerateMoves is a helper to generate all moves.
+func (pos *Position) GenerateViolentMoves(moves []Move) []Move {
+	moveGen := NewMoveGenerator(pos, true)
+	for hasMore := true; hasMore; {
+		moves, hasMore = moveGen.Next(moves)
 	}
 	return moves
 }
