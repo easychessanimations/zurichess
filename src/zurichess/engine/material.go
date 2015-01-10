@@ -112,16 +112,3 @@ var (
 		{0, 10, 34, 35, 52, 100, 1000},             // King
 	}
 )
-
-/*
-func init() {
-	for v := FigureMinValue; v <= FigureMaxValue; v++ {
-		for a := FigureMinValue; a <= FigureMaxValue; a++ {
-			MvvLva[a][v] = 1000 * FigureBonus[v][MidGame] / FigureBonus[a][MidGame]
-		}
-		MvvLva[NoPiece][v] = 1000 * FigureBonus[v][MidGame] / FigureBonus[Pawn][MidGame]
-	}
-	fmt.Printf("%#v", MvvLva)
-	panic("foobar")
-}
-*/
