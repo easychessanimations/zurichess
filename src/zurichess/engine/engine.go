@@ -56,6 +56,10 @@ type EngineStats struct {
 	Nodes     uint64
 }
 
+func (es *EngineStats) CacheHitRatio() float32 {
+	return float32(es.CacheHit) / float32(es.CacheHit+es.CacheMiss)
+}
+
 type Engine struct {
 	Options  EngineOptions
 	Position *Position // current Position
@@ -506,10 +510,6 @@ func (eng *Engine) getPrincipalVariation() []Move {
 // Play find the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
-	if len(eng.moves) != 0 {
-		panic("not nil moves")
-	}
-
 	eng.Stats = EngineStats{}
 
 	start := time.Now()
