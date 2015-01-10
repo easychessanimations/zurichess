@@ -10,14 +10,14 @@ import (
 	"os"
 	"runtime/pprof"
 	"strings"
-	"time"
 
 	"zurichess/engine"
 )
 
 var (
 	input      = flag.String("input", "", "file with EPD lines")
-	deadline   = flag.Duration("deadline", 10*time.Second, "how much time to spend for each move")
+	deadline   = flag.Duration("deadline", 0, "how much time to spend for each move")
+	maxDepth   = flag.Int("max_depth", 0, "search up to max_depth plies")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	quiet      = flag.Bool("quiet", false, "don't print individual tests")
 )
@@ -52,6 +52,24 @@ func main() {
 	solvedTests, numTests := 0, 0
 	buf := bufio.NewReader(f)
 	for i, o := 0, 0; ; i++ {
+		// Builds time control.
+		var timeControl engine.TimeControl
+		if *deadline != 0 {
+			timeControl = &engine.OnClockTimeControl{
+				Time:      *deadline,
+				Inc:       0,
+				MovesToGo: 1,
+			}
+		} else if *maxDepth != 0 {
+			timeControl = &engine.FixedDepthTimeControl{
+				MinDepth: 1,
+				MaxDepth: *maxDepth,
+			}
+		} else {
+			log.Fatal("--deadline or --max_depth must be specified")
+		}
+
+		// Read EPD line.
 		line, err := buf.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
@@ -81,14 +99,8 @@ func main() {
 			continue
 		}
 
-		timeControl := &engine.OnClockTimeControl{
-			Time:      *deadline,
-			Inc:       0,
-			MovesToGo: 1,
-		}
-		timeControl.Start()
-
 		// Evaluate position.
+		timeControl.Start()
 		ai := engine.NewEngine(nil, engine.EngineOptions{})
 		ai.SetPosition(epd.Position)
 		actual, _ := ai.Play(timeControl)
@@ -101,7 +113,7 @@ func main() {
 		// Update number of solved games.
 		numTests++
 		var expected engine.Move
-		for _, expected := range epd.BestMove {
+		for _, expected = range epd.BestMove {
 			if expected == actual {
 				solvedTests++
 				break
