@@ -23,13 +23,13 @@ type moveSorter []Move
 
 // aggressor returns the aggressor's score.
 func aggressor(m Move) int {
-	return 1 + FigureBonus[m.Piece().Figure()][MidGame]
+	return FigureBonus[m.Piece().Figure()][MidGame]
 }
 
 // victim return the victim's score.
 // victim score also include pawn's promotion.
 func victim(m Move) int {
-	return FigureBonus[m.Capture.Figure()][MidGame] + FigureBonus[m.Promotion().Figure()][MidGame]
+	return 1 + FigureBonus[m.Capture.Figure()][MidGame] + FigureBonus[m.Promotion().Figure()][MidGame]
 }
 
 func (c moveSorter) Len() int {
@@ -41,7 +41,9 @@ func (c moveSorter) Swap(i, j int) {
 }
 
 func (c moveSorter) Less(i, j int) bool {
-	return aggressor(c[i])*victim(c[j]) > aggressor(c[j])*victim(c[i])
+	ai, aj := aggressor(c[i]), aggressor(c[j])
+	si, sj := ai*victim(c[j]), aj*victim(c[i])
+	return si > sj
 }
 
 // EngineOptions keeps engine's optins.
@@ -344,6 +346,26 @@ func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
 	return score
 }
 
+// sortByCapture moves captures and promotions last.
+// moves is Engine.moves which is a stack and needs best moves
+// last for early high-cutoffs.
+// Returns position of first capture.
+func sortByCapture(moves []Move) int {
+	i, j := 0, len(moves)-1
+	for i < j {
+		for ; i < j && (moves[i].Capture == NoPiece && moves[i].MoveType != Promotion); i++ {
+		}
+		for ; j > i && (moves[j].Capture != NoPiece || moves[i].MoveType == Promotion); j-- {
+		}
+		if i < j {
+			moves[i], moves[j] = moves[j], moves[i]
+			i++
+			j--
+		}
+	}
+	return i
+}
+
 // negamax implements negamax framework.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 //
@@ -425,7 +447,8 @@ EndCacheCheck:
 	// Try all moves if the killer move failed to produce a cut-off.
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	sort.Sort(moveSorter(eng.moves[start:]))
+	pivot := sortByCapture(eng.moves[start:])
+	sort.Sort(moveSorter(eng.moves[start+pivot:]))
 	for start < len(eng.moves) {
 		move := eng.popMove()
 		score := eng.tryMove(localAlpha, beta, ply, move)

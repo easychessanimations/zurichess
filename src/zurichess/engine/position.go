@@ -434,7 +434,6 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, viole
 	if violent {
 		att &= pos.ByColor[pos.ToMove.Other()]
 	}
-
 	att &= ^pos.ByColor[pos.ToMove]
 	for bb := att; bb != 0; {
 		to := bb.Pop()
@@ -603,17 +602,18 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 
 // GenerateMoves is a helper to generate all moves.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
-	moves = pos.genPawnAdvanceMoves(false, moves)
 	moves = pos.genPawnAttackMoves(moves)
-	moves = pos.genPawnDoubleAdvanceMoves(moves)
 	moves = pos.genPawnEnpassantMoves(moves)
 	moves = pos.genKnightMoves(false, moves)
 	moves = pos.genBishopMoves(Bishop, false, moves)
-	moves = pos.genBishopMoves(Queen, false, moves)
 	moves = pos.genRookMoves(Rook, false, moves)
+	moves = pos.genBishopMoves(Queen, false, moves)
 	moves = pos.genRookMoves(Queen, false, moves)
-	moves = pos.genKingCastles(moves)
+
+	moves = pos.genPawnAdvanceMoves(false, moves)
 	moves = pos.genKingMovesNear(false, moves)
+	moves = pos.genKingCastles(moves)
+	moves = pos.genPawnDoubleAdvanceMoves(moves)
 	return moves
 }
 
