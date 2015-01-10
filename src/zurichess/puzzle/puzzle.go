@@ -19,6 +19,7 @@ var (
 	input      = flag.String("input", "", "file with EPD lines")
 	deadline   = flag.Duration("deadline", 10*time.Second, "how much time to spend for each move")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	quiet      = flag.Bool("quiet", false, "don't print individual tests")
 )
 
 func main() {
@@ -45,10 +46,10 @@ func main() {
 	}
 	defer f.Close()
 
-	globalStats := engine.EngineStats{}
+	stats := engine.EngineStats{}
 
 	// Read file line by line.
-	good, total := 0, 0
+	solvedTests, numTests := 0, 0
 	buf := bufio.NewReader(f)
 	for i, o := 0, 0; ; i++ {
 		line, err := buf.ReadString('\n')
@@ -93,34 +94,39 @@ func main() {
 		actual, _ := ai.Play(timeControl)
 
 		// Update stats.
-		total++
-		expected := epd.BestMove[0]
-		if expected == actual {
-			good++
+		stats.CacheHit += ai.Stats.CacheHit
+		stats.CacheMiss += ai.Stats.CacheMiss
+		stats.Nodes += ai.Stats.Nodes
+
+		// Update number of solved games.
+		numTests++
+		var expected engine.Move
+		for _, expected := range epd.BestMove {
+			if expected == actual {
+				solvedTests++
+				break
+			}
 		}
 
-		// Print a header from time to time.
-		if o%25 == 0 {
-			fmt.Println()
-			fmt.Println("line     bm actual  cache  nodes  correct epd")
-			fmt.Println("----+------+------+------+------+--------+---")
+		if !*quiet {
+			// Print a header from time to time.
+			if o%25 == 0 {
+				fmt.Println()
+				fmt.Println("line     bm actual  cache  nodes  correct epd")
+				fmt.Println("----+------+------+------+------+--------+---")
+			}
+
+			// Print results.
+			fmt.Printf("%4d %6s %6s %5.2f%% %5dK %4d/%4d %s\n",
+				i+1, expected.String(), actual.String(),
+				float32(ai.Stats.CacheHit)/float32(ai.Stats.CacheHit+ai.Stats.CacheMiss)*100,
+				ai.Stats.Nodes/1000, solvedTests, numTests, line)
+			o++
 		}
-
-		// Print results.
-		stats := ai.Stats
-		fmt.Printf("%4d %6s %6s %5.2f%% %5dK %4d/%4d %s\n",
-			i+1, expected.String(), actual.String(),
-			float32(stats.CacheHit)/float32(stats.CacheHit+stats.CacheMiss)*100,
-			stats.Nodes/1000, good, total, line)
-		o++
-
-		globalStats.CacheHit += stats.CacheHit
-		globalStats.CacheMiss += stats.CacheMiss
-		globalStats.Nodes += stats.Nodes
 	}
 
-	fmt.Println("CacheHit:  ", globalStats.CacheHit)
-	fmt.Println("CacheMiss: ", globalStats.CacheMiss)
-	fmt.Println("Nodes:     ", globalStats.Nodes)
-	fmt.Println("Solved:    ", good, "out of", total)
+	fmt.Printf("%s solved %d out of %d ; nodes %d ; cachehit %d out of %d (%.2f%%) ;\n",
+		*input, solvedTests, numTests, stats.Nodes,
+		stats.CacheHit, stats.CacheHit+stats.CacheMiss,
+		stats.CacheHitRatio()*100)
 }
