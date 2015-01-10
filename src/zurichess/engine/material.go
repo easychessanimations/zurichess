@@ -102,6 +102,7 @@ var (
 		},
 	}
 
+	// MvvLva[attacker][victim]
 	MvvLva = [FigureArraySize][FigureArraySize]int{
 		{0, 1000, 3450, 3550, 5250, 10000, 100000}, // Promotion
 		{0, 1000, 3450, 3550, 5250, 10000, 100000}, // Pawn
