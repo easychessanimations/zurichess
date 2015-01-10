@@ -4,7 +4,6 @@ package engine
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -120,7 +119,6 @@ var handleMap = map[string]func(edp *EPD, n *operationNode) error{
 func handleOperationNode(epd *EPD, n *operationNode) error {
 	for ; n != nil; n = n.next {
 		if f, ok := handleMap[n.operator.str]; !ok {
-			log.Println("unhandled operation", n.operator.str)
 			continue
 		} else if err := f(epd, n); err != nil {
 			return err
