@@ -101,4 +101,27 @@ var (
 			{-30, -50}, {-40, -40}, {-40, -30}, {-50, -20}, {-50, -20}, {-40, -30}, {-40, -40}, {-30, -50},
 		},
 	}
+
+	MvvLva = [FigureArraySize][FigureArraySize]int{
+		{0, 1000, 3450, 3550, 5250, 10000, 100000}, // Promotion
+		{0, 1000, 3450, 3550, 5250, 10000, 100000}, // Pawn
+		{0, 289, 1000, 1028, 1521, 2898, 28985},    // Knight
+		{0, 281, 971, 1000, 1478, 2816, 28169},     // Bishop
+		{0, 190, 657, 676, 1000, 1904, 19047},      // Rook
+		{0, 100, 345, 355, 525, 1000, 10000},       // Queen
+		{0, 10, 34, 35, 52, 100, 1000},             // King
+	}
 )
+
+/*
+func init() {
+	for v := FigureMinValue; v <= FigureMaxValue; v++ {
+		for a := FigureMinValue; a <= FigureMaxValue; a++ {
+			MvvLva[a][v] = 1000 * FigureBonus[v][MidGame] / FigureBonus[a][MidGame]
+		}
+		MvvLva[NoPiece][v] = 1000 * FigureBonus[v][MidGame] / FigureBonus[Pawn][MidGame]
+	}
+	fmt.Printf("%#v", MvvLva)
+	panic("foobar")
+}
+*/

@@ -21,15 +21,13 @@ var (
 // https://chessprogramming.wikispaces.com/MVV-LVA
 type moveSorter []Move
 
-// aggressor returns the aggressor's score.
-func aggressor(m Move) int {
-	return FigureBonus[m.Piece().Figure()][MidGame]
-}
-
-// victim return the victim's score.
-// victim score also include pawn's promotion.
-func victim(m Move) int {
-	return 1 + FigureBonus[m.Capture.Figure()][MidGame] + FigureBonus[m.Promotion().Figure()][MidGame]
+func score(m Move) int {
+	c := m.Capture.Figure()
+	t := m.Target.Figure()
+	if m.MoveType != Promotion {
+		return MvvLva[t][c]
+	}
+	return MvvLva[Pawn][c] + MvvLva[NoFigure][t]
 }
 
 func (c moveSorter) Len() int {
@@ -41,9 +39,9 @@ func (c moveSorter) Swap(i, j int) {
 }
 
 func (c moveSorter) Less(i, j int) bool {
-	ai, aj := aggressor(c[i]), aggressor(c[j])
-	si, sj := ai*victim(c[j]), aj*victim(c[i])
-	return si > sj
+	si := score(c[i])
+	sj := score(c[j])
+	return si < sj
 }
 
 // EngineOptions keeps engine's optins.

@@ -18,11 +18,21 @@
                 ]
         },
         {
-                "name": "stockfish",
+                "name": "stockfish5",
                 "command": "/usr/games/stockfish",
                 "protocol": "uci",
                 "initStrings": [
                         "setoption name Skill Level value 5\n",
+                        "setoption name Threads value 1\n",
+                        "setoption name Ponder value false\n"
+                ]
+        },
+        {
+                "name": "stockfish6",
+                "command": "/usr/games/stockfish",
+                "protocol": "uci",
+                "initStrings": [
+                        "setoption name Skill Level value 6\n",
                         "setoption name Threads value 1\n",
                         "setoption name Ponder value false\n"
                 ]

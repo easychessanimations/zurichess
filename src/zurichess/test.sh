@@ -31,5 +31,5 @@ cutechess-cli \
         -openings file=2moves_v1.pgn format=pgn order=random \
         -engine conf=$1 \
         -engine conf=$2 \
-        -engine conf=stockfish \
+        -engine conf=stockfish5 \
         -each tc=40/15+0.05 proto=uci
