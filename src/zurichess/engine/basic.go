@@ -183,7 +183,7 @@ func (m *Move) Piece() Piece {
 	if m.MoveType != Promotion {
 		return m.Target
 	}
-	return ColorFigure(m.Target.Color(), Pawn)
+	return Piece(Pawn<<2) + m.Target&3
 }
 
 // Promotion return the promovated piece if any.
