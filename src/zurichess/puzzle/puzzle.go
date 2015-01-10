@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -15,13 +16,24 @@ import (
 )
 
 var (
-	input    = flag.String("input", "", "file with EPD lines")
-	deadline = flag.Duration("deadline", 10*time.Second, "how much time to spend for each move")
+	input      = flag.String("input", "", "file with EPD lines")
+	deadline   = flag.Duration("deadline", 10*time.Second, "how much time to spend for each move")
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 )
 
 func main() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
+
+	// Enable cpuprofile.
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	// Opens input.
 	if *input == "" {
