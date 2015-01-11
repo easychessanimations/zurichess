@@ -2,6 +2,12 @@
 // Every piece gets a bonus depending on the position on the table.
 package engine
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 const (
 	MidGame = 0
 	EndGame = 1
@@ -102,14 +108,54 @@ var (
 		},
 	}
 
-	// MvvLva[attacker][victim]
-	MvvLva = [FigureArraySize][FigureArraySize]int{
-		{0, 369, 902, 1432, 2102, 2534, 20000},   // Promotion
-		{0, 1017, 1151, 1735, 2093, 2146, 20000}, // Pawn
-		{0, 454, 1213, 1602, 2410, 2973, 20000},  // Knight
-		{0, 447, 641, 1340, 1906, 2740, 20000},   // BIshop
-		{0, 24, 599, 1174, 1737, 2565, 20000},    // Rook
-		{0, 81, 521, 1074, 1604, 1972, 20000},    // Queen
-		{0, 981, 1815, 1839, 2673, 3391, 20000},  // King
+	// See MvvLva()
+	// mvvLva[attacker * FigureSize + victim]
+	mvvLva = [FigureArraySize * FigureArraySize]int{
+		0, 369, 902, 1432, 2102, 2534, 20000, // Promotion
+		0, 1017, 1151, 1735, 2093, 2146, 20000, // Pawn
+		0, 454, 1213, 1602, 2410, 2973, 20000, // Knight
+		0, 447, 641, 1340, 1906, 2740, 20000, // Bishop
+		0, 24, 599, 1174, 1737, 2565, 20000, // Rook
+		0, 81, 521, 1074, 1604, 1972, 20000, // Queen
+		0, 981, 1815, 1839, 2673, 3391, 20000, // King
 	}
 )
+
+// SetMaterialValue updates array from a string.
+// str has format "value,value,...,value" (no spaces and no quotes).
+// value can be empty to let the value intact.
+// The number of values has to match the array size.
+func SetMaterialValue(name string, array []int, str string) error {
+	fields := strings.Split(str, ",")
+	if len(fields) != len(array) {
+		return fmt.Errorf("%s: expected %d elements, got %d",
+			name, len(array), len(fields))
+	}
+	for _, f := range fields {
+		if f != "" {
+			if _, err := strconv.ParseInt(f, 10, 0); err != nil {
+				return fmt.Errorf("%s: %v", name, err)
+			}
+		}
+	}
+	for i, f := range fields {
+		if f != "" {
+			value, _ := strconv.ParseInt(f, 10, 32)
+			array[i] = int(value)
+		}
+	}
+	return nil
+}
+
+func SetMvvLva(str string) error {
+	return SetMaterialValue("MvvLva", mvvLva[:], str)
+}
+
+// MvvLva returns a ordering score.
+// MvvLva stands for "Most valuable victim, Least valuable attacker".
+// See https://chessprogramming.wikispaces.com/MVV-LVA
+// In zurichess the MVV/LVA formula is not used,
+// but the values are optimized and stored in mvvLva array.
+func MvvLva(att, capt Figure) int {
+	return mvvLva[int(att)*FigureArraySize+int(capt)]
+}

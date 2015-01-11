@@ -25,9 +25,10 @@ func score(m Move) int {
 	c := m.Capture.Figure()
 	t := m.Target.Figure()
 	if m.MoveType != Promotion {
-		return MvvLva[t][c]
+		return MvvLva(t, c)
+	} else {
+		return MvvLva(Pawn, c) + MvvLva(NoFigure, t)
 	}
-	return MvvLva[Pawn][c] + MvvLva[NoFigure][t]
 }
 
 func (c moveSorter) Len() int {
