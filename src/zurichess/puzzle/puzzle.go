@@ -20,11 +20,18 @@ var (
 	maxDepth   = flag.Int("max_depth", 0, "search up to max_depth plies")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	quiet      = flag.Bool("quiet", false, "don't print individual tests")
+
+	mvvLva   = flag.String("mvv_lva", "", "set MvvLva table")
+	maxNodes = flag.Uint64("max_nodes", 0, "maximum nodes to search")
 )
 
 func main() {
 	log.SetFlags(log.Lshortfile)
 	flag.Parse()
+
+	if *mvvLva != "" {
+		engine.SetMvvLva(*mvvLva)
+	}
 
 	// Enable cpuprofile.
 	if *cpuprofile != "" {
@@ -105,11 +112,6 @@ func main() {
 		ai.SetPosition(epd.Position)
 		actual, _ := ai.Play(timeControl)
 
-		// Update stats.
-		stats.CacheHit += ai.Stats.CacheHit
-		stats.CacheMiss += ai.Stats.CacheMiss
-		stats.Nodes += ai.Stats.Nodes
-
 		// Update number of solved games.
 		numTests++
 		var expected engine.Move
@@ -134,6 +136,14 @@ func main() {
 				float32(ai.Stats.CacheHit)/float32(ai.Stats.CacheHit+ai.Stats.CacheMiss)*100,
 				ai.Stats.Nodes/1000, solvedTests, numTests, line)
 			o++
+		}
+
+		// Update stats.
+		stats.CacheHit += ai.Stats.CacheHit
+		stats.CacheMiss += ai.Stats.CacheMiss
+		stats.Nodes += ai.Stats.Nodes
+		if *maxNodes != 0 && stats.Nodes > *maxNodes {
+			break
 		}
 	}
 
