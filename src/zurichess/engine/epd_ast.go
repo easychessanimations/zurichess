@@ -7,12 +7,34 @@ import (
 	"strings"
 )
 
+type castleInfo struct {
+	Castle Castle
+	Piece  [2]Piece
+	Square [2]Square
+}
+
 var (
-	symbolToCastle = map[rune]Castle{
-		'K': WhiteOO,
-		'Q': WhiteOOO,
-		'k': BlackOO,
-		'q': BlackOOO,
+	symbolToCastleInfo = map[rune]castleInfo{
+		'K': castleInfo{
+			Castle: WhiteOO,
+			Piece:  [2]Piece{WhiteKing, WhiteRook},
+			Square: [2]Square{SquareE1, SquareH1},
+		},
+		'k': castleInfo{
+			Castle: BlackOO,
+			Piece:  [2]Piece{BlackKing, BlackRook},
+			Square: [2]Square{SquareE8, SquareH8},
+		},
+		'Q': castleInfo{
+			Castle: WhiteOOO,
+			Piece:  [2]Piece{WhiteKing, WhiteRook},
+			Square: [2]Square{SquareE1, SquareA1},
+		},
+		'q': castleInfo{
+			Castle: BlackOOO,
+			Piece:  [2]Piece{BlackKing, BlackRook},
+			Square: [2]Square{SquareE8, SquareA8},
+		},
 	}
 
 	symbolToColor = map[string]Color{
@@ -73,7 +95,7 @@ func handlePositionNode(epd *EPD, n *positionNode) error {
 	} else {
 		epd.Position.SetSideToMove(sideToMove)
 	}
-	if castlingAbility, err := parseCastlingAbility(n.castlingAbility.str); err != nil {
+	if castlingAbility, err := parseCastlingAbility(epd.Position, n.castlingAbility.str); err != nil {
 		return newLeafError(n.castlingAbility, err)
 	} else {
 		epd.Position.SetCastlingAbility(castlingAbility)
@@ -167,16 +189,21 @@ func parseSideToMove(str string) (Color, error) {
 	return NoColor, fmt.Errorf("invalid color %s", str)
 }
 
-func parseCastlingAbility(str string) (Castle, error) {
+func parseCastlingAbility(pos *Position, str string) (Castle, error) {
 	if str == "-" {
 		return NoCastle, nil
 	}
 	ability := NoCastle
 	for _, p := range str {
-		if mask, ok := symbolToCastle[p]; !ok {
+		info, ok := symbolToCastleInfo[p]
+		if !ok {
 			return NoCastle, fmt.Errorf("invalid castling ability %s", str)
-		} else {
-			ability |= mask
+		}
+		for i := 0; i < 2; i++ {
+			if info.Piece[i] != pos.Get(info.Square[i]) {
+				return NoCastle, fmt.Errorf("expected %v at %v, got %v",
+					info.Piece[i], info.Square[i], pos.Get(info.Square[i]))
+			}
 		}
 	}
 	return ability, nil
