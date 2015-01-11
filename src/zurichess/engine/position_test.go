@@ -8,7 +8,7 @@ import (
 var (
 	_          = log.Println
 	testBoard1 = "r3k2r/3ppp2/1BB3B1/pp2P1pp/PP4PP/5b2/3PPP2/R3K2R w KQkq - 0 1"
-	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w KQkq - 0 1"
+	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w - - 0 1"
 )
 
 // testEngine is an simple engine to simplify move testing.

@@ -199,6 +199,7 @@ func parseCastlingAbility(pos *Position, str string) (Castle, error) {
 		if !ok {
 			return NoCastle, fmt.Errorf("invalid castling ability %s", str)
 		}
+		ability |= info.Castle
 		for i := 0; i < 2; i++ {
 			if info.Piece[i] != pos.Get(info.Square[i]) {
 				return NoCastle, fmt.Errorf("expected %v at %v, got %v",
