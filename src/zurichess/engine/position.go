@@ -71,6 +71,24 @@ type Position struct {
 	Zobrist   uint64
 }
 
+// Verify check the validity of the position.
+// Mostly used for debugging purposes.
+func (pos *Position) Verify() error {
+	if bb := pos.ByColor[White] & pos.ByColor[Black]; bb != 0 {
+		sq := bb.Pop()
+		return fmt.Errorf("Square %v is both White and Black", sq)
+	}
+	// Check that there is at most one king.
+	// Catches castling issues.
+	for col := ColorMinValue; col <= ColorMaxValue; col++ {
+		bb := pos.ByPiece(col, King)
+		if bb != bb.LSB() {
+			return fmt.Errorf("More than one King for %v", col)
+		}
+	}
+	return nil
+}
+
 // SetCastle sets the side to move, correctly updating the zobriest key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
 	pos.Zobrist ^= ZobriestCastle[pos.Castle]
@@ -196,13 +214,6 @@ func (pos *Position) DoMove(move Move) {
 			move, pos.ToMove, move.From, pi))
 	}
 
-	/*
-		log.Println(
-			pos.Get(move.From), "playing", move,
-			"; castling ", pos.Castle,
-			"; Enpassant", pos.Enpassant)
-	*/
-
 	// Update castling rights based on the source&target squares.
 	pos.SetCastlingAbility(pos.Castle & ^lostCastleRights[move.From] & ^lostCastleRights[move.To])
 
@@ -240,7 +251,7 @@ func (pos *Position) DoMove(move Move) {
 	pos.SetSideToMove(pos.ToMove.Other())
 }
 
-// UndoMovePiece takes back a move.
+// UndoMove takes back a move.
 // Expects the move to be valid.
 // pi must be the piece moved, i.e. the pawn in case of promotions.
 func (pos *Position) UndoMove(move Move) {
