@@ -142,17 +142,14 @@ func (bb Bitboard) AsSquare() Square {
 }
 
 // LSB picks a square in the board.
-func (bb Bitboard) lsb() Bitboard {
+// Returns empty board for empty board.
+func (bb Bitboard) LSB() Bitboard {
 	return bb & (-bb)
-	/*
-		        // golang is bad at inlining .LSB if it calls LSB
-			return Bitboard(LSB(uint64(bb)))
-	*/
 }
 
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
-	sq := (*bb).lsb()
+	sq := (*bb).LSB()
 	*bb -= sq
 	return sq.AsSquare()
 }
