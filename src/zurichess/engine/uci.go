@@ -186,6 +186,10 @@ func (uci *UCI) setoption(args []string) error {
 		}
 	case "MvvLva":
 		return SetMvvLva(args[3])
+	case "FigureBonus.MidGame":
+		return SetMaterialValue(args[1], FigureBonus[MidGame][:], args[3])
+	case "FigureBonus.EndGame":
+		return SetMaterialValue(args[1], FigureBonus[EndGame][:], args[3])
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
@@ -203,28 +207,6 @@ func (uci *UCI) setvalue(args []string) error {
 	}
 
 	switch args[0] {
-	case "PawnBonusMg":
-		FigureBonus[Pawn][MidGame] = value
-	case "KnightBonusMg":
-		FigureBonus[Knight][MidGame] = value
-	case "BishopBonusMg":
-		FigureBonus[Bishop][MidGame] = value
-	case "RookBonusMg":
-		FigureBonus[Rook][MidGame] = value
-	case "QueenBonusMg":
-		FigureBonus[Queen][MidGame] = value
-
-	case "PawnBonusEg":
-		FigureBonus[Pawn][EndGame] = value
-	case "KnightBonusEg":
-		FigureBonus[Knight][EndGame] = value
-	case "BishopBonusEg":
-		FigureBonus[Bishop][EndGame] = value
-	case "RookBonusEg":
-		FigureBonus[Rook][EndGame] = value
-	case "QueenBonusEg":
-		FigureBonus[Queen][EndGame] = value
-
 	case "BishopPairBonus":
 		BishopPairBonus = value
 	case "KnightPawnBonus":

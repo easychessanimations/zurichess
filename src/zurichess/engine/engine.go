@@ -113,8 +113,8 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 	eng.pieces[NoColor][fig] += delta
 	eng.pieces[col][fig] += delta
 
-	eng.pieceScore[MidGame] += delta * weight * FigureBonus[fig][MidGame]
-	eng.pieceScore[EndGame] += delta * weight * FigureBonus[fig][EndGame]
+	eng.pieceScore[MidGame] += delta * weight * FigureBonus[MidGame][fig]
+	eng.pieceScore[EndGame] += delta * weight * FigureBonus[EndGame][fig]
 	eng.positionScore[MidGame] += delta * weight * PieceSquareTable[fig][mask^sq][MidGame]
 	eng.positionScore[EndGame] += delta * weight * PieceSquareTable[fig][mask^sq][EndGame]
 }

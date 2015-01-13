@@ -27,14 +27,9 @@ var (
 	RookPawnPenalty int = 12
 
 	// Figure middle and end game bonuses.
-	FigureBonus = [FigureArraySize][2]int{
-		{0, 0},         // NoFigure
-		{100, 100},     // Pawn
-		{345, 345},     // Knight
-		{325, 355},     // Bishop
-		{475, 525},     // Rook
-		{975, 1000},    // Queen
-		{10000, 10000}, // King
+	FigureBonus = [2][FigureArraySize]int{
+		{0, 100, 345, 325, 475, 975, 10000},  // MidGame
+		{0, 100, 345, 355, 525, 1000, 10000}, // EndGame
 	}
 
 	// Piece Square Table from White POV.
