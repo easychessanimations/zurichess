@@ -296,8 +296,8 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	}
 }
 
-// quiesce searches a quite move.
-func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
+// quiescence searches a quite move.
+func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	score := int16(ColorWeight[color]) * eng.Score()
 	if score >= beta {
@@ -317,11 +317,11 @@ func (eng *Engine) quiesce(alpha, beta, ply int16) int16 {
 			eng.UndoMove(move)
 			continue
 		}
-		score := -eng.quiesce(-beta, -alpha, ply+1)
+		score := -eng.quiescence(-beta, -alpha, ply+1)
 		if score >= beta {
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
-			return beta
+			return score
 		}
 		if score > alpha {
 			alpha = score
@@ -385,7 +385,7 @@ func sortByCapture(moves []Move) int {
 //   else if score >= beta then the search failed high
 //   else score is exact.
 //
-// Assuming this is a maximizing nodes, failing high means that an ancestore
+// Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
 func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
@@ -417,13 +417,13 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
 			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
-			return beta
+			return entry.Score
 		}
 	}
 EndCacheCheck:
 
 	if ply == eng.maxPly {
-		score := eng.quiesce(alpha, beta, 0)
+		score := eng.quiescence(alpha, beta, 0)
 		eng.updateHash(alpha, beta, ply, Move{}, score)
 		return score
 	}
@@ -432,12 +432,12 @@ EndCacheCheck:
 	bestMove, bestScore := Move{}, -InfinityScore
 
 	// Try the killer move first.
-	// Entry may not have a killer move for cached quiesce moves.
+	// Entry may not have a killer move for cached quiescence moves.
 	if has && entry.Killer.MoveType != NoMove {
 		score := eng.tryMove(localAlpha, beta, ply, entry.Killer)
 		if score >= beta { // Fail high.
 			eng.updateHash(alpha, beta, ply, entry.Killer, beta)
-			return beta
+			return score
 		}
 		if score > bestScore {
 			bestMove, bestScore = entry.Killer, score
@@ -458,7 +458,7 @@ EndCacheCheck:
 		if score >= beta { // Fail high.
 			eng.moves = eng.moves[:start]
 			eng.updateHash(alpha, beta, ply, move, beta)
-			return beta
+			return score
 		}
 		if score > bestScore {
 			bestMove, bestScore = move, score
