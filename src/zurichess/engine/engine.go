@@ -16,10 +16,10 @@ var (
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
-// moveSorter implements sort.Interface.
+// sorterByMvvLva implements sort.Interface.
 // Compares moves by Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
-type moveSorter []Move
+type sorterByMvvLva []Move
 
 func score(m Move) int {
 	c := m.Capture.Figure()
@@ -31,18 +31,37 @@ func score(m Move) int {
 	}
 }
 
-func (c moveSorter) Len() int {
+func (c sorterByMvvLva) Len() int {
 	return len(c)
 }
 
-func (c moveSorter) Swap(i, j int) {
+func (c sorterByMvvLva) Swap(i, j int) {
 	c[i], c[j] = c[j], c[i]
 }
 
-func (c moveSorter) Less(i, j int) bool {
+func (c sorterByMvvLva) Less(i, j int) bool {
 	si := score(c[i])
 	sj := score(c[j])
 	return si < sj
+}
+
+// pivotByViolent moves captures and promotions last.
+// moves is Engine.moves which is a stack and needs best moves last for early high-cutoffs.
+// Returns position of the first violent move.
+func pivotByViolent(moves []Move) int {
+	i, j := 0, len(moves)-1
+	for i < j {
+		for ; i < j && !moves[i].IsViolent(); i++ {
+		}
+		for ; j > i && moves[j].IsViolent(); j-- {
+		}
+		if i < j {
+			moves[i], moves[j] = moves[j], moves[i]
+			i++
+			j--
+		}
+	}
+	return i
 }
 
 // EngineOptions keeps engine's optins.
@@ -309,7 +328,7 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateViolentMoves(eng.moves)
-	sort.Sort(moveSorter(eng.moves[start:]))
+	sort.Sort(sorterByMvvLva(eng.moves[start:]))
 	for start < len(eng.moves) {
 		move := eng.popMove()
 		eng.DoMove(move)
@@ -347,26 +366,6 @@ func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
 	}
 	eng.UndoMove(move)
 	return score
-}
-
-// sortByViolent moves captures and promotions last.
-// moves is Engine.moves which is a stack and needs best moves
-// last for early high-cutoffs.
-// Returns position of first capture.
-func sortByViolent(moves []Move) int {
-	i, j := 0, len(moves)-1
-	for i < j {
-		for ; i < j && !moves[i].IsViolent(); i++ {
-		}
-		for ; j > i && moves[j].IsViolent(); j-- {
-		}
-		if i < j {
-			moves[i], moves[j] = moves[j], moves[i]
-			i++
-			j--
-		}
-	}
-	return i
 }
 
 // negamax implements negamax framework.
@@ -450,8 +449,9 @@ EndCacheCheck:
 	// Try all moves if the killer move failed to produce a cut-off.
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	pivot := sortByViolent(eng.moves[start:])
-	sort.Sort(moveSorter(eng.moves[start+pivot:]))
+	pivot := pivotByViolent(eng.moves[start:])
+	sort.Sort(sorterByMvvLva(eng.moves[start+pivot:]))
+
 	for start < len(eng.moves) {
 		move := eng.popMove()
 		score := eng.tryMove(localAlpha, beta, ply, move)
