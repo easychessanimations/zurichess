@@ -436,7 +436,7 @@ EndCacheCheck:
 	if has && entry.Killer.MoveType != NoMove {
 		score := eng.tryMove(localAlpha, beta, ply, entry.Killer)
 		if score >= beta { // Fail high.
-			eng.updateHash(alpha, beta, ply, entry.Killer, beta)
+			eng.updateHash(alpha, beta, ply, entry.Killer, score)
 			return score
 		}
 		if score > bestScore {
@@ -458,7 +458,7 @@ EndCacheCheck:
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.
 			eng.moves = eng.moves[:start]
-			eng.updateHash(alpha, beta, ply, move, beta)
+			eng.updateHash(alpha, beta, ply, move, score)
 			return score
 		}
 		if score > bestScore {
@@ -509,7 +509,7 @@ func (eng *Engine) getPrincipalVariation() []Move {
 	return moves
 }
 
-// Play find the next move.
+// Play finds the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	eng.Stats = EngineStats{}
