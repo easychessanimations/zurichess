@@ -349,16 +349,16 @@ func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
 	return score
 }
 
-// sortByCapture moves captures and promotions last.
+// sortByViolent moves captures and promotions last.
 // moves is Engine.moves which is a stack and needs best moves
 // last for early high-cutoffs.
 // Returns position of first capture.
-func sortByCapture(moves []Move) int {
+func sortByViolent(moves []Move) int {
 	i, j := 0, len(moves)-1
 	for i < j {
-		for ; i < j && (moves[i].Capture == NoPiece && moves[i].MoveType != Promotion); i++ {
+		for ; i < j && !moves[i].IsViolent(); i++ {
 		}
-		for ; j > i && (moves[j].Capture != NoPiece || moves[i].MoveType == Promotion); j-- {
+		for ; j > i && moves[j].IsViolent(); j-- {
 		}
 		if i < j {
 			moves[i], moves[j] = moves[j], moves[i]
@@ -450,7 +450,7 @@ EndCacheCheck:
 	// Try all moves if the killer move failed to produce a cut-off.
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	pivot := sortByCapture(eng.moves[start:])
+	pivot := sortByViolent(eng.moves[start:])
 	sort.Sort(moveSorter(eng.moves[start+pivot:]))
 	for start < len(eng.moves) {
 		move := eng.popMove()

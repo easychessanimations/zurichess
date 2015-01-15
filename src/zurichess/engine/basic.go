@@ -191,6 +191,11 @@ func (m *Move) Promotion() Piece {
 	return m.Target
 }
 
+// IsViolent returns true if the move is violent, i.e. a capture or a promotion.
+func (m *Move) IsViolent() bool {
+	return m.Capture != NoPiece || m.MoveType == Promotion
+}
+
 func (m Move) String() string {
 	r := m.From.String() + m.To.String()
 	if m.MoveType == Promotion {
