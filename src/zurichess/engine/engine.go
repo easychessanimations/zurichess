@@ -321,7 +321,7 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	score := int16(ColorWeight[color]) * eng.Score()
 	if score >= beta {
-		return beta
+		return score
 	}
 	if score > alpha {
 		alpha = score
@@ -348,7 +348,6 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 		}
 		eng.UndoMove(move)
 	}
-
 	return alpha
 }
 
