@@ -86,7 +86,7 @@ type Engine struct {
 	Stats    EngineStats
 
 	moves []Move    // moves stack
-	root  HashEntry // transposition table
+	root  HashEntry // hash entry for the root, always set.
 
 	pieces        [ColorArraySize][FigureArraySize]int
 	pieceScore    [2]int // score for pieces for mid and end game.
@@ -293,6 +293,15 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 	return entry, ok
 }
 
+func (eng *Engine) updateRoot(ply int16, entry HashEntry) {
+	if ply == 0 {
+		if entry.Killer.MoveType == NoMove {
+			panic("expected valid move at root")
+		}
+		eng.root = entry
+	}
+}
+
 // updateHash updates GlobalHashTable with current position.
 func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	kind := Exact
@@ -309,11 +318,8 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 		Killer: move,
 		Kind:   kind,
 	}
-
+	eng.updateRoot(ply, entry)
 	GlobalHashTable.Put(entry)
-	if ply == 0 {
-		eng.root = entry
-	}
 }
 
 // quiescence searches a quite move.
@@ -386,6 +392,8 @@ func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
+//
+// At ply 0 negamax sets eng.root.
 func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	color := eng.Position.ToMove
 	if score, done := eng.EndPosition(); done {
@@ -394,34 +402,30 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 
 	// Check the transposition table.
 	entry, has := eng.retrieveHash()
-	if has {
-		if eng.maxPly-ply > entry.Depth {
-			// Wrong depth, so search cannot be pruned.
-			goto EndCacheCheck
-		}
+	if has && eng.maxPly-ply <= entry.Depth {
 		if entry.Kind == Exact {
 			// Simply return if the score is exact.
-			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
+			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= alpha {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
-			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
+			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
-			eng.updateHash(alpha, beta, ply, entry.Killer, entry.Score)
+			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 	}
-EndCacheCheck:
 
 	if ply == eng.maxPly {
+		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(alpha, beta, 0)
 		eng.updateHash(alpha, beta, ply, Move{}, score)
 		return score
@@ -468,12 +472,12 @@ EndCacheCheck:
 		}
 	}
 
-	// If no move was found current then the game is over.
+	// If no move was found then the game is over.
 	if bestMove.MoveType == NoMove {
 		if eng.Position.IsChecked(color) {
-			return -MateScore
+			bestScore = -MateScore
 		} else {
-			return 0
+			bestScore = 0
 		}
 	}
 
