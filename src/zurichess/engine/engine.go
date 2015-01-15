@@ -104,6 +104,8 @@ func NewEngine(pos *Position, opt EngineOptions) *Engine {
 	return eng
 }
 
+// SetPosition sets current position.
+// If pos == nil, the starting position is set.
 func (eng *Engine) SetPosition(pos *Position) {
 	if pos != nil {
 		eng.Position = pos
@@ -124,18 +126,18 @@ func (eng *Engine) UCIToMove(move string) Move {
 func (eng *Engine) put(sq Square, piece Piece, delta int) {
 	col := piece.Color()
 	fig := piece.Figure()
-	weight := ColorWeight[col]
 	mask := ColorMask[col]
+	weight := delta * ColorWeight[col]
 
 	eng.pieces[NoColor][NoFigure] += delta
 	eng.pieces[col][NoFigure] += delta
 	eng.pieces[NoColor][fig] += delta
 	eng.pieces[col][fig] += delta
 
-	eng.pieceScore[MidGame] += delta * weight * FigureBonus[MidGame][fig]
-	eng.pieceScore[EndGame] += delta * weight * FigureBonus[EndGame][fig]
-	eng.positionScore[MidGame] += delta * weight * PieceSquareTable[fig][mask^sq][MidGame]
-	eng.positionScore[EndGame] += delta * weight * PieceSquareTable[fig][mask^sq][EndGame]
+	eng.pieceScore[MidGame] += weight * FigureBonus[MidGame][fig]
+	eng.pieceScore[EndGame] += weight * FigureBonus[EndGame][fig]
+	eng.positionScore[MidGame] += weight * PieceSquareTable[fig][mask^sq][MidGame]
+	eng.positionScore[EndGame] += weight * PieceSquareTable[fig][mask^sq][EndGame]
 }
 
 // adjust updates score after making a move.
@@ -157,7 +159,6 @@ func (eng *Engine) adjust(move Move, delta int) {
 		eng.put(start, rook, -delta)
 		eng.put(end, rook, delta)
 	}
-
 	if move.Capture != NoPiece {
 		eng.put(move.To, move.Capture, -delta)
 	}
