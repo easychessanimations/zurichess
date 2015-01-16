@@ -11,7 +11,7 @@ user zurichess.
 ```
 #!bash
 
-$ git clone https://brtzsnr@bitbucket.org/brtzsnr/zurichess.git
+$ git clone -b release.aargau https://bitbucket.org/brtzsnr/zurichess.git
 $ cd zurichess/src/zurichess
 $ export GOPATH=`pwd`
 $ go version
