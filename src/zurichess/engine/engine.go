@@ -485,11 +485,38 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	return bestScore
 }
 
-// Returned score is from current White's POV.
-func (eng *Engine) alphaBeta() int16 {
-	score := eng.negamax(-InfinityScore, +InfinityScore, 0)
-	score *= int16(ColorWeight[eng.Position.ToMove])
-	return score
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
+// alphaBeta starts the search up to depth eng.maxPly.
+// The returned score is from current side to move POV.
+// estimated is the score from previous depths.
+func (eng *Engine) alphaBeta(estimated int16) int16 {
+	// This method only implement aspiration windows.
+	// (see https://chessprogramming.wikispaces.com/Aspiration+Windows).
+	//
+	// The gradual widening algorithm is similar to the one used by RobboLito
+	// and Stockfish and it is explained here:
+	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
+	γ, Δα, Δβ := int(estimated), 25, 25
+
+	for {
+		α := int16(γ - Δα)
+		β := int16(γ + Δβ)
+
+		score := eng.negamax(α, β, 0)
+		if score <= α {
+			Δα = min(Δα+Δα/2, int(InfinityScore)+γ)
+		} else if score >= β {
+			Δβ = min(Δβ+Δβ/2, int(InfinityScore)-γ)
+		} else {
+			return score
+		}
+	}
 }
 
 // getPrincipalVariation returns the moves.
@@ -516,16 +543,18 @@ func (eng *Engine) getPrincipalVariation() []Move {
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	eng.Stats = EngineStats{}
+	score := int16(0)
 
 	start := time.Now()
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
-		score := eng.alphaBeta()
+		score = eng.alphaBeta(score)
 		elapsed := time.Now().Sub(start)
 
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
+				maxPly, score*int16(ColorWeight[eng.Position.ToMove]),
+				eng.Stats.Nodes, elapsed/time.Millisecond,
 				eng.Stats.Nodes*uint64(time.Second)/uint64(elapsed+1))
 
 			moves := eng.getPrincipalVariation()
