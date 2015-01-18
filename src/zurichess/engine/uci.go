@@ -57,11 +57,13 @@ func (uci *UCI) Execute(line string) error {
 
 func (uci *UCI) uci(args []string) error {
 	fmt.Println("id name zurichess")
-	fmt.Println("id author Alexandru Mosoi")
+	fmt.Println("id author Alexandru Moșoi")
 	fmt.Println()
 	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", uci.Engine.Options.AnalyseMode)
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", DefaultHashTableSizeMB)
-	fmt.Printf("option name MvvLva type string default \n")
+	fmt.Printf("option name MvvLva type string\n")
+	fmt.Printf("option name FigureBonus.MidGame type string\n")
+	fmt.Printf("option name FigureBonus.EndGame type string\n")
 	fmt.Println("uciok")
 	return nil
 }
