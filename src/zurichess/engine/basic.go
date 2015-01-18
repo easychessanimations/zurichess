@@ -124,12 +124,16 @@ func (pi Piece) Figure() Figure {
 // An 8x8 bitboard.
 type Bitboard uint64
 
+// RankBb returns a bitboard with all bits on rank set.
 func RankBb(rank int) Bitboard {
-	return BbRank1 << uint(8*rank)
+	rank0 := Bitboard(0x00000000000000ff)
+	return rank0 << uint(8*rank)
 }
 
+// FileBb returns a bitboard with all bits on file set.
 func FileBb(file int) Bitboard {
-	return BbFileA << uint(file)
+	fileA := Bitboard(0x0101010101010101)
+	return fileA << uint(file)
 }
 
 // If the bitboard has a single piece, returns the occupied square.

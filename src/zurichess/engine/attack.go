@@ -172,8 +172,8 @@ func (wiz *wizard) randMagic() uint64 {
 // mask is the attack set on empty board minus the border.
 func (wiz *wizard) mask(sq Square) Bitboard {
 	// Compute border. Trick source: stockfish.
-	border := (BbRank1 | BbRank8) & ^RankBb(sq.Rank())
-	border |= (BbFileA | BbFileH) & ^FileBb(sq.File())
+	border := (RankBb(0) | RankBb(7)) & ^RankBb(sq.Rank())
+	border |= (FileBb(0) | FileBb(7)) & ^FileBb(sq.File())
 	return ^border & slidingAttack(sq, wiz.Deltas, BbEmpty)
 }
 

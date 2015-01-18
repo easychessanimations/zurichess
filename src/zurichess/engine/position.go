@@ -345,10 +345,10 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	var forward Square
 
 	if pos.ToMove == White {
-		bb &= BbRank2 & (free >> 8) & (free >> 16)
+		bb &= RankBb(1) & (free >> 8) & (free >> 16)
 		forward = RankFile(+2, 0)
 	} else {
-		bb &= BbRank7 & (free << 8) & (free << 16)
+		bb &= RankBb(6) & (free << 8) & (free << 16)
 		forward = RankFile(-2, 0)
 	}
 
