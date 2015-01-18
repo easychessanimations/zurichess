@@ -116,11 +116,6 @@ func (eng *Engine) SetPosition(pos *Position) {
 	eng.countMaterial()
 }
 
-// UCIToMove parses the move from a string.
-func (eng *Engine) UCIToMove(move string) Move {
-	return eng.Position.UCIToMove(move)
-}
-
 // put adjusts score after putting piece on sq.
 // delta is -1 if the piece is taken (including undo), 1 otherwise.
 func (eng *Engine) put(sq Square, piece Piece, delta int) {

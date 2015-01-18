@@ -105,7 +105,7 @@ func (uci *UCI) position(args []string) error {
 			return fmt.Errorf("expected 'moves', got '%s'", args[1])
 		}
 		for _, m := range args[i+1:] {
-			move := uci.Engine.UCIToMove(m)
+			move := uci.Engine.Position.UCIToMove(m)
 			uci.Engine.DoMove(move)
 		}
 	}

@@ -155,7 +155,7 @@ func BenchmarkScore(b *testing.B) {
 			done := make([]Move, 0)
 
 			for i := range todo {
-				move := eng.UCIToMove(todo[i])
+				move := eng.Position.UCIToMove(todo[i])
 				done = append(done, move)
 				eng.DoMove(move)
 				_ = eng.Score()
