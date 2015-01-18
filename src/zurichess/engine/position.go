@@ -165,9 +165,9 @@ func (pos *Position) Get(sq Square) Piece {
 }
 
 // IsChecked returns true if co's king is checked.
-func (pos *Position) IsChecked(co Color) bool {
-	kingSq := (pos.ByColor[co] & pos.ByFigure[King]).AsSquare()
-	return pos.IsAttackedBy(kingSq, co.Other())
+func (pos *Position) IsChecked(col Color) bool {
+	kingSq := pos.ByPiece(col, King).AsSquare()
+	return pos.IsAttackedBy(kingSq, col.Other())
 }
 
 // PrettyPrint pretty prints the current position.
@@ -318,7 +318,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 
 // GenPawnAdvanceMoves moves pawns one square.
 func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
-	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	bb := pos.ByPiece(pos.ToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
@@ -340,7 +340,7 @@ func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
 
 // GenPawnAdvanceMoves moves pawns two square.
 func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
-	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	bb := pos.ByPiece(pos.ToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
@@ -361,7 +361,7 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
-	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	bb := pos.ByPiece(pos.ToMove, Pawn)
 	enemy := pos.ByColor[pos.ToMove.Other()]
 	var forward Square
 
@@ -401,7 +401,7 @@ func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
 		return moves
 	}
 
-	bb := pos.ByColor[pos.ToMove] & pos.ByFigure[Pawn]
+	bb := pos.ByPiece(pos.ToMove, Pawn)
 	enemy := pos.Enpassant.Bitboard()
 
 	if pos.ToMove == White {
