@@ -1,4 +1,5 @@
 // moves.go deals with move parsing.
+
 package engine
 
 import (
@@ -18,11 +19,9 @@ var (
 // its description can be found in FIDE handbook.
 //
 // The set of strings accepted is a slightly different.
-// * x (capture) presence or correctness is ignored.
-// * + (check) and # (checkmate) is ignored.
-// * e.p. (enpassant) is ignored
-//
-// TODO: Handle castling.
+//   x (capture) presence or correctness is ignored.
+//   + (check) and # (checkmate) is ignored.
+//   e.p. (enpassant) is ignored
 func (pos *Position) SANToMove(s string) (Move, error) {
 	piece := NoPiece
 	move := Move{MoveType: Normal}
@@ -72,7 +71,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 			}
 		}
 		piece = move.Target
-	} else { // all other movess
+	} else { // all other moves
 		// Get the piece.
 		if ('a' <= s[b] && s[b] <= 'h') || s[b] == 'x' {
 			piece = ColorFigure(pos.ToMove, Pawn)
@@ -173,7 +172,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 // MoveToUCI converts a move to UCI format.
 // The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
-// incorrectly states that this is long algebraic notation (LAN).
+// incorrectly states that this is the long algebraic notation (LAN).
 func (pos *Position) MoveToUCI(move Move) string {
 	r := move.From.String() + move.To.String()
 	if move.MoveType == Promotion {
@@ -183,7 +182,7 @@ func (pos *Position) MoveToUCI(move Move) string {
 }
 
 // UCIToMove parses a move given in UCI format.
-// s can be "a2a4" or "h7h8Q" (pawn promotion).
+// s can be "a2a4" or "h7h8Q" for pawn promotion.
 func (pos *Position) UCIToMove(s string) Move {
 	from, _ := SquareFromString(s[0:2])
 	to, _ := SquareFromString(s[2:4])

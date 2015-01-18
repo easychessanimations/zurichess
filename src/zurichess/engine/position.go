@@ -89,28 +89,28 @@ func (pos *Position) Verify() error {
 	return nil
 }
 
-// SetCastle sets the side to move, correctly updating the zobriest key.
+// SetCastlingAbility sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
-	pos.Zobrist ^= ZobriestCastle[pos.Castle]
+	pos.Zobrist ^= ZobristCastle[pos.Castle]
 	pos.Castle = castle
-	pos.Zobrist ^= ZobriestCastle[pos.Castle]
+	pos.Zobrist ^= ZobristCastle[pos.Castle]
 }
 
-// SetEnpassant sets the side to move, correctly updating the zobriest key.
+// SetEnpassant sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetSideToMove(col Color) {
-	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobristColor[pos.ToMove]
 	pos.ToMove = col
-	pos.Zobrist ^= ZobriestColor[pos.ToMove]
+	pos.Zobrist ^= ZobristColor[pos.ToMove]
 }
 
-// SetEnpassant sets the enpassant square correctly updating the zobriest key.
+// SetEnpassant sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
-	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobristEnpassant[pos.Enpassant]
 	pos.Enpassant = sq
-	pos.Zobrist ^= ZobriestEnpassant[pos.Enpassant]
+	pos.Zobrist ^= ZobristEnpassant[pos.Enpassant]
 }
 
-// ByPiece is a shortcut for byColor&byFigure.
+// ByPiece is a shortcut for ByColor[col]&ByFigure[fig].
 func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 	return pos.ByColor[col] & pos.ByFigure[fig]
 }
@@ -118,7 +118,7 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
-	pos.Zobrist ^= ZobriestPiece[pi][sq]
+	pos.Zobrist ^= ZobristPiece[pi][sq]
 	bb := sq.Bitboard()
 	pos.ByColor[pi.Color()] |= bb
 	pos.ByFigure[pi.Figure()] |= bb
@@ -127,7 +127,7 @@ func (pos *Position) Put(sq Square, pi Piece) {
 // Remove removes a piece from the table.
 // Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
-	pos.Zobrist ^= ZobriestPiece[pi][sq]
+	pos.Zobrist ^= ZobristPiece[pi][sq]
 	bb := ^sq.Bitboard()
 	pos.ByColor[pi.Color()] &= bb
 	pos.ByFigure[pi.Figure()] &= bb

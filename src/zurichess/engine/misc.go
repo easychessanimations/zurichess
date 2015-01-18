@@ -30,9 +30,8 @@ const (
 )
 
 // Popcnt counts number of bits set in n.
-// Code take from: https://chessprogramming.wikispaces.com/Population+Count
-// Don't pretend to understand it.
 func Popcnt(x uint64) int {
+	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
 	x = x - ((x >> 1) & k1)
 	x = (x & k2) + ((x >> 2) & k2)
 	x = (x + (x >> 4)) & k4

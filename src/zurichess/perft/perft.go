@@ -1,5 +1,6 @@
-// Perft test.
-// https://chessprogramming.wikispaces.com/Perft
+// Perft implements perft tests.
+//
+// See https://chessprogramming.wikispaces.com/Perft
 package main
 
 import (

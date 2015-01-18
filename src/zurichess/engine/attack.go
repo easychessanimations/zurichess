@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	BbPawnAttack   [64]Bitboard
-	BbKnightAttack [64]Bitboard
-	BbKingAttack   [64]Bitboard
-	// Attack on empty board of Bishop, Rook, Queen, King figures.
-	BbSuperAttack [64]Bitboard
-	RookMagic     [64]magicInfo
-	BishopMagic   [64]magicInfo
+	BbPawnAttack   [64]Bitboard // pawn's attack tables
+	BbKnightAttack [64]Bitboard // knight's attack tables
+	BbKingAttack   [64]Bitboard // king's attack tables (excluding castling)
+	BbSuperAttack  [64]Bitboard // super piece's attack tables
+
+	RookMagic   [64]magicInfo
+	BishopMagic [64]magicInfo
 
 	rookDeltas   = [][2]int{{-1, +0}, {+1, +0}, {+0, -1}, {+0, +1}}
 	bishopDeltas = [][2]int{{-1, +1}, {+1, +1}, {+1, -1}, {-1, -1}}
@@ -320,7 +320,7 @@ func initRookMagic() {
 	wiz.SetMagic(RookMagic[:], SquareH7, 613193309965254785, 11)
 	wiz.SetMagic(RookMagic[:], SquareH8, 13907896865786961985, 12)
 
-	// Normally not needed, but just in cases the magics are wrong.
+	// Normally not needed, but just in case the magics are wrong.
 	wiz.SearchMagics(RookMagic[:])
 }
 

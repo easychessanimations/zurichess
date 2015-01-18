@@ -94,7 +94,8 @@ type Engine struct {
 	maxPly        int16  // max ply currently searching at.
 }
 
-// Init initializes the engine.
+// NewEngine creates a new engine.
+// If pos is nil, the start position is used.
 func NewEngine(pos *Position, opt EngineOptions) *Engine {
 	eng := &Engine{
 		Options: opt,
@@ -105,7 +106,7 @@ func NewEngine(pos *Position, opt EngineOptions) *Engine {
 }
 
 // SetPosition sets current position.
-// If pos == nil, the starting position is set.
+// If pos is nil, the starting position is set.
 func (eng *Engine) SetPosition(pos *Position) {
 	if pos != nil {
 		eng.Position = pos
@@ -120,8 +121,7 @@ func (eng *Engine) UCIToMove(move string) Move {
 	return eng.Position.UCIToMove(move)
 }
 
-// put adjusts score after puting piece on sq.
-// mask is which side is to move.
+// put adjusts score after putting piece on sq.
 // delta is -1 if the piece is taken (including undo), 1 otherwise.
 func (eng *Engine) put(sq Square, piece Piece, delta int) {
 	col := piece.Color()
@@ -170,13 +170,13 @@ func (eng *Engine) DoMove(move Move) {
 	eng.Position.DoMove(move)
 }
 
-// UndoMove undoes a move. Must be the last move.
+// UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
 	eng.adjust(move, -1)
 }
 
-// countMaterial counts pieces and updates the eng.pieceMgScore
+// countMaterial updates score for current position.
 func (eng *Engine) countMaterial() {
 	eng.pieceScore[MidGame] = 0
 	eng.positionScore[MidGame] = 0
@@ -199,6 +199,7 @@ func (eng *Engine) countMaterial() {
 }
 
 // phase returns current phase and total phase.
+//
 // phase is determined by the number of pieces left in the game where
 // pawn has score 0, knight and bishop 1, rook 2, queen 2.
 // See Tapered Eval:
@@ -215,9 +216,11 @@ func (eng *Engine) phase() (int, int) {
 	return currPhase, 256
 }
 
-// Evaluate current Position from white's POV.
-// Figure values and bonuses are taken from:
-// http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
+// Score evaluates current position from white's POV.
+//
+// For figure values, bonuses, etc see:
+//      - https://chessprogramming.wikispaces.com/Simplified+evaluation+function
+//      - http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
 func (eng *Engine) Score() int16 {
 	eng.Stats.Nodes++
 
@@ -247,8 +250,7 @@ func (eng *Engine) Score() int16 {
 	return int16(score)
 }
 
-// EndPosition determines whether this is and end game
-// Position based on the number of pieces.
+// EndPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) EndPosition() (int16, bool) {
 	if eng.pieces[White][King] == 0 {
@@ -274,7 +276,7 @@ func (eng *Engine) EndPosition() (int16, bool) {
 	return 0, false
 }
 
-// popMove pops last move.
+// popMove pops last move from eng.moves.
 func (eng *Engine) popMove() Move {
 	last := len(eng.moves) - 1
 	move := eng.moves[last]
@@ -568,7 +570,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 
 	move := eng.root.Killer
 	if move.MoveType == NoMove {
-		// If there is no valid move, then it's a stalement or a checkmate.
+		// If there is no valid move, then it's a stalemate or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
 			return Move{}, ErrorCheckMate
 		} else {

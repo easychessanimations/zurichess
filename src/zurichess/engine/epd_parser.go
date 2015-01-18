@@ -1,20 +1,22 @@
 //line epd_parser.y:2
 
 // epd_parser.y defines the grammar for chess positions in EPD and FEN notations.
-// For EPD see https://chessprogramming.wikispaces.com/Extended+Position+Description
-// For FEN see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation
+//
+// For EPD format see https://chessprogramming.wikispaces.com/Extended+Position+Description.
+// For FEN format see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation.
+
 package engine
 
 import __yyfmt__ "fmt"
 
-//line epd_parser.y:5
+//line epd_parser.y:7
 import (
 	"fmt"
 	"log"
 	"unicode"
 )
 
-//line epd_parser.y:15
+//line epd_parser.y:17
 type yySymType struct {
 	yys       int
 	result    **epdNode
@@ -40,7 +42,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line epd_parser.y:103
+//line epd_parser.y:105
 const eof = 0
 
 // epdLexer is a tokenizer.
@@ -52,6 +54,7 @@ type epdLexer struct {
 	error     error
 }
 
+// TODO: Handle spaces between quotes, e.g. "foo bar".
 func (lex *epdLexer) Lex(lval *yySymType) int {
 	lex.prev = lex.pos
 	if lex.pos == -1 {
@@ -400,24 +403,24 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line epd_parser.y:36
-		{
-			*yyS[yypt-1].result = yyS[yypt-0].epd
-		}
-	case 2:
 		//line epd_parser.y:38
 		{
 			*yyS[yypt-1].result = yyS[yypt-0].epd
 		}
+	case 2:
+		//line epd_parser.y:40
+		{
+			*yyS[yypt-1].result = yyS[yypt-0].epd
+		}
 	case 3:
-		//line epd_parser.y:43
+		//line epd_parser.y:45
 		{
 			yyVAL.epd = &epdNode{
 				position: yyS[yypt-4].position,
 			}
 		}
 	case 4:
-		//line epd_parser.y:52
+		//line epd_parser.y:54
 		{
 			yyVAL.epd = &epdNode{
 				position:   yyS[yypt-1].position,
@@ -425,7 +428,7 @@ yydefault:
 			}
 		}
 	case 5:
-		//line epd_parser.y:62
+		//line epd_parser.y:64
 		{
 			yyVAL.position = &positionNode{
 				piecePlacement:  yyS[yypt-6].token,
@@ -435,12 +438,12 @@ yydefault:
 			}
 		}
 	case 6:
-		//line epd_parser.y:74
+		//line epd_parser.y:76
 		{
 			yyVAL.operation = nil
 		}
 	case 7:
-		//line epd_parser.y:76
+		//line epd_parser.y:78
 		{
 			yyVAL.operation = &operationNode{
 				operator:  yyS[yypt-2].token,
@@ -452,12 +455,12 @@ yydefault:
 			}
 		}
 	case 8:
-		//line epd_parser.y:90
+		//line epd_parser.y:92
 		{
 			yyVAL.argument = nil
 		}
 	case 9:
-		//line epd_parser.y:92
+		//line epd_parser.y:94
 		{
 			yyVAL.argument = &argumentNode{
 				param: yyS[yypt-0].token,

@@ -1,4 +1,3 @@
-// zobrist.go contains magic number for zobrist hashing.
 package engine
 
 import (
@@ -6,51 +5,52 @@ import (
 )
 
 var (
-	ZobriestPiece     [PieceArraySize][SquareArraySize]uint64
-	ZobriestEnpassant [SquareArraySize]uint64
-	ZobriestCastle    [CastleArraySize]uint64
-	ZobriestColor     [ColorArraySize]uint64
+	// The following are arrays of magic numbers used for Zobrist hashing.
+	ZobristPiece     [PieceArraySize][SquareArraySize]uint64
+	ZobristEnpassant [SquareArraySize]uint64
+	ZobristCastle    [CastleArraySize]uint64
+	ZobristColor     [ColorArraySize]uint64
 )
 
 func rand64(r *rand.Rand) uint64 {
 	return uint64(r.Int63())<<32 ^ uint64(r.Int63())
 }
 
-func initZobriestPiece(r *rand.Rand) {
+func initZobristPiece(r *rand.Rand) {
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
 			for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
-				ZobriestPiece[ColorFigure(col, fig)][sq] = rand64(r)
+				ZobristPiece[ColorFigure(col, fig)][sq] = rand64(r)
 			}
 		}
 	}
 }
 
-func initZobriestEnpassant(r *rand.Rand) {
+func initZobristEnpassant(r *rand.Rand) {
 	for sq := SquareA3; sq <= SquareH3; sq++ {
-		ZobriestEnpassant[sq] = rand64(r)
+		ZobristEnpassant[sq] = rand64(r)
 	}
 	for sq := SquareA6; sq <= SquareH6; sq++ {
-		ZobriestEnpassant[sq] = rand64(r)
+		ZobristEnpassant[sq] = rand64(r)
 	}
 }
 
-func initZobriestCastle(r *rand.Rand) {
+func initZobristCastle(r *rand.Rand) {
 	for i := CastleMinValue; i < CastleMaxValue; i++ {
-		ZobriestCastle[i] = rand64(r)
+		ZobristCastle[i] = rand64(r)
 	}
 }
 
-func initZobriestColor(r *rand.Rand) {
+func initZobristColor(r *rand.Rand) {
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
-		ZobriestColor[col] = rand64(r)
+		ZobristColor[col] = rand64(r)
 	}
 }
 
 func init() {
 	r := rand.New(rand.NewSource(1))
-	initZobriestPiece(r)
-	initZobriestEnpassant(r)
-	initZobriestCastle(r)
-	initZobriestColor(r)
+	initZobristPiece(r)
+	initZobristEnpassant(r)
+	initZobristCastle(r)
+	initZobristColor(r)
 }

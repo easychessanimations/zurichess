@@ -1,7 +1,9 @@
 %{
 // epd_parser.y defines the grammar for chess positions in EPD and FEN notations.
-// For EPD see https://chessprogramming.wikispaces.com/Extended+Position+Description
-// For FEN see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation
+// 
+// For EPD format see https://chessprogramming.wikispaces.com/Extended+Position+Description.
+// For FEN format see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation.
+
 package engine
 
 import (

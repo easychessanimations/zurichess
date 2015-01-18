@@ -2,6 +2,7 @@
 //go:generate stringer -type Color
 //go:generate stringer -type Piece
 //go:generate stringer -type MoveType
+
 package engine
 
 import (
@@ -109,14 +110,17 @@ func (co Color) Other() Color {
 // Piece is a combination of piece type and color
 type Piece uint8
 
-func ColorFigure(co Color, pt Figure) Piece {
-	return Piece(pt<<2) + Piece(co)
+// ColorFigure returns a piece with col and fig.
+func ColorFigure(col Color, fig Figure) Piece {
+	return Piece(fig<<2) + Piece(col)
 }
 
+// Color returns piece's color.
 func (pi Piece) Color() Color {
 	return Color(pi & 3)
 }
 
+// Figure returns piece's figure.
 func (pi Piece) Figure() Figure {
 	return Figure(pi >> 2)
 }
@@ -126,8 +130,8 @@ type Bitboard uint64
 
 // RankBb returns a bitboard with all bits on rank set.
 func RankBb(rank int) Bitboard {
-	rank0 := Bitboard(0x00000000000000ff)
-	return rank0 << uint(8*rank)
+	rank1 := Bitboard(0x00000000000000ff)
+	return rank1 << uint(8*rank)
 }
 
 // FileBb returns a bitboard with all bits on file set.
@@ -171,12 +175,12 @@ const (
 
 // Move stores a position dependent move.
 type Move struct {
-	From, To       Square // Source and destination
-	Capture        Piece  // Which piece is captured
-	Target         Piece  // Target is the piece on To, after the move.
+	From, To       Square // source and destination squares
+	Capture        Piece  // which piece is captured
+	Target         Piece  // the piece on To, after the move.
 	MoveType       MoveType
-	SavedEnpassant Square // Old enpassant square
-	SavedCastle    Castle // Old castle rights
+	SavedEnpassant Square // old enpassant square
+	SavedCastle    Castle // old castle rights
 }
 
 // Piece returns the piece moved.
@@ -187,7 +191,7 @@ func (m *Move) Piece() Piece {
 	return Piece(Pawn<<2) + m.Target&3
 }
 
-// Promotion return the promovated piece if any.
+// Promotion returns the promoted piece if any.
 func (m *Move) Promotion() Piece {
 	if m.MoveType != Promotion {
 		return NoPiece
@@ -195,7 +199,8 @@ func (m *Move) Promotion() Piece {
 	return m.Target
 }
 
-// IsViolent returns true if the move is violent, i.e. a capture or a promotion.
+// IsViolent returns true if the move can change the position's score
+// significantly.
 func (m *Move) IsViolent() bool {
 	return m.Capture != NoPiece || m.MoveType == Promotion
 }
@@ -208,7 +213,7 @@ func (m Move) String() string {
 	return r
 }
 
-// Castle type
+// Castle mask
 type Castle uint16
 
 const (
@@ -247,17 +252,16 @@ func (ca Castle) String() string {
 }
 
 // CastlingRook returns which rook is moved on castling.
-//
-// How rookStart it works for king on E1.
-// if kingEnd == C1 == b010, then rookStart == A1 == b000
-// if kingEnd == G1 == b110, then rookStart == H1 == b111
-// So bit 3 will set bit 2 and bit 1.
-//
-// How rookEnd works for king on E1.
-// if kingEnd == C1 == b010, then rookEnd == D1 == b011
-// if kingEnd == G1 == b110, then rookEnd == F1 == b101
-// So bit 3 will invert bit 2. bit 1 is always set.
 func CastlingRook(kingEnd Square) (Piece, Square, Square) {
+	// Explanation how rookStart works for king on E1.
+	// if kingEnd == C1 == b010, then rookStart == A1 == b000
+	// if kingEnd == G1 == b110, then rookStart == H1 == b111
+	// So bit 3 will set bit 2 and bit 1.
+	//
+	// Explanation how rookEnd works for king on E1.
+	// if kingEnd == C1 == b010, then rookEnd == D1 == b011
+	// if kingEnd == G1 == b110, then rookEnd == F1 == b101
+	// So bit 3 will invert bit 2. bit 1 is always set.
 	piece := Piece(Rook<<2) + 1 + Piece(kingEnd>>5)
 	rookStart := kingEnd&^3 | (kingEnd & 4 >> 1) | (kingEnd & 4 >> 2)
 	rookEnd := kingEnd ^ (kingEnd & 4 >> 1) | 1

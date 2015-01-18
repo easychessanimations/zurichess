@@ -117,7 +117,7 @@ func TestEPDParser(t *testing.T) {
 	// Verify id.
 	expecteId := "\"BK.14\""
 	if expecteId != epd.Id {
-		t.Fatal("expected id %s, got %s", expecteId, epd.Id)
+		t.Fatalf("expected id %s, got %s", expecteId, epd.Id)
 	}
 
 	// Verify bm.
@@ -136,7 +136,7 @@ func TestEPDParser(t *testing.T) {
 		},
 	}
 	if len(expectedBestMove) != len(epd.BestMove) {
-		t.Fatal("expected 2 best moves, got %d", len(epd.BestMove))
+		t.Fatalf("expected 2 best moves, got %d", len(epd.BestMove))
 	}
 	for i, bm := range expectedBestMove {
 		if bm != epd.BestMove[i] {

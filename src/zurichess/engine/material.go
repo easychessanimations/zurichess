@@ -1,5 +1,3 @@
-// psqt.go stores the Piece Square Tables.
-// Every piece gets a bonus depending on the position on the table.
 package engine
 
 import (
@@ -19,14 +17,15 @@ var (
 	MateScore     int16 = 30000
 	InfinityScore int16 = 32000
 
-	// Bonuses and penalties enter score calculation and are ints
-	// to prevent accidental overflows during computation of the final
-	// score.
+	// Bonuses and penalties have type int in order to prevent accidental
+	// overflows during computation of the position's score.
 	BishopPairBonus int = 40
 	KnightPawnBonus int = 6
 	RookPawnPenalty int = 12
 
 	// Figure middle and end game bonuses.
+	// TODO: Given tapered eval KnightPawnBonus and RookPawnPenalty
+	// should be part of FigureBonus.
 	FigureBonus = [2][FigureArraySize]int{
 		{0, 100, 345, 325, 475, 975, 10000},  // MidGame
 		{0, 100, 345, 355, 525, 1000, 10000}, // EndGame
@@ -116,10 +115,11 @@ var (
 	}
 )
 
-// SetMaterialValue updates array from a string.
-// str has format "value,value,...,value" (no spaces and no quotes).
-// value can be empty to let the value intact.
-// The number of values has to match the array size.
+// SetMaterialValue parses str and updates array.
+//
+// str has format "value0,value1,...,valuen-1" (no spaces and no quotes).
+// If valuei is empty then array[i] is not modified.
+// n, the number of values, must be equal to len(array).
 func SetMaterialValue(name string, array []int, str string) error {
 	fields := strings.Split(str, ",")
 	if len(fields) != len(array) {
@@ -147,10 +147,11 @@ func SetMvvLva(str string) error {
 }
 
 // MvvLva returns a ordering score.
+//
 // MvvLva stands for "Most valuable victim, Least valuable attacker".
-// See https://chessprogramming.wikispaces.com/MVV-LVA
+// See https://chessprogramming.wikispaces.com/MVV-LVA.
 // In zurichess the MVV/LVA formula is not used,
-// but the values are optimized and stored in mvvLva array.
+// but the values are optimized and stored in the mvvLva array.
 func MvvLva(att, capt Figure) int {
 	return mvvLva[int(att)*FigureArraySize+int(capt)]
 }

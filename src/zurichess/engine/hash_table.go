@@ -1,5 +1,6 @@
 //go:generate stringer -type HashKind
 // hash_table.go implements a global transposition table.
+
 package engine
 
 import (
@@ -17,20 +18,21 @@ const (
 
 // HashEntry is a value in the transposition table.
 type HashEntry struct {
-	// Lock is used to handle hasing confligs.
+	// Lock is used to handle hashing conflicts.
 	// Normally, Lock is the position's zobrist key.
 	Lock   uint64
 	Score  int16    // score of the position
-	Depth  int16    // remaingin searching depth
+	Depth  int16    // remaining search depth
 	Killer Move     // killer or best move found
 	Kind   HashKind // type of hash
 }
 
 // HashTable is a transposition table.
-// Engine uses such a table to cache moves so it doesn't recompute them again.
+// Engine uses a hash table to cache position scores so
+// it doesn't have to recompute them again.
 type HashTable struct {
-	table []HashEntry
-	mask  uint64 // mask is used to determine the index in the table.
+	table []HashEntry // len(table) is a power of two and equals mask+1
+	mask  uint64      // mask is used to determine the index in the table.
 }
 
 // NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
@@ -41,7 +43,6 @@ func NewHashTable(hashSizeMB int) *HashTable {
 	for hashSize&(hashSize-1) != 0 {
 		hashSize &= hashSize - 1
 	}
-
 	return &HashTable{
 		table: make([]HashEntry, hashSize),
 		mask:  hashSize - 1,
@@ -54,7 +55,6 @@ func (ht *HashTable) Size() int {
 }
 
 // Put puts a new entry in the database.
-// Current strategy is to always replace.
 func (ht *HashTable) Put(entry HashEntry) {
 	key := entry.Lock & ht.mask
 	if ht.table[key].Kind == NoKind ||
