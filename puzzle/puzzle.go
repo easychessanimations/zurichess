@@ -11,7 +11,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"zurichess/engine"
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 var (

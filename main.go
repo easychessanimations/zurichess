@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 
-	"zurichess/engine"
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 var (
