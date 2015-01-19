@@ -8,8 +8,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-
-	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 var (
@@ -42,7 +40,7 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 
 	bio := bufio.NewReader(os.Stdin)
-	uci := engine.NewUCI()
+	uci := NewUCI()
 	for {
 		line, _, err := bio.ReadLine()
 		if err != nil {
@@ -50,7 +48,7 @@ func main() {
 			break
 		}
 		if err := uci.Execute(string(line)); err != nil {
-			if err != engine.ErrQuit {
+			if err != ErrQuit {
 				log.Println("for line:", string(line))
 				log.Println("error:", err)
 			}

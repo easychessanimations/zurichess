@@ -1,4 +1,4 @@
-package engine
+package main
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 var (
@@ -13,12 +15,12 @@ var (
 )
 
 type UCI struct {
-	Engine *Engine
+	Engine *engine.Engine
 }
 
 func NewUCI() *UCI {
 	return &UCI{
-		Engine: NewEngine(nil, EngineOptions{}),
+		Engine: engine.NewEngine(nil, engine.EngineOptions{}),
 	}
 }
 
@@ -44,8 +46,6 @@ func (uci *UCI) Execute(line string) error {
 		uci.go_(args)
 	case "setoption":
 		err = uci.setoption(args)
-	case "setvalue":
-		err = uci.setvalue(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -60,7 +60,7 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println("id author Alexandru Moșoi")
 	fmt.Println()
 	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", uci.Engine.Options.AnalyseMode)
-	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", DefaultHashTableSizeMB)
+	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name MvvLva type string\n")
 	fmt.Printf("option name FigureBonus.MidGame type string\n")
 	fmt.Printf("option name FigureBonus.EndGame type string\n")
@@ -82,16 +82,16 @@ func (uci *UCI) position(args []string) error {
 		return fmt.Errorf("expected argument for 'position'")
 	}
 
-	var pos *Position
+	var pos *engine.Position
 
 	i := 0
 	var err error
 	switch args[i] {
 	case "startpos":
-		pos, err = PositionFromFEN(FENStartPos)
+		pos, err = engine.PositionFromFEN(engine.FENStartPos)
 		i++
 	case "fen":
-		pos, err = PositionFromFEN(strings.Join(args[1:7], " "))
+		pos, err = engine.PositionFromFEN(strings.Join(args[1:7], " "))
 		i += 7
 	default:
 		err = fmt.Errorf("unknown position command: %s", args[0])
@@ -116,7 +116,7 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	var white, black OnClockTimeControl
+	var white, black engine.OnClockTimeControl
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "infinite":
@@ -146,8 +146,8 @@ func (uci *UCI) go_(args []string) {
 		}
 	}
 
-	var tc TimeControl
-	if uci.Engine.Position.ToMove == White {
+	var tc engine.TimeControl
+	if uci.Engine.Position.ToMove == engine.White {
 		tc = &white
 	} else {
 		tc = &black
@@ -158,7 +158,7 @@ func (uci *UCI) go_(args []string) {
 	if uci.Engine.Options.AnalyseMode {
 		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-			GlobalHashTable.Size(), hit, miss,
+			engine.GlobalHashTable.Size(), hit, miss,
 			float32(hit)/float32(hit+miss)*100)
 	}
 
@@ -184,39 +184,17 @@ func (uci *UCI) setoption(args []string) error {
 		if hashSizeMB, err := strconv.ParseInt(args[3], 10, 64); err != nil {
 			return err
 		} else {
-			GlobalHashTable = NewHashTable(int(hashSizeMB))
+			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
 		}
 	case "MvvLva":
-		return SetMvvLva(args[3])
+		return engine.SetMvvLva(args[3])
 	case "FigureBonus.MidGame":
-		return SetMaterialValue(args[1], FigureBonus[MidGame][:], args[3])
+		return engine.SetMaterialValue(args[1], engine.FigureBonus[engine.MidGame][:], args[3])
 	case "FigureBonus.EndGame":
-		return SetMaterialValue(args[1], FigureBonus[EndGame][:], args[3])
+		return engine.SetMaterialValue(args[1], engine.FigureBonus[engine.EndGame][:], args[3])
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
 
-	return nil
-}
-
-func (uci *UCI) setvalue(args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("setvalue expected two arguments, got %d", len(args))
-	}
-	value, err := strconv.Atoi(args[1])
-	if err != nil {
-		return err
-	}
-
-	switch args[0] {
-	case "BishopPairBonus":
-		BishopPairBonus = value
-	case "KnightPawnBonus":
-		KnightPawnBonus = value
-	case "RookPawnPenalty":
-		RookPawnPenalty = value
-	default:
-		return fmt.Errorf("unknown setvalue argument %s", args[0])
-	}
 	return nil
 }
