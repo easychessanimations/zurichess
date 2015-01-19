@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"zurichess/engine"
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 func testHelper(t *testing.T, fen string, testData []counters) {

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"zurichess/engine"
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 var (
