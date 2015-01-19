@@ -6,18 +6,30 @@ zurichess supports [UCI protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.htm
 zurichess plays automatically on [FICS](http://www.fics.org) under unregistered
 user zurichess.
 
-## Usage
+## Building
+
+First you need to get the latest version of Go (currently 1.4).
+For instructions how to download and install Go for your OS see
+[documentation](https://golang.org/doc/install).
+
+After Go 1.4 is installed, a workspace needs to be created:
 
 ```
 #!bash
 
-$ git clone -b release.aargau https://bitbucket.org/brtzsnr/zurichess.git
-$ cd zurichess/src/zurichess
+$ mkdir gows ; cd gows
 $ export GOPATH=`pwd`
-$ go version
-go version go1.4 linux/amd64
-$ ./release.sh
-Built zc-master-c6b5253 at 2015-01-16 15:31:29
+```
+
+## Compiling
+
+After the workspace is created downloading and compiling zurichess is easy:
+
+```
+#!bash
+$ go get -u bitbucket.org/brtzsnr/zurichess/zurichess
+$ $GOPATH/bin/zurichess --version
+zurichess (devel), build with go1.4 at (just now), running on amd64
 ```
 
 ## Perft
@@ -26,7 +38,8 @@ A [perft](https://chessprogramming.wikispaces.com/Perft) tool is included.
 
 ```
 #!bash
-$ go run perft/perft.go 
+$ go get -u bitbucket.org/brtzsnr/zurichess/zurichess
+$ $GOPATH/bin/perft
 Searching FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 depth        nodes   captures enpassant castles eval   KNps elapsed
 -----+------------+----------+---------+-------+----+------+-------
