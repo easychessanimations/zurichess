@@ -354,14 +354,14 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	return alpha
 }
 
-func (eng *Engine) tryMove(alpha, beta, ply int16, move Move) int16 {
+func (eng *Engine) tryMove(α, β, ply int16, move Move) int16 {
 	color := eng.Position.ToMove
 	eng.DoMove(move)
 	if eng.Position.IsChecked(color) {
 		eng.UndoMove(move)
 		return -InfinityScore
 	}
-	score := -eng.negamax(-beta, -alpha, ply+1)
+	score := -eng.negamax(-β, -α, ply+1)
 	if score > KnownWinScore {
 		// If the position is a win the score is decreased
 		// slightly to the search takes the shortest path.
@@ -550,8 +550,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-				maxPly, score*int16(ColorWeight[eng.Position.ToMove]),
-				eng.Stats.Nodes, elapsed/time.Millisecond,
+				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
 				eng.Stats.Nodes*uint64(time.Second)/uint64(elapsed+1))
 
 			moves := eng.getPrincipalVariation()
