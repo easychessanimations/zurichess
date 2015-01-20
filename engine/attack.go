@@ -1,3 +1,8 @@
+// attack.go generates move bitboards for all pieces.
+// For sliding pieces zurichess uses magic bitboards. A extremely good
+// description by Pradyumna Kannan can be read at:
+// http://www.pradu.us/old/Nov27_2008/Buzz/research/magic/Bitboards.pdf
+
 package engine
 
 import (
