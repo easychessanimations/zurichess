@@ -27,7 +27,7 @@ var (
 	// TODO: Given tapered eval KnightPawnBonus and RookPawnPenalty
 	// should be part of FigureBonus.
 	FigureBonus = [2][FigureArraySize]int{
-		{0, 100, 345, 325, 475, 975, 10000},  // MidGame
+		{0, 100, 315, 325, 475, 975, 10000},  // MidGame
 		{0, 100, 345, 355, 525, 1000, 10000}, // EndGame
 	}
 
