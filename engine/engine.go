@@ -292,7 +292,7 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 
 func (eng *Engine) updateRoot(ply int16, entry HashEntry) {
 	if ply == 0 {
-		if entry.Killer.MoveType == NoMove {
+		if entry.Favorite.MoveType == NoMove {
 			panic("expected valid move at root")
 		}
 		eng.root = entry
@@ -309,11 +309,11 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	}
 
 	entry := HashEntry{
-		Lock:   eng.Position.Zobrist,
-		Score:  score,
-		Depth:  eng.maxPly - ply,
-		Killer: move,
-		Kind:   kind,
+		Lock:     eng.Position.Zobrist,
+		Score:    score,
+		Depth:    eng.maxPly - ply,
+		Favorite: move,
+		Kind:     kind,
 	}
 	eng.updateRoot(ply, entry)
 	GlobalHashTable.Put(entry)
@@ -433,14 +433,14 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 
 	// Try the killer move first.
 	// Entry may not have a killer move for cached quiescence moves.
-	if has && entry.Killer.MoveType != NoMove {
-		score := eng.tryMove(localAlpha, beta, ply, entry.Killer)
+	if has && entry.Favorite.MoveType != NoMove {
+		score := eng.tryMove(localAlpha, beta, ply, entry.Favorite)
 		if score >= beta { // Fail high.
-			eng.updateHash(alpha, beta, ply, entry.Killer, score)
+			eng.updateHash(alpha, beta, ply, entry.Favorite, score)
 			return score
 		}
 		if score > bestScore {
-			bestMove, bestScore = entry.Killer, score
+			bestMove, bestScore = entry.Favorite, score
 			if score > localAlpha {
 				localAlpha = score
 			}
@@ -522,10 +522,10 @@ func (eng *Engine) getPrincipalVariation() []Move {
 	moves := make([]Move, 0)
 
 	next := eng.root
-	for !seen[next.Lock] && next.Kind != NoKind && next.Killer.MoveType != NoMove {
+	for !seen[next.Lock] && next.Kind != NoKind && next.Favorite.MoveType != NoMove {
 		seen[next.Lock] = true
-		moves = append(moves, next.Killer)
-		eng.DoMove(next.Killer)
+		moves = append(moves, next.Favorite)
+		eng.DoMove(next.Favorite)
 		next, _ = GlobalHashTable.Get(eng.Position.Zobrist)
 	}
 
@@ -562,7 +562,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
-	move := eng.root.Killer
+	move := eng.root.Favorite
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalemate or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
