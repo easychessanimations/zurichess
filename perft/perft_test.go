@@ -26,15 +26,15 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 }
 
 func TestPerftInitial(t *testing.T) {
-	testHelper(t, startpos, data[startpos][:7])
+	testHelper(t, startpos, data[startpos][:6])
 }
 
 func TestPerftKiwipete(t *testing.T) {
-	testHelper(t, kiwipete, data[kiwipete][:6])
+	testHelper(t, kiwipete, data[kiwipete][:5])
 }
 
 func TestPerftDuplain(t *testing.T) {
-	testHelper(t, duplain, data[duplain][:7])
+	testHelper(t, duplain, data[duplain][:6])
 }
 
 func benchHelper(b *testing.B, fen string, depth int) {
