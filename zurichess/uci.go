@@ -143,6 +143,11 @@ func (uci *UCI) go_(args []string) {
 			t, _ := strconv.Atoi(args[i])
 			white.MovesToGo = t
 			black.MovesToGo = t
+		case "movetime":
+			i++
+			t, _ := strconv.Atoi(args[i])
+			white.Time, white.Inc, white.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
+			black.Time, black.Inc, black.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
 		}
 	}
 
