@@ -22,13 +22,8 @@ var (
 type sorterByMvvLva []Move
 
 func score(m Move) int {
-	c := m.Capture.Figure()
-	t := m.Target.Figure()
-	if m.MoveType != Promotion {
-		return MvvLva(t, c)
-	} else {
-		return MvvLva(Pawn, c) + MvvLva(NoFigure, t)
-	}
+	return MvvLva(m.Piece().Figure(), m.Capture.Figure()) +
+		MvvLva(NoFigure, m.Promotion().Figure())
 }
 
 func (c sorterByMvvLva) Len() int {
@@ -43,25 +38,6 @@ func (c sorterByMvvLva) Less(i, j int) bool {
 	si := score(c[i])
 	sj := score(c[j])
 	return si < sj
-}
-
-// pivotByViolent moves captures and promotions last.
-// moves is Engine.moves which is a stack and needs best moves last for early high-cutoffs.
-// Returns position of the first violent move.
-func pivotByViolent(moves []Move) int {
-	i, j := 0, len(moves)-1
-	for i < j {
-		for ; i < j && !moves[i].IsViolent(); i++ {
-		}
-		for ; j > i && moves[j].IsViolent(); j-- {
-		}
-		if i < j {
-			moves[i], moves[j] = moves[j], moves[i]
-			i++
-			j--
-		}
-	}
-	return i
 }
 
 // EngineOptions keeps engine's optins.
@@ -450,8 +426,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	// Try all moves if the killer move failed to produce a cut-off.
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	pivot := pivotByViolent(eng.moves[start:])
-	sort.Sort(sorterByMvvLva(eng.moves[start+pivot:]))
+	sort.Sort(sorterByMvvLva(eng.moves[start:]))
 
 	for start < len(eng.moves) {
 		move := eng.popMove()
