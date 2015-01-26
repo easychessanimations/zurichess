@@ -461,11 +461,18 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	return bestScore
 }
 
-func min(a, b int) int {
-	if a <= b {
-		return a
+func inf(a int) int {
+	if a <= int(-InfinityScore) {
+		return int(-InfinityScore)
 	}
-	return b
+	return int(a)
+}
+
+func sup(b int) int {
+	if b >= int(InfinityScore) {
+		return int(InfinityScore)
+	}
+	return int(b)
 }
 
 // alphaBeta starts the search up to depth eng.maxPly.
@@ -475,20 +482,20 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	// This method only implement aspiration windows.
 	// (see https://chessprogramming.wikispaces.com/Aspiration+Windows).
 	//
-	// The gradual widening algorithm is similar to the one used by RobboLito
+	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, Δα, Δβ := int(estimated), 25, 25
+	γ, δ := int(estimated), 25
+	α, β := γ-δ, γ+δ
 
 	for {
-		α := int16(γ - Δα)
-		β := int16(γ + Δβ)
-
-		score := eng.negamax(α, β, 0)
-		if score <= α {
-			Δα = min(Δα+Δα/2, int(InfinityScore)+γ)
-		} else if score >= β {
-			Δβ = min(Δβ+Δβ/2, int(InfinityScore)-γ)
+		score := eng.negamax(int16(α), int16(β), 0)
+		if int(score) <= α {
+			α = inf(α - δ)
+			δ += δ / 2
+		} else if int(score) >= β {
+			β = sup(β + δ)
+			δ += δ / 2
 		} else {
 			return score
 		}
