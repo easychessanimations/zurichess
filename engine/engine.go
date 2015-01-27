@@ -430,6 +430,10 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 
 	for start < len(eng.moves) {
 		move := eng.popMove()
+                if has && move == entry.Favorite {
+                        continue
+                }
+
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.
 			eng.moves = eng.moves[:start]
