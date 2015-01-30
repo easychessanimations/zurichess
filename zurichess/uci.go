@@ -194,9 +194,9 @@ func (uci *UCI) setoption(args []string) error {
 	case "MvvLva":
 		return engine.SetMvvLva(args[3])
 	case "FigureBonus.MidGame":
-		return engine.SetMaterialValue(args[1], engine.FigureBonus[engine.MidGame][:], args[3])
+		return engine.SetMaterialValue(args[1], engine.MidGameMaterial.FigureBonus[:], args[3])
 	case "FigureBonus.EndGame":
-		return engine.SetMaterialValue(args[1], engine.FigureBonus[engine.EndGame][:], args[3])
+		return engine.SetMaterialValue(args[1], engine.EndGameMaterial.FigureBonus[:], args[3])
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}

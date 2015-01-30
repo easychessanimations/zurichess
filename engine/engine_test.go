@@ -42,10 +42,6 @@ func TestScore(t *testing.T) {
 			if dynamic.Score() != static.Score() {
 				t.Logf("expected static score %v, got dynamic score %v",
 					static.Score(), dynamic.Score())
-				t.Logf(" static pieces %v; pieceScore %v; positionScore %v",
-					static.pieces, static.pieceScore, static.positionScore)
-				t.Logf("dynamic pieces %v; pieceScore %v; positionScore %v",
-					dynamic.pieces, dynamic.pieceScore, dynamic.positionScore)
 				t.FailNow()
 			}
 		}

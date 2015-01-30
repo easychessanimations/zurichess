@@ -64,10 +64,10 @@ type Engine struct {
 	moves []Move    // moves stack
 	root  HashEntry // hash entry for the root, always set.
 
-	pieces        [ColorArraySize][FigureArraySize]int
-	pieceScore    [2]int // score for pieces for mid and end game.
-	positionScore [2]int // score for position for mid and end game.
-	maxPly        int16  // max ply currently searching at.
+	pieces       [ColorArraySize][FigureArraySize]int
+	scoreMidGame int
+	scoreEndGame int
+	maxPly       int16 // max ply currently searching at.
 }
 
 // NewEngine creates a new engine.
@@ -94,21 +94,11 @@ func (eng *Engine) SetPosition(pos *Position) {
 
 // put adjusts score after putting piece on sq.
 // delta is -1 if the piece is taken (including undo), 1 otherwise.
-func (eng *Engine) put(sq Square, piece Piece, delta int) {
-	col := piece.Color()
-	fig := piece.Figure()
-	mask := ColorMask[col]
-	weight := delta * ColorWeight[col]
-
+func (eng *Engine) put(col Color, fig Figure, delta int) {
 	eng.pieces[NoColor][NoFigure] += delta
 	eng.pieces[col][NoFigure] += delta
 	eng.pieces[NoColor][fig] += delta
 	eng.pieces[col][fig] += delta
-
-	eng.pieceScore[MidGame] += weight * FigureBonus[MidGame][fig]
-	eng.pieceScore[EndGame] += weight * FigureBonus[EndGame][fig]
-	eng.positionScore[MidGame] += weight * PieceSquareTable[fig][mask^sq][MidGame]
-	eng.positionScore[EndGame] += weight * PieceSquareTable[fig][mask^sq][EndGame]
 }
 
 // adjust updates score after making a move.
@@ -117,26 +107,19 @@ func (eng *Engine) put(sq Square, piece Piece, delta int) {
 // TODO: enpassant.
 func (eng *Engine) adjust(move Move, delta int) {
 	color := eng.Position.ToMove
-
 	if move.MoveType == Promotion {
-		eng.put(move.From, ColorFigure(color, Pawn), -delta)
-	} else {
-		eng.put(move.From, move.Target, -delta)
-	}
-	eng.put(move.To, move.Target, delta)
-
-	if move.MoveType == Castling {
-		rook, start, end := CastlingRook(move.To)
-		eng.put(start, rook, -delta)
-		eng.put(end, rook, delta)
+		eng.put(color, Pawn, -delta)
+		eng.put(move.Target.Color(), move.Target.Figure(), delta)
 	}
 	if move.Capture != NoPiece {
-		eng.put(move.To, move.Capture, -delta)
+		eng.put(move.Capture.Color(), move.Capture.Figure(), -delta)
 	}
 }
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
+	eng.scoreMidGame += MidGameMaterial.EvaluateMove(move)
+	eng.scoreEndGame += EndGameMaterial.EvaluateMove(move)
 	eng.adjust(move, 1)
 	eng.Position.DoMove(move)
 }
@@ -145,26 +128,23 @@ func (eng *Engine) DoMove(move Move) {
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
 	eng.adjust(move, -1)
+	eng.scoreMidGame -= MidGameMaterial.EvaluateMove(move)
+	eng.scoreEndGame -= EndGameMaterial.EvaluateMove(move)
 }
 
 // countMaterial updates score for current position.
 func (eng *Engine) countMaterial() {
-	eng.pieceScore[MidGame] = 0
-	eng.positionScore[MidGame] = 0
-	eng.pieceScore[EndGame] = 0
-	eng.positionScore[EndGame] = 0
+	eng.scoreMidGame = MidGameMaterial.EvaluatePosition(eng.Position)
+	eng.scoreEndGame = EndGameMaterial.EvaluatePosition(eng.Position)
+
 	for col := NoColor; col <= ColorMaxValue; col++ {
 		for fig := NoFigure; fig <= FigureMaxValue; fig++ {
 			eng.pieces[col][fig] = 0
 		}
 	}
-
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-			bb := eng.Position.ByPiece(col, fig)
-			for bb > 0 {
-				eng.put(bb.Pop(), ColorFigure(col, fig), 1)
-			}
+			eng.put(col, fig, eng.Position.ByPiece(col, fig).Popcnt())
 		}
 	}
 }
@@ -197,10 +177,8 @@ func (eng *Engine) Score() int16 {
 
 	// Piece score is something between MidGame and EndGame
 	// depending on the pieces on the table.
-	scoreMg := eng.pieceScore[MidGame] + eng.positionScore[MidGame]
-	scoreEg := eng.pieceScore[EndGame] + eng.positionScore[EndGame]
 	currPhase, totalPhase := eng.phase()
-	score := (scoreMg*(totalPhase-currPhase) + scoreEg*currPhase) / totalPhase
+	score := (eng.scoreMidGame*(totalPhase-currPhase) + eng.scoreEndGame*currPhase) / totalPhase
 
 	// Give bonus for connected bishops.
 	if eng.pieces[White][Bishop] >= 2 {

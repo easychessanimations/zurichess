@@ -155,6 +155,11 @@ func (bb Bitboard) LSB() Bitboard {
 	return bb & (-bb)
 }
 
+// Popcnt counts number of squares set in bb.
+func (bb Bitboard) Popcnt() int {
+	return Popcnt(uint64(bb))
+}
+
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
 	sq := (*bb).LSB()
@@ -177,10 +182,24 @@ const (
 type Move struct {
 	From, To       Square // source and destination squares
 	Capture        Piece  // which piece is captured
-	Target         Piece  // the piece on To, after the move.
+	Target         Piece  // the piece on To, after the move
 	MoveType       MoveType
 	SavedEnpassant Square // old enpassant square
 	SavedCastle    Castle // old castle rights
+}
+
+// SideToMove returns which player is moving.
+func (m *Move) SideToMove() Color {
+	return Color(m.Target & 3)
+}
+
+// CaptureSquare returns the captured piece square.
+// If no piece is captured, the result is undefined.
+func (m *Move) CaptureSquare() Square {
+	if m.MoveType == Enpassant {
+		return (m.From + m.To) / 2
+	}
+	return m.To
 }
 
 // Piece returns the piece moved.
