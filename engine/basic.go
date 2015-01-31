@@ -197,7 +197,7 @@ func (m *Move) SideToMove() Color {
 // If no piece is captured, the result is undefined.
 func (m *Move) CaptureSquare() Square {
 	if m.MoveType == Enpassant {
-		return (m.From + m.To) / 2
+		return m.From&0x38 + m.To&0x7
 	}
 	return m.To
 }

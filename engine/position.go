@@ -204,14 +204,9 @@ func (pos *Position) fix(move Move) Move {
 // DoMovePiece performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
-	pi := move.Target
-	if move.MoveType == Promotion {
-		pi = ColorFigure(pos.ToMove, Pawn)
-	}
-
-	if pi.Color() != pos.ToMove {
+	if move.SideToMove() != pos.ToMove {
 		panic(fmt.Errorf("bad move %v: expected %v piece at %v, got %v",
-			move, pos.ToMove, move.From, pi))
+			move, pos.ToMove, move.From, move.Piece()))
 	}
 
 	// Update castling rights based on the source&target squares.
@@ -225,6 +220,7 @@ func (pos *Position) DoMove(move Move) {
 	}
 
 	// Set Enpassant square for capturing.
+	pi := move.Piece()
 	if pi.Figure() == Pawn &&
 		move.From.Bitboard()&BbPawnStartRank != 0 &&
 		move.To.Bitboard()&BbPawnDoubleRank != 0 {
@@ -233,20 +229,9 @@ func (pos *Position) DoMove(move Move) {
 		pos.SetEnpassantSquare(SquareA1)
 	}
 
-	// Capture pawn Enpassant.
-	captSq := move.To
-	if move.MoveType == Enpassant {
-		captSq = RankFile(move.From.Rank(), move.To.File())
-	}
-
-	if move.Capture != NoPiece && pos.IsEmpty(captSq) {
-		panic(fmt.Errorf("invalid capture: expected %v at %v, got %v. move is %+q",
-			move.Capture, captSq, pos.Get(captSq), move))
-	}
-
 	// Update the pieces the chess board.
 	pos.Remove(move.From, pi)
-	pos.Remove(captSq, move.Capture)
+	pos.Remove(move.CaptureSquare(), move.Capture)
 	pos.Put(move.To, move.Target)
 	pos.SetSideToMove(pos.ToMove.Other())
 }
@@ -256,24 +241,16 @@ func (pos *Position) DoMove(move Move) {
 // pi must be the piece moved, i.e. the pawn in case of promotions.
 func (pos *Position) UndoMove(move Move) {
 	pos.SetSideToMove(pos.ToMove.Other())
-	pi := move.Target
-	if move.MoveType == Promotion {
-		pi = ColorFigure(pos.ToMove, Pawn)
-	}
-
-	captSq := move.To
-	if move.MoveType == Enpassant {
-		captSq = RankFile(move.From.Rank(), move.To.File())
-	}
 
 	// Modify the chess board.
+	pi := move.Piece()
 	pos.Put(move.From, pi)
 	if move.MoveType == Promotion {
 		pos.Remove(move.To, move.Target)
 	} else {
 		pos.Remove(move.To, pi)
 	}
-	pos.Put(captSq, move.Capture)
+	pos.Put(move.CaptureSquare(), move.Capture)
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
