@@ -6,50 +6,12 @@ import (
 )
 
 var (
-	_ = log.Println
-
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
-
 	// Pieces into which a pawn can be promoted.
 	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
-
 	// Maps pieces to symbols. ? means invalid.
 	pieceToSymbol = ".????pP??nN??bB??rR??qQ??kK?"
-
-	// Maps runes to pieces. It's the reverse of the previous array.
-	symbolToPiece = map[rune]Piece{
-		'p': BlackPawn,
-		'n': BlackKnight,
-		'b': BlackBishop,
-		'r': BlackRook,
-		'q': BlackQueen,
-		'k': BlackKing,
-
-		'P': WhitePawn,
-		'N': WhiteKnight,
-		'B': WhiteBishop,
-		'R': WhiteRook,
-		'Q': WhiteQueen,
-		'K': WhiteKing,
-	}
-
-	// Maps runes to figures.
-	symbolToFigure = map[rune]Figure{
-		'p': Pawn,
-		'n': Knight,
-		'b': Bishop,
-		'r': Rook,
-		'q': Queen,
-		'k': King,
-
-		'P': Pawn,
-		'N': Knight,
-		'B': Bishop,
-		'R': Rook,
-		'Q': Queen,
-		'K': King,
-	}
 )
 
 func init() {

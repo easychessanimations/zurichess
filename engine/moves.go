@@ -12,6 +12,23 @@ var (
 	errorBadDisambiguation = fmt.Errorf("bad disambiguation")
 	errorBadPromotion      = fmt.Errorf("only pawns on the last rank can be promoted")
 	errorNoSuchMove        = fmt.Errorf("no such move")
+
+	// Maps runes to figures.
+	symbolToFigure = map[rune]Figure{
+		'p': Pawn,
+		'n': Knight,
+		'b': Bishop,
+		'r': Rook,
+		'q': Queen,
+		'k': King,
+
+		'P': Pawn,
+		'N': Knight,
+		'B': Bishop,
+		'R': Rook,
+		'Q': Queen,
+		'K': King,
+	}
 )
 
 // SANToMove conversts a move to SAN format.

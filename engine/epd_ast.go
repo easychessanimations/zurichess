@@ -42,6 +42,23 @@ var (
 		"w": White,
 		"b": Black,
 	}
+
+	// Maps runes to pieces. It's the reverse of the previous array.
+	symbolToPiece = map[rune]Piece{
+		'p': BlackPawn,
+		'n': BlackKnight,
+		'b': BlackBishop,
+		'r': BlackRook,
+		'q': BlackQueen,
+		'k': BlackKing,
+
+		'P': WhitePawn,
+		'N': WhiteKnight,
+		'B': WhiteBishop,
+		'R': WhiteRook,
+		'Q': WhiteQueen,
+		'K': WhiteKing,
+	}
 )
 
 type epdNode struct {
