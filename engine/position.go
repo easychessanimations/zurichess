@@ -207,11 +207,7 @@ func (pos *Position) UndoMove(move Move) {
 	// Modify the chess board.
 	pi := move.Piece()
 	pos.Put(move.From, pi)
-	if move.MoveType == Promotion {
-		pos.Remove(move.To, move.Target)
-	} else {
-		pos.Remove(move.To, pi)
-	}
+	pos.Remove(move.To, move.Target)
 	pos.Put(move.CaptureSquare(), move.Capture)
 
 	// Move rook on castling.
