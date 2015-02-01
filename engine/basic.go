@@ -99,12 +99,21 @@ const (
 )
 
 var (
-	ColorWeight = [ColorArraySize]int{0, 1, -1}
-	ColorMask   = [ColorArraySize]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
+	ColorWeight  = [ColorArraySize]int{0, 1, -1}
+	ColorMask    = [ColorArraySize]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
+	kingHomeRank = [ColorArraySize]int{0, 0, 7}
 )
 
-func (co Color) Other() Color {
-	return White + Black - co
+// Other returns the reversed color.
+// Result is undefined if c is not White or Black.
+func (c Color) Other() Color {
+	return White + Black - c
+}
+
+// KingHomeRank return king's rank on starting position.
+// Result is undefined if c is not White or Black.
+func (c Color) KingHomeRank() int {
+	return kingHomeRank[c]
 }
 
 // Piece is a combination of piece type and color

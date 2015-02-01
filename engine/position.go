@@ -58,7 +58,7 @@ func (pos *Position) SetCastlingAbility(castle Castle) {
 	pos.Zobrist ^= ZobristCastle[pos.Castle]
 }
 
-// SetEnpassant sets the side to move, correctly updating the Zobrist key.
+// SetSideToMove sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetSideToMove(col Color) {
 	pos.Zobrist ^= ZobristColor[pos.ToMove]
 	pos.ToMove = col
@@ -118,12 +118,10 @@ func (pos *Position) GetFigure(sq Square) Figure {
 
 // Get returns the piece at sq.
 func (pos *Position) Get(sq Square) Piece {
-	col := pos.GetColor(sq)
-	if col == NoColor {
-		return NoPiece
+	if col := pos.GetColor(sq); col != NoColor {
+		return ColorFigure(col, pos.GetFigure(sq))
 	}
-	fig := pos.GetFigure(sq)
-	return ColorFigure(col, fig)
+	return NoPiece
 }
 
 // IsChecked returns true if co's king is checked.
@@ -200,7 +198,6 @@ func (pos *Position) DoMove(move Move) {
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
-// pi must be the piece moved, i.e. the pawn in case of promotions.
 func (pos *Position) UndoMove(move Move) {
 	pos.SetSideToMove(pos.ToMove.Other())
 
@@ -251,7 +248,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 	return moves
 }
 
-// GenPawnAdvanceMoves moves pawns one square.
+// genPawnAdvanceMoves moves pawns one square.
 func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
 	bb := pos.ByPiece(pos.ToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
@@ -273,7 +270,7 @@ func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
 	return moves
 }
 
-// GenPawnAdvanceMoves moves pawns two square.
+// genPawnDoubleAdvanceMoves moves pawns two square.
 func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	bb := pos.ByPiece(pos.ToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
@@ -295,11 +292,21 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 	return moves
 }
 
-func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
-	bb := pos.ByPiece(pos.ToMove, Pawn)
-	enemy := pos.ByColor[pos.ToMove.Other()]
-	var forward Square
+func (pos *Position) pawnCapture(to Square) Piece {
+	if pos.Enpassant != SquareA1 && to == pos.Enpassant {
+		return ColorFigure(pos.ToMove.Other(), Pawn)
+	} else {
+		return pos.Get(to)
+	}
+}
 
+func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
+	enemy := pos.ByColor[pos.ToMove.Other()]
+	if pos.Enpassant != SquareA1 {
+		enemy |= pos.Enpassant.Bitboard()
+	}
+
+	var forward Square
 	if pos.ToMove == White {
 		enemy >>= 8
 		forward = RankFile(+1, 0)
@@ -309,78 +316,44 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 	}
 
 	// Left
-	bbl := bb & BbPawnLeftAttack & (enemy << 1)
+	bb := pos.ByPiece(pos.ToMove, Pawn)
 	att := forward.Relative(0, -1)
-	for bbl > 0 {
+	for bbl := bb & BbPawnLeftAttack & (enemy << 1); bbl > 0; {
 		from := bbl.Pop()
 		to := from + att
-		capt := pos.Get(to)
+		capt := pos.pawnCapture(to)
 		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	// Right
-	bbr := bb & BbPawnRightAttack & (enemy >> 1)
 	att = forward.Relative(0, +1)
-	for bbr > 0 {
+	for bbr := bb & BbPawnRightAttack & (enemy >> 1); bbr > 0; {
 		from := bbr.Pop()
 		to := from + att
-		capt := pos.Get(to)
+		capt := pos.pawnCapture(to)
 		moves = pos.genPawnPromotions(from, to, capt, true, moves)
 	}
 
 	return moves
 }
 
-func (pos *Position) genPawnEnpassantMoves(moves []Move) []Move {
-	if pos.Enpassant == SquareA1 {
-		return moves
-	}
-
-	bb := pos.ByPiece(pos.ToMove, Pawn)
-	enemy := pos.Enpassant.Bitboard()
-
-	if pos.ToMove == White {
-		enemy >>= 8
-	} else {
-		enemy <<= 8
-	}
-
-	// Left
-	bbl := bb & BbPawnLeftAttack & (enemy << 1)
-	if bbl != 0 {
-		from := bbl.AsSquare()
-		to := pos.Enpassant
-		capt := ColorFigure(pos.ToMove.Other(), Pawn)
-		moves = pos.genPawnPromotions(from, to, capt, true, moves)
-	}
-
-	// Right
-	bbr := bb & BbPawnRightAttack & (enemy >> 1)
-	if bbr != 0 {
-		from := bbr.AsSquare()
-		to := pos.Enpassant
-		capt := ColorFigure(pos.ToMove.Other(), Pawn)
-		moves = pos.genPawnPromotions(from, to, capt, true, moves)
-	}
-
-	return moves
-
-}
-
-// GenPawnMoves generates pawn moves around from.
+// genPawnMoves generates pawn moves around from.
 func (pos *Position) genPawnMoves(moves []Move) []Move {
 	moves = pos.genPawnAdvanceMoves(false, moves)
 	moves = pos.genPawnDoubleAdvanceMoves(moves)
-	moves = pos.genPawnEnpassantMoves(moves)
 	moves = pos.genPawnAttackMoves(moves)
 	return moves
 }
 
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, violent bool, moves []Move) []Move {
 	if violent {
+		// Capture enemy pieces.
 		att &= pos.ByColor[pos.ToMove.Other()]
+	} else {
+		// Generate all moves, except capturing own pieces.
+		att &= ^pos.ByColor[pos.ToMove]
 	}
-	att &= ^pos.ByColor[pos.ToMove]
+
 	for bb := att; bb != 0; {
 		to := bb.Pop()
 		moves = append(moves, pos.fix(Move{
@@ -442,55 +415,62 @@ func (pos *Position) genKingMovesNear(violent bool, moves []Move) []Move {
 }
 
 func (pos *Position) genKingCastles(moves []Move) []Move {
-	// King Castles.
-	pi, oo, ooo := WhiteKing, WhiteOO, WhiteOOO
-	rank, from := 0, SquareE1
+	rank := pos.ToMove.KingHomeRank()
+	oo, ooo := WhiteOO, WhiteOOO
 	if pos.ToMove == Black {
-		pi, oo, ooo = BlackKing, BlackOO, BlackOOO
-		rank, from = 7, SquareE8
+		oo, ooo = BlackOO, BlackOOO
 	}
-	if pos.Castle&(oo|ooo) == 0 {
-		return moves
-	}
-
-	other := pos.ToMove.Other()
 
 	// Castle king side.
 	if pos.Castle&oo != 0 {
 		r5 := RankFile(rank, 5)
 		r6 := RankFile(rank, 6)
-		if pos.IsEmpty(r5) && pos.IsEmpty(r6) {
-			if !pos.IsAttackedBy(from, other) &&
-				!pos.IsAttackedBy(r5, other) &&
-				!pos.IsAttackedBy(r6, other) {
-				moves = append(moves, pos.fix(Move{
-					MoveType: Castling,
-					From:     from,
-					To:       RankFile(rank, 6),
-					Target:   pi,
-				}))
-			}
+		if !pos.IsEmpty(r5) || !pos.IsEmpty(r6) {
+			goto EndCastleOO
 		}
+
+		r4 := RankFile(rank, 4)
+		other := pos.ToMove.Other()
+		if pos.IsAttackedBy(r4, other) ||
+			pos.IsAttackedBy(r5, other) ||
+			pos.IsAttackedBy(r6, other) {
+			goto EndCastleOO
+		}
+
+		moves = append(moves, pos.fix(Move{
+			MoveType: Castling,
+			From:     r4,
+			To:       r6,
+			Target:   ColorFigure(pos.ToMove, King),
+		}))
 	}
+EndCastleOO:
 
 	// Castle queen side.
 	if pos.Castle&ooo != 0 {
 		r3 := RankFile(rank, 3)
 		r2 := RankFile(rank, 2)
 		r1 := RankFile(rank, 1)
-		if pos.IsEmpty(r3) && pos.IsEmpty(r2) && pos.IsEmpty(r1) {
-			if !pos.IsAttackedBy(from, other) &&
-				!pos.IsAttackedBy(r3, other) &&
-				!pos.IsAttackedBy(r2, other) {
-				moves = append(moves, pos.fix(Move{
-					MoveType: Castling,
-					From:     from,
-					To:       RankFile(rank, 2),
-					Target:   pi,
-				}))
-			}
+		if !pos.IsEmpty(r3) || !pos.IsEmpty(r2) || !pos.IsEmpty(r1) {
+			goto EndCastleOOO
 		}
+
+		r4 := RankFile(rank, 4)
+		other := pos.ToMove.Other()
+		if pos.IsAttackedBy(r4, other) ||
+			pos.IsAttackedBy(r3, other) ||
+			pos.IsAttackedBy(r2, other) {
+			goto EndCastleOOO
+		}
+
+		moves = append(moves, pos.fix(Move{
+			MoveType: Castling,
+			From:     r4,
+			To:       r2,
+			Target:   ColorFigure(pos.ToMove, King),
+		}))
 	}
+EndCastleOOO:
 
 	return moves
 }
@@ -500,16 +480,15 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	enemy := pos.ByColor[co]
 	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
 		bb := sq.Bitboard()
-		pawns := pos.ByPiece(co, Pawn)
-		pawnsLeft := (BbPawnLeftAttack & pawns) >> 1
-		pawnsRight := (BbPawnRightAttack & pawns) << 1
-
 		if co == White { // WhitePawn
 			bb >>= 8
 		} else { // BlackPawn
 			bb <<= 8
 		}
 
+		pawns := pos.ByPiece(co, Pawn)
+		pawnsLeft := (BbPawnLeftAttack & pawns) >> 1
+		pawnsRight := (BbPawnRightAttack & pawns) << 1
 		if att := bb & (pawnsLeft | pawnsRight); att != 0 {
 			return true
 		}
@@ -546,10 +525,10 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 	return false
 }
 
-// GenerateMoves is a helper to generate all moves.
+// GenerateMoves appends to moves all moves valid from pos.
+// The generated moves are pseudo-legal, i.e. they can leave the king in check.
 func (pos *Position) GenerateMoves(moves []Move) []Move {
 	moves = pos.genPawnAttackMoves(moves)
-	moves = pos.genPawnEnpassantMoves(moves)
 	moves = pos.genKnightMoves(false, moves)
 	moves = pos.genBishopMoves(Bishop, false, moves)
 	moves = pos.genRookMoves(Rook, false, moves)
@@ -563,11 +542,11 @@ func (pos *Position) GenerateMoves(moves []Move) []Move {
 	return moves
 }
 
-// GenerateMoves is a helper to generate all moves.
+// GenerateViolentMoves append to moves all violent moves valid from pos.
+// The generated moves are pseudo-legal, i.e. they can leave the king in check.
 func (pos *Position) GenerateViolentMoves(moves []Move) []Move {
 	moves = pos.genPawnAdvanceMoves(true, moves)
 	moves = pos.genPawnAttackMoves(moves)
-	moves = pos.genPawnEnpassantMoves(moves)
 	moves = pos.genKnightMoves(true, moves)
 	moves = pos.genBishopMoves(Bishop, true, moves)
 	moves = pos.genBishopMoves(Queen, true, moves)
@@ -578,10 +557,10 @@ func (pos *Position) GenerateViolentMoves(moves []Move) []Move {
 }
 
 // GenerateFigureMoves generate moves for a given figure.
+// The generated moves are pseudo-legal, i.e. they can leave the king in check.
 func (pos *Position) GenerateFigureMoves(fig Figure, moves []Move) []Move {
 	switch fig {
 	case Pawn:
-		moves = pos.genPawnEnpassantMoves(moves)
 		moves = pos.genPawnAttackMoves(moves)
 		moves = pos.genPawnAdvanceMoves(false, moves)
 		moves = pos.genPawnDoubleAdvanceMoves(moves)
