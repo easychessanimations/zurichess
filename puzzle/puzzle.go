@@ -100,12 +100,6 @@ func main() {
 			continue
 		}
 
-		if len(epd.BestMove) == 0 {
-			// Ignore positions without best move.
-			// TODO: Handle AvoidMove, etc.
-			continue
-		}
-
 		// Evaluate position.
 		timeControl.Start()
 		ai := engine.NewEngine(nil, engine.EngineOptions{})
