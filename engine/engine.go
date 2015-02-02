@@ -466,7 +466,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, δ := int(estimated), 25
+	γ, δ := int(estimated), 10
 	α, β := γ-δ, γ+δ
 
 	for {
