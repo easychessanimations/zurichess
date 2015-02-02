@@ -16,10 +16,14 @@ var (
 // Square identifies the location on the board.
 type Square uint8
 
+// RankFile returns a square with rank r and file f.
+// r and f should be between 0 and 7.
 func RankFile(r, f int) Square {
 	return Square(r*8 + f)
 }
 
+// SquareFromString parses a square from a string.
+// The string has standard chess format [a-h][1-8].
 func SquareFromString(s string) (Square, error) {
 	if len(s) != 2 {
 		return SquareA1, errorInvalidSquare
@@ -151,11 +155,7 @@ func FileBb(file int) Bitboard {
 
 // If the bitboard has a single piece, returns the occupied square.
 func (bb Bitboard) AsSquare() Square {
-	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
-	/*
-		        // golang is bad at inlining .AsSquare if it calls LogN
-			return Square(LogN(uint64(bb)))
-	*/
+	return Square(logN(uint64(bb)))
 }
 
 // LSB picks a square in the board.
@@ -166,7 +166,7 @@ func (bb Bitboard) LSB() Bitboard {
 
 // Popcnt counts number of squares set in bb.
 func (bb Bitboard) Popcnt() int {
-	return Popcnt(uint64(bb))
+	return popcnt(uint64(bb))
 }
 
 // Pop pops a set square from the bitboard.

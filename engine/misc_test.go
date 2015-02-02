@@ -15,9 +15,9 @@ func TestLSB(t *testing.T) {
 	}
 
 	for _, d := range data {
-		actual := LSB(d.n)
+		actual := lsb(d.n)
 		if d.lsb != actual {
-			t.Errorf("expected LSB(%d) == %d, got %d", d.n, d.lsb, actual)
+			t.Errorf("expected lsb(%d) == %d, got %d", d.n, d.lsb, actual)
 		}
 	}
 }
@@ -25,9 +25,9 @@ func TestLSB(t *testing.T) {
 func TestLogN(t *testing.T) {
 	for e := uint(0); e < 64; e++ {
 		n := uint64(1) << e
-		actual := LogN(n)
+		actual := logN(n)
 		if actual != e {
-			t.Errorf("expected LogN(%d) == %d, got %d", n, e, actual)
+			t.Errorf("expected logN(%d) == %d, got %d", n, e, actual)
 		}
 	}
 }

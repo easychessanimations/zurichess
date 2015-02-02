@@ -31,14 +31,15 @@ var (
 	}
 )
 
+// Material evaluates a position from static point of view,
+// i.e. pieces and their position on the table.
 type Material struct {
 	// FigureBonus stores how much each piece is worth.
 	FigureBonus [FigureArraySize]int
 
 	// Piece Square Table from White POV.
 	// For black the table is rotated, i.e. black index = 63 - white index.
-	// Theses values were suggested by Tomasz Michniewski as an extremely basic
-	// evaluation.
+	// The tables are indexed from SquareA1 to SquareH8.
 	PieceSquareTable [FigureArraySize][SquareArraySize]int
 }
 
@@ -96,9 +97,11 @@ func (m *Material) EvaluateMove(move Move) int {
 }
 
 var (
-	// The original values were copied from:
+	// Theses values were suggested by Tomasz Michniewski as an extremely basic
+	// evaluation.  See the the original values were copied from:
 	// https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-	// The tables are indexed from SquareA1 to SquareH8.
+
+	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{
 		FigureBonus: [FigureArraySize]int{
 			0, 100, 315, 325, 475, 975, 10000,
@@ -168,6 +171,7 @@ var (
 		},
 	}
 
+	// EndGameMaterial defines the material values for end game.
 	EndGameMaterial = Material{
 		FigureBonus: [FigureArraySize]int{
 			0, 100, 345, 355, 525, 1000, 10000,
@@ -267,6 +271,7 @@ func SetMaterialValue(name string, array []int, str string) error {
 	return nil
 }
 
+// SetMvvLva sets the mvv lva table.
 func SetMvvLva(str string) error {
 	return SetMaterialValue("MvvLva", mvvLva[:], str)
 }

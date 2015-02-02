@@ -42,20 +42,23 @@ func (c sorterByMvvLva) Less(i, j int) bool {
 
 // EngineOptions keeps engine's optins.
 type EngineOptions struct {
-	AnalyseMode bool // True to display info strings.
+	AnalyseMode bool // true to display info strings
 }
 
 // EngineStats stores some basic stats on the engine.
+// Statistics are per each depth search.
 type EngineStats struct {
-	CacheHit  uint64
-	CacheMiss uint64
-	Nodes     uint64
+	CacheHit  uint64 // number of times the position was found transposition table
+	CacheMiss uint64 // number of times the position was not found in the transposition table
+	Nodes     uint64 // number of nodes searched
 }
 
+// CacheHitRatio returns the ration of hits over total number of lookups.
 func (es *EngineStats) CacheHitRatio() float32 {
 	return float32(es.CacheHit) / float32(es.CacheHit+es.CacheMiss)
 }
 
+// Engine implements the logic to search the best move for a position.
 type Engine struct {
 	Options  EngineOptions
 	Position *Position // current Position
@@ -483,7 +486,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 // getPrincipalVariation returns the moves.
 func (eng *Engine) getPrincipalVariation() []Move {
 	seen := make(map[uint64]bool)
-	moves := make([]Move, 0)
+	var moves []Move
 
 	next := eng.root
 	for !seen[next.Lock] && next.Kind != NoKind && next.Favorite.MoveType != NoMove {
@@ -531,9 +534,8 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		// If there is no valid move, then it's a stalemate or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
 			return Move{}, ErrorCheckMate
-		} else {
-			return Move{}, ErrorStaleMate
 		}
+		return Move{}, ErrorStaleMate
 	}
 
 	return move, nil

@@ -65,7 +65,7 @@ func (pos *Position) SetSideToMove(col Color) {
 	pos.Zobrist ^= ZobristColor[pos.ToMove]
 }
 
-// SetEnpassant sets the enpassant square correctly updating the Zobrist key.
+// SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
 	pos.Zobrist ^= ZobristEnpassant[pos.Enpassant]
 	pos.Enpassant = sq
@@ -161,7 +161,7 @@ func (pos *Position) fix(move Move) Move {
 	return move
 }
 
-// DoMovePiece performs a move of known piece.
+// DoMove performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
 	if move.SideToMove() != pos.ToMove {
@@ -295,9 +295,8 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 func (pos *Position) pawnCapture(to Square) Piece {
 	if pos.Enpassant != SquareA1 && to == pos.Enpassant {
 		return ColorFigure(pos.ToMove.Other(), Pawn)
-	} else {
-		return pos.Get(to)
 	}
+	return pos.Get(to)
 }
 
 func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
@@ -499,7 +498,7 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 		return true
 	}
 
-	// Quick test of SuperPiece (Bishop, Rook, Queen, King) on empty board.
+	// Quick test of queen's attack on an empty board.
 	if BbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
 		return false
 	}

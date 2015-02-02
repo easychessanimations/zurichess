@@ -12,13 +12,13 @@ var debrujin64 = [64]uint{
 	62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58,
 }
 
-// LSB returns the least significant bit of n.
-func LSB(n uint64) uint64 {
+// lsb returns the least significant bit of n.
+func lsb(n uint64) uint64 {
 	return n & (-n)
 }
 
-// LogN returns the logarithm of n, where n is a power of two.
-func LogN(n uint64) uint {
+// logN returns the logarithm of n, where n is a power of two.
+func logN(n uint64) uint {
 	return debrujin64[n*debrujinMul>>debrujinShift]
 }
 
@@ -29,8 +29,8 @@ const (
 	kf = uint64(0x0101010101010101)
 )
 
-// Popcnt counts number of bits set in n.
-func Popcnt(x uint64) int {
+// popcnt counts number of bits set in n.
+func popcnt(x uint64) int {
 	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
 	x = x - ((x >> 1) & k1)
 	x = (x & k2) + ((x >> 2) & k2)

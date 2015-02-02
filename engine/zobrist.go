@@ -1,3 +1,8 @@
+// zobrist.go contains magic numbers used for Zobrist hashing.
+//
+// More information on Zobrist hashing can be found in the paper:
+// http://research.cs.wisc.edu/techreports/1970/TR88.pdf
+
 package engine
 
 import (
@@ -5,7 +10,8 @@ import (
 )
 
 var (
-	// The following are arrays of magic numbers used for Zobrist hashing.
+	// The Zobrist* arrays contain magic numbers used for Zobrist hashing.
+
 	ZobristPiece     [PieceArraySize][SquareArraySize]uint64
 	ZobristEnpassant [SquareArraySize]uint64
 	ZobristCastle    [CastleArraySize]uint64

@@ -12,10 +12,14 @@ import (
 )
 
 var (
-	BbPawnAttack   [64]Bitboard // pawn's attack tables
-	BbKnightAttack [64]Bitboard // knight's attack tables
-	BbKingAttack   [64]Bitboard // king's attack tables (excluding castling)
-	BbSuperAttack  [64]Bitboard // super piece's attack tables
+	// BbPawnAttack contains pawn's attack tables.
+	BbPawnAttack [64]Bitboard
+	// BbKnightAttack contains knight's attack tables.
+	BbKnightAttack [64]Bitboard
+	// BbKingAttack contains king's attack tables (excluding castling).
+	BbKingAttack [64]Bitboard
+	// BbSuperAttack contains queen piece's attack tables. This queen can jump.
+	BbSuperAttack [64]Bitboard
 
 	RookMagic   [64]magicInfo
 	BishopMagic [64]magicInfo
@@ -38,11 +42,11 @@ func initJumpAttack(jump [][2]int, attack []Bitboard) {
 		for f := 0; f < 8; f++ {
 			bb := Bitboard(0)
 			for _, d := range jump {
-				r_, f_ := r+d[0], f+d[1]
-				if 0 > r_ || r_ >= 8 || 0 > f_ || f_ >= 8 {
+				r0, f0 := r+d[0], f+d[1]
+				if 0 > r0 || r0 >= 8 || 0 > f0 || f0 >= 8 {
 					continue
 				}
-				bb |= RankFile(r_, f_).Bitboard()
+				bb |= RankFile(r0, f0).Bitboard()
 			}
 			attack[RankFile(r, f)] = bb
 		}
@@ -82,16 +86,16 @@ func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
 	r, f := sq.Rank(), sq.File()
 	bb := Bitboard(0)
 	for _, d := range deltas {
-		r_, f_ := r, f
+		r0, f0 := r, f
 		for {
-			r_, f_ = r_+d[0], f_+d[1]
-			if 0 > r_ || r_ >= 8 || 0 > f_ || f_ >= 8 {
+			r0, f0 = r0+d[0], f0+d[1]
+			if 0 > r0 || r0 >= 8 || 0 > f0 || f0 >= 8 {
 				// Stop when outside of the board.
 				break
 			}
-			sq_ := RankFile(r_, f_)
-			bb |= sq_.Bitboard()
-			if occupancy&sq_.Bitboard() != 0 {
+			sq0 := RankFile(r0, f0)
+			bb |= sq0.Bitboard()
+			if occupancy&sq0.Bitboard() != 0 {
 				// Stop when a piece was hit.
 				break
 			}
@@ -219,7 +223,7 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 
 		// Pick a good magic and test whether it gives a perfect hash.
 		var magic uint64
-		for Popcnt(uint64(mask)*magic) < 6 {
+		for popcnt(uint64(mask)*magic) < 6 {
 			magic = wiz.randMagic()
 		}
 		wiz.tryMagicNumber(mi, sq, magic, shift)
