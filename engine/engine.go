@@ -64,8 +64,8 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    EngineStats
 
-	moves []Move    // moves stack
-	root  HashEntry // hash entry for the root, always set.
+	moves []Move // moves stack
+	root  Move   // move at root, set only if score is exact.
 
 	pieces       [ColorArraySize][FigureArraySize]int
 	scoreMidGame int
@@ -247,15 +247,6 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 	return entry, ok
 }
 
-func (eng *Engine) updateRoot(ply int16, entry HashEntry) {
-	if ply == 0 {
-		if entry.Favorite.MoveType == NoMove {
-			panic("expected valid move at root")
-		}
-		eng.root = entry
-	}
-}
-
 // updateHash updates GlobalHashTable with current position.
 func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	kind := Exact
@@ -272,8 +263,14 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 		Favorite: move,
 		Kind:     kind,
 	}
-	eng.updateRoot(ply, entry)
+
 	GlobalHashTable.Put(entry)
+	if ply == 0 && kind == Exact {
+		if entry.Favorite.MoveType == NoMove {
+			panic("expected valid move at root")
+		}
+		eng.root = move
+	}
 }
 
 // quiescence searches a quite move.
@@ -357,23 +354,20 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	// Check the transposition table.
 	entry, has := eng.retrieveHash()
 	if has && eng.maxPly-ply <= entry.Depth {
-		if entry.Kind == Exact {
+		if ply > 0 && entry.Kind == Exact {
 			// Simply return if the score is exact.
-			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= alpha {
 			// Previously the move failed low so the actual score
 			// is at most entry.Score. If that's lower than alpha
 			// this will also fail low.
-			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 		if entry.Kind == FailedHigh && entry.Score >= beta {
 			// Previously the move failed high so the actual score
 			// is at least entry.Score. If that's higher than beta
 			// this will also fail high.
-			eng.updateRoot(ply, entry)
 			return entry.Score
 		}
 	}
@@ -489,11 +483,12 @@ func (eng *Engine) getPrincipalVariation() []Move {
 	var moves []Move
 
 	next := eng.root
-	for !seen[next.Lock] && next.Kind != NoKind && next.Favorite.MoveType != NoMove {
-		seen[next.Lock] = true
-		moves = append(moves, next.Favorite)
-		eng.DoMove(next.Favorite)
-		next, _ = GlobalHashTable.Get(eng.Position.Zobrist)
+	for next.MoveType != NoMove && !seen[eng.Position.Zobrist] {
+		seen[eng.Position.Zobrist] = true
+		moves = append(moves, next)
+		eng.DoMove(next)
+		entry, _ := GlobalHashTable.Get(eng.Position.Zobrist)
+		next = entry.Favorite
 	}
 
 	// Undo all moves, so we get back to the initial state.
@@ -529,7 +524,7 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
-	move := eng.root.Favorite
+	move := eng.root
 	if move.MoveType == NoMove {
 		// If there is no valid move, then it's a stalemate or a checkmate.
 		if eng.Position.IsChecked(eng.Position.ToMove) {
