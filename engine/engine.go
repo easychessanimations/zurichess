@@ -484,23 +484,21 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	}
 }
 
-// Play finds the next move.
+// Play evaluates current position.
+// Returns principal variation, moves[0] is the next move.
+//
 // tc should already be started.
-func (eng *Engine) Play(tc TimeControl) (Move, error) {
+func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	eng.Stats = EngineStats{}
 	score := int16(0)
 
 	start := time.Now()
-	bestMove := Move{}
-
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		score = eng.alphaBeta(score)
 		elapsed := time.Now().Sub(start)
 
-		moves := eng.pvTable.Get(eng.Position)
-		bestMove = moves[0]
-
+		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
 				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
@@ -514,5 +512,5 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
-	return bestMove, nil
+	return moves
 }

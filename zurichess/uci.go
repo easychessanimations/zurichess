@@ -59,7 +59,6 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println("id name zurichess")
 	fmt.Println("id author Alexandru Moșoi")
 	fmt.Println()
-	fmt.Printf("option name UCI_AnalyseMode type check default %v\n", uci.Engine.Options.AnalyseMode)
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name MvvLva type string\n")
 	fmt.Printf("option name FigureBonus.MidGame type string\n")
@@ -159,15 +158,12 @@ func (uci *UCI) go_(args []string) {
 	}
 	tc.Start()
 
-	move, _ := uci.Engine.Play(tc)
-	if uci.Engine.Options.AnalyseMode {
-		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
-		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-			engine.GlobalHashTable.Size(), hit, miss,
-			float32(hit)/float32(hit+miss)*100)
-	}
-
-	fmt.Printf("bestmove %v\n", move)
+	moves := uci.Engine.Play(tc)
+	hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
+	log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
+		engine.GlobalHashTable.Size(), hit, miss,
+		float32(hit)/float32(hit+miss)*100)
+	fmt.Printf("bestmove %v\n", moves[0])
 }
 
 func (uci *UCI) setoption(args []string) error {
@@ -179,12 +175,6 @@ func (uci *UCI) setoption(args []string) error {
 	}
 
 	switch args[1] {
-	case "UCI_AnalyseMode":
-		if analyseMode, err := strconv.ParseBool(args[3]); err != nil {
-			return err
-		} else {
-			uci.Engine.Options.AnalyseMode = analyseMode
-		}
 	case "Hash":
 		if hashSizeMB, err := strconv.ParseInt(args[3], 10, 64); err != nil {
 			return err
