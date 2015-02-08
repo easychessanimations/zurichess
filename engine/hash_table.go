@@ -57,20 +57,22 @@ func (ht *HashTable) Size() int {
 	return int(ht.mask + 1)
 }
 
-// split splits lock into a lock and a hash table index.
-func split(lock uint64, mask uint32) (uint32, uint32) {
-	return uint32(lock >> 32), uint32(lock) & mask
+// split splits lock into a lock and two hash table indexes.
+func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
+	return uint32(lock >> 32), uint32(lock>>0) & mask, uint32(lock>>8) & mask
 }
 
 // Put puts a new entry in the database.
 func (ht *HashTable) Put(pos *Position, entry HashEntry) {
-	lock, key := split(pos.Zobrist, ht.mask)
-	entry.lock = lock
-
-	if ht.table[key].Kind == NoKind ||
-		ht.table[key].lock == entry.lock ||
-		entry.Depth <= ht.table[key].Depth+1 {
-		ht.table[key] = entry
+	lock, key0, key1 := split(pos.Zobrist, ht.mask)
+	if ht.table[key0].Kind == NoKind ||
+		ht.table[key0].lock == lock ||
+		entry.Depth <= ht.table[key0].Depth+1 {
+		ht.table[key0] = entry
+		ht.table[key0].lock = lock
+	} else {
+		ht.table[key1] = entry
+		ht.table[key1].lock = lock
 	}
 }
 
@@ -80,9 +82,12 @@ func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 // from a different table. However, these errors are not common because
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
 func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
-	lock, key := split(pos.Zobrist, ht.mask)
-	if ht.table[key].Kind != NoKind && ht.table[key].lock == lock {
-		return ht.table[key], true
+	lock, key0, key1 := split(pos.Zobrist, ht.mask)
+	if ht.table[key0].Kind != NoKind && ht.table[key0].lock == lock {
+		return ht.table[key0], true
+	}
+	if ht.table[key1].Kind != NoKind && ht.table[key1].lock == lock {
+		return ht.table[key1], true
 	}
 	return HashEntry{}, false
 }
