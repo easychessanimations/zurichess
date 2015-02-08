@@ -4,7 +4,6 @@
 package engine
 
 import (
-	"log"
 	"unsafe"
 )
 
@@ -43,8 +42,6 @@ func NewHashTable(hashSizeMB int) *HashTable {
 	// Choose hashSize such that it is a power of two.
 	hashEntrySize := uint64(unsafe.Sizeof(HashEntry{}))
 	hashSize := uint64(hashSizeMB) << 20 / hashEntrySize
-	log.Printf("Building an index of %d elements of %d bytes",
-		hashSize, hashEntrySize)
 
 	for hashSize&(hashSize-1) != 0 {
 		hashSize &= hashSize - 1
