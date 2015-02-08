@@ -64,8 +64,8 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    EngineStats
 
-	moves []Move // moves stack
-	root  Move   // move at root, set only if score is exact.
+	moves   []Move // moves stack
+	pvTable pvTable
 
 	pieces       [ColorArraySize][FigureArraySize]int
 	scoreMidGame int
@@ -79,6 +79,7 @@ func NewEngine(pos *Position, opt EngineOptions) *Engine {
 	eng := &Engine{
 		Options: opt,
 		moves:   make([]Move, 0, 1024),
+		pvTable: newPvTable(),
 	}
 	eng.SetPosition(pos)
 	return eng
@@ -265,12 +266,6 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 	}
 
 	GlobalHashTable.Put(entry)
-	if ply == 0 && kind == Exact {
-		if entry.Favorite.MoveType == NoMove {
-			panic("expected valid move at root")
-		}
-		eng.root = move
-	}
 }
 
 // quiescence searches a quite move.
@@ -280,13 +275,16 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	if score >= beta {
 		return score
 	}
-	if score > alpha {
-		alpha = score
+	localAlpha := alpha
+	if score > localAlpha {
+		localAlpha = score
 	}
 
+	bestMove := Move{}
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateViolentMoves(eng.moves)
 	sort.Sort(sorterByMvvLva(eng.moves[start:]))
+
 	for start < len(eng.moves) {
 		move := eng.popMove()
 		eng.DoMove(move)
@@ -294,18 +292,23 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 			eng.UndoMove(move)
 			continue
 		}
-		score := -eng.quiescence(-beta, -alpha, ply+1)
+		score := -eng.quiescence(-beta, -localAlpha, ply+1)
 		if score >= beta {
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
 			return score
 		}
-		if score > alpha {
-			alpha = score
+		if score > localAlpha {
+			localAlpha = score
+			bestMove = move
 		}
 		eng.UndoMove(move)
 	}
-	return alpha
+
+	if alpha < localAlpha && localAlpha < beta && bestMove.MoveType != NoMove {
+		eng.pvTable.Put(eng.Position, bestMove)
+	}
+	return localAlpha
 }
 
 func (eng *Engine) tryMove(α, β, ply int16, move Move) int16 {
@@ -433,6 +436,10 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	}
 
 	eng.updateHash(alpha, beta, ply, bestMove, bestScore)
+	if alpha < bestScore && bestScore < beta && bestMove.MoveType != NoMove {
+		eng.pvTable.Put(eng.Position, bestMove)
+	}
+
 	return bestScore
 }
 
@@ -477,27 +484,6 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	}
 }
 
-// getPrincipalVariation returns the moves.
-func (eng *Engine) getPrincipalVariation() []Move {
-	seen := make(map[uint64]bool)
-	var moves []Move
-
-	next := eng.root
-	for next.MoveType != NoMove && !seen[eng.Position.Zobrist] {
-		seen[eng.Position.Zobrist] = true
-		moves = append(moves, next)
-		eng.DoMove(next)
-		entry, _ := GlobalHashTable.Get(eng.Position.Zobrist)
-		next = entry.Favorite
-	}
-
-	// Undo all moves, so we get back to the initial state.
-	for i := len(moves) - 1; i >= 0; i-- {
-		eng.UndoMove(moves[i])
-	}
-	return moves
-}
-
 // Play finds the next move.
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (Move, error) {
@@ -505,17 +491,21 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 	score := int16(0)
 
 	start := time.Now()
+	bestMove := Move{}
+
 	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		score = eng.alphaBeta(score)
 		elapsed := time.Now().Sub(start)
+
+		moves := eng.pvTable.Get(eng.Position)
+		bestMove = moves[0]
 
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
 				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
 				eng.Stats.Nodes*uint64(time.Second)/uint64(elapsed+1))
 
-			moves := eng.getPrincipalVariation()
 			fmt.Printf("pv")
 			for _, move := range moves {
 				fmt.Printf(" %v", move)
@@ -524,14 +514,5 @@ func (eng *Engine) Play(tc TimeControl) (Move, error) {
 		}
 	}
 
-	move := eng.root
-	if move.MoveType == NoMove {
-		// If there is no valid move, then it's a stalemate or a checkmate.
-		if eng.Position.IsChecked(eng.Position.ToMove) {
-			return Move{}, ErrorCheckMate
-		}
-		return Move{}, ErrorStaleMate
-	}
-
-	return move, nil
+	return bestMove, nil
 }
