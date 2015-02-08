@@ -104,13 +104,13 @@ func main() {
 		timeControl.Start()
 		ai := engine.NewEngine(nil, engine.EngineOptions{})
 		ai.SetPosition(epd.Position)
-		actual, _ := ai.Play(timeControl)
+		actual := ai.Play(timeControl)
 
 		// Update number of solved games.
 		numTests++
 		var expected engine.Move
 		for _, expected = range epd.BestMove {
-			if expected == actual {
+			if expected == actual[0] {
 				solvedTests++
 				break
 			}
@@ -126,7 +126,7 @@ func main() {
 
 			// Print results.
 			fmt.Printf("%4d %6s %6s %5.2f%% %5dK %4d/%4d %s\n",
-				i+1, expected.String(), actual.String(),
+				i+1, expected.String(), actual[0].String(),
 				float32(ai.Stats.CacheHit)/float32(ai.Stats.CacheHit+ai.Stats.CacheMiss)*100,
 				ai.Stats.Nodes/1000, solvedTests, numTests, line)
 			o++
