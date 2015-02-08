@@ -18,9 +18,8 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 		}
 
 		actual := perft(pos, depth, new([]engine.Move))
-		if !expected.Equals(actual) {
-			t.Errorf("at depth %d expected %+v got %+v",
-				depth, expected, actual)
+		if expected != actual {
+			t.Errorf("at depth %d expected %+v got %+v", depth, expected, actual)
 		}
 	}
 }
@@ -34,7 +33,7 @@ func TestPerftKiwipete(t *testing.T) {
 }
 
 func TestPerftDuplain(t *testing.T) {
-	testHelper(t, duplain, data[duplain][:6])
+	testHelper(t, duplain, data[duplain][:7])
 }
 
 func benchHelper(b *testing.B, fen string, depth int) {
