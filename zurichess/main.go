@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"runtime"
@@ -45,9 +44,7 @@ func main() {
 	for {
 		line, _, err := bio.ReadLine()
 		if err != nil {
-			if err != io.EOF {
-				log.Println("error:", err)
-			}
+			log.Println("error:", err)
 			break
 		}
 		if err := uci.Execute(string(line)); err != nil {

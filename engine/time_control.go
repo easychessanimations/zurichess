@@ -12,7 +12,7 @@ const (
 type TimeControl interface {
 	// Starts starts the watch.
 	Start()
-	// NextDepth returns next depth to run. 0 means stop.
+	// NextDepth returns next depth to run. -1 means stop.
 	NextDepth() int
 }
 
@@ -33,7 +33,7 @@ func (tc *FixedDepthTimeControl) NextDepth() int {
 	if tc.currDepth <= tc.MaxDepth {
 		return tc.currDepth
 	}
-	return 0
+	return -1
 }
 
 // OnClockTimeControl is a time control that tries to split the
@@ -47,9 +47,11 @@ type OnClockTimeControl struct {
 	Inc time.Duration
 	// Number of moves left. Recommended values
 	// 0 when there is no time refresh.
-	// 1 when solving puzzels.
+	// 1 when solving puzzles.
 	// n when there is a time refresh.
 	MovesToGo int
+	// When time is up, Stop should be closed.
+	Stop <-chan struct{}
 
 	// Latest moment when to start next depth.
 	timeLimit time.Time
@@ -87,9 +89,15 @@ func (tc *OnClockTimeControl) Start() {
 }
 
 func (tc *OnClockTimeControl) NextDepth() int {
+	select {
+	case <-tc.Stop: // Stop was requested.
+		return -1
+	default:
+	}
+
 	if tc.currDepth < 64 && time.Now().Before(tc.timeLimit) {
 		tc.currDepth++
 		return tc.currDepth
 	}
-	return 0
+	return -1
 }

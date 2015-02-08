@@ -53,7 +53,7 @@ func main() {
 	}
 	defer f.Close()
 
-	stats := engine.EngineStats{}
+	stats := engine.Stats{}
 
 	// Read file line by line.
 	solvedTests, numTests := 0, 0

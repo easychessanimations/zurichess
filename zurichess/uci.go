@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"bitbucket.org/brtzsnr/zurichess/engine"
@@ -16,13 +17,15 @@ var (
 
 type UCI struct {
 	Engine *engine.Engine
+	Stop   chan struct{}
+	Ready  sync.WaitGroup
 }
 
 func NewUCI() *UCI {
+	options := engine.EngineOptions{AnalyseMode: false}
 	return &UCI{
-		Engine: engine.NewEngine(nil, engine.EngineOptions{
-			AnalyseMode: false,
-		}),
+		Engine: engine.NewEngine(nil, options),
+		Stop:   make(chan struct{}, 1),
 	}
 }
 
@@ -46,6 +49,8 @@ func (uci *UCI) Execute(line string) error {
 		err = uci.position(args)
 	case "go":
 		uci.go_(args)
+	case "stop":
+		uci.stop(args)
 	case "setoption":
 		err = uci.setoption(args)
 	case "quit":
@@ -70,6 +75,7 @@ func (uci *UCI) uci(args []string) error {
 }
 
 func (uci *UCI) isready(args []string) error {
+	uci.Ready.Wait()
 	fmt.Println("readyok")
 	return nil
 }
@@ -161,13 +167,33 @@ func (uci *UCI) go_(args []string) {
 		}
 	}
 
-	tc.Start()
-	moves := uci.Engine.Play(tc)
-	hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
-	log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-		engine.GlobalHashTable.Size(), hit, miss,
-		float32(hit)/float32(hit+miss)*100)
-	fmt.Printf("bestmove %v\n", moves[0])
+	uci.Ready.Add(1)
+	go func() {
+		defer uci.Ready.Done()
+
+		select {
+		case <-uci.Stop: // Clear the channel if there is a stop command pending.
+		default:
+		}
+
+		tc.Stop = uci.Stop
+		tc.Start()
+
+		moves := uci.Engine.Play(tc)
+		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
+		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
+			engine.GlobalHashTable.Size(), hit, miss,
+			float32(hit)/float32(hit+miss)*100)
+		fmt.Printf("bestmove %v\n", uci.Engine.Position.MoveToUCI(moves[0]))
+	}()
+}
+
+func (uci *UCI) stop(args []string) error {
+	select {
+	case uci.Stop <- struct{}{}:
+	default: // There is another stop event on the line.
+	}
+	return nil
 }
 
 func (uci *UCI) setoption(args []string) error {

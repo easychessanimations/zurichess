@@ -25,24 +25,36 @@ type EngineOptions struct {
 	AnalyseMode bool // true to display info strings
 }
 
-// EngineStats stores some basic stats on the engine.
+// Stats stores some basic stats on the engine.
 // Statistics are per each depth search.
-type EngineStats struct {
-	CacheHit  uint64 // number of times the position was found transposition table
-	CacheMiss uint64 // number of times the position was not found in the transposition table
-	Nodes     uint64 // number of nodes searched
+type Stats struct {
+	Start     time.Time // when computation was started
+	CacheHit  uint64    // number of times the position was found transposition table
+	CacheMiss uint64    // number of times the position was not found in the transposition table
+	Nodes     uint64    // number of nodes searched
+}
+
+// Nodes returns nodes per second.
+func (s *Stats) NPS(now time.Time) uint64 {
+	elapsed := uint64(time.Now().Sub(s.Start) + 1)
+	return s.Nodes * uint64(time.Second) / elapsed
+}
+
+func (s *Stats) Time(now time.Time) uint64 {
+	elapsed := uint64(time.Now().Sub(s.Start) + 1)
+	return elapsed / uint64(time.Millisecond)
 }
 
 // CacheHitRatio returns the ration of hits over total number of lookups.
-func (es *EngineStats) CacheHitRatio() float32 {
-	return float32(es.CacheHit) / float32(es.CacheHit+es.CacheMiss)
+func (s *Stats) CacheHitRatio() float32 {
+	return float32(s.CacheHit) / float32(s.CacheHit+s.CacheMiss)
 }
 
 // Engine implements the logic to search the best move for a position.
 type Engine struct {
 	Options  EngineOptions
 	Position *Position // current Position
-	Stats    EngineStats
+	Stats    Stats
 
 	moves   []Move    // moves stack
 	killer  [][2]Move // killer moves
@@ -480,24 +492,24 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 //
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (moves []Move) {
-	eng.Stats = EngineStats{}
 	score := int16(0)
+	stats := &eng.Stats
+	*stats = Stats{Start: time.Now()}
 
-	start := time.Now()
-	for maxPly := tc.NextDepth(); maxPly != 0; maxPly = tc.NextDepth() {
+	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		score = eng.alphaBeta(score)
-		elapsed := time.Now().Sub(start)
+		now := time.Now()
 
 		moves = eng.pvTable.Get(eng.Position)
+
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-				maxPly, score, eng.Stats.Nodes, elapsed/time.Millisecond,
-				eng.Stats.Nodes*uint64(time.Second)/uint64(elapsed+1))
+				maxPly, score, stats.Nodes, stats.Time(now), stats.NPS(now))
 
 			fmt.Printf("pv")
 			for _, move := range moves {
-				fmt.Printf(" %v", move)
+				fmt.Printf(" %v", eng.Position.MoveToUCI(move))
 			}
 			fmt.Printf("\n")
 		}
