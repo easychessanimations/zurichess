@@ -1,28 +1,29 @@
 # zurichess: a chess engine
 
+[Website](https://bitbucket.org/brtzsnr/zurichess) |
+[CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Zurichess%20150116#Zurichess_150116) |
+[Documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess)
+
 zurichess is a chess engine and a chess library written in [Go](http://golang).
 
-zurichess supports [UCI protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html).
+zurichess partially implements [UCI protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but the available commands are enough for most purposes.
+
+zurichess was successfully tested under Linux AMD64 and Linux ARM and other people have tested zurichess under Windows AMD64.
+Precompiled binaries for a number of platforms and architectures can be found on the [downloads](https://bitbucket.org/brtzsnr/zurichess/downloads) page.
 
 
-## Building
+## Build and Compile
 
-First you need to get the latest version of Go (currently 1.4).
-For instructions how to download and install Go for your OS see
-[documentation](https://golang.org/doc/install).
-
-After Go 1.4 is installed, a workspace needs to be created:
+First you need to get the latest version of Go (currently 1.4). For instructions how to download and install Go for your OS see
+[documentation](https://golang.org/doc/install). After Go 1.4 is installed, a workspace needs to be created:
 
 ```
 #!bash
-
 $ mkdir gows ; cd gows
 $ export GOPATH=`pwd`
 ```
 
-## Compiling
-
-After the workspace is created downloading and compiling zurichess is easy:
+After the workspace is created cloning and compiling zurichess is easy:
 
 ```
 #!bash
@@ -31,27 +32,31 @@ $ $GOPATH/bin/zurichess --version
 zurichess (devel), build with go1.4 at (just now), running on amd64
 ```
 
-zurichess was successfully tested under Linux amd64 and Linux arm. Other people have tested zurichess under Windows amd64. Precompiled binaries for a number of platforms and architectures can be found on the [downloads](https://bitbucket.org/brtzsnr/zurichess/downloads) page.
-
 ## Perft
 
-A [perft](https://chessprogramming.wikispaces.com/Perft) tool is included. The tool supports any starting position and can do splits up to several levels which is very helpful for debugging a move generator. You can find other positions and results [here](http://www.10x8.net/chess/PerfT.html).
+A [perft](https://chessprogramming.wikispaces.com/Perft) tool is included.
+The tool supports any starting position and can do splits up to several levels which is very helpful for debugging a move generator.
+You can find more positions, results and external links on the [documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess/perft) page.
 
 ```
 #!bash
-$ go get -u bitbucket.org/brtzsnr/zurichess/zurichess
+$ go get -u bitbucket.org/brtzsnr/zurichess/perft
 $ $GOPATH/bin/perft --fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 Searching FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-depth        nodes   captures enpassant castles eval   KNps elapsed
------+------------+----------+---------+-------+----+------+-------
-    1           20          0         0       0 good    153 130.414µs
-    2          400          0         0       0 good    165 2.430465ms
-    3         8902         34         0       0 good    281 31.688094ms
-    4       197281       1576         0       0 good   4950 39.852835ms
-    5      4865609      82719       258       0 good  13651 356.422314ms
-    6    119060324    2812008      5248       0 good  26850 4.434284988s
-    7   3195901860  108329926    319617  883453       45723 1m9.897481069s
+depth        nodes   captures enpassant castles   promotions eval  KNps   elapsed
+-----+------------+----------+---------+---------+----------+-----+------+-------
+    1           20          0         0         0          0 good    154 129.948µs
+    2          400          0         0         0          0 good    158 2.531444ms
+    3         8902         34         0         0          0 good    266 33.494604ms
+    4       197281       1576         0         0          0 good   3454 57.114844ms
+    5      4865609      82719       258         0          0 good  12141 400.762477ms
+    6    119060324    2812008      5248         0          0 good  24027 4.955285846s
+    7   3195901860  108329926    319617    883453          0 good  40040 1m19.817376124s
 ```
+
+## Testing
+
+[Zuritest](https://bitbucket.org/brtzsnr/zuritest) is the framework used to test zurichess.
 
 ## External links
 
