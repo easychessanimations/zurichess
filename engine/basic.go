@@ -193,6 +193,7 @@ type Move struct {
 	Capture        Piece  // which piece is captured
 	Target         Piece  // the piece on To, after the move
 	MoveType       MoveType
+	Data           int8   // some data, unrelated to move or position
 	SavedEnpassant Square // old enpassant square
 	SavedCastle    Castle // old castle rights
 }
@@ -242,7 +243,7 @@ func (m Move) String() string {
 }
 
 // Castle mask
-type Castle uint16
+type Castle uint8
 
 const (
 	WhiteOO Castle = 1 << iota

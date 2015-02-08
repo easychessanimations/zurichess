@@ -20,8 +20,8 @@ func TestGame(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
 		tc.Start()
-		move, _ := eng.Play(tc)
-		eng.DoMove(move)
+		move := eng.Play(tc)
+		eng.DoMove(move[0])
 	}
 }
 
@@ -92,10 +92,10 @@ func TestMateIn1(t *testing.T) {
 			tc := &FixedDepthTimeControl{MinDepth: d, MaxDepth: d}
 			tc.Start()
 
-			move, _ := eng.Play(tc)
+			move := eng.Play(tc)
 			found := false
 			for _, m := range g.move {
-				if move.String() == m {
+				if move[0].String() == m {
 					found = true
 					break
 				}
@@ -135,8 +135,8 @@ func BenchmarkGame(b *testing.B) {
 		for i := 0; i < 20; i++ {
 			tc := &FixedDepthTimeControl{MinDepth: 2, MaxDepth: 4}
 			tc.Start()
-			move, _ := eng.Play(tc)
-			eng.DoMove(move)
+			move := eng.Play(tc)
+			eng.DoMove(move[0])
 		}
 	}
 }

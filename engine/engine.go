@@ -22,8 +22,10 @@ var (
 type sorterByMvvLva []Move
 
 func score(m Move) int {
-	return MvvLva(m.Piece().Figure(), m.Capture.Figure()) +
-		MvvLva(NoFigure, m.Promotion().Figure())
+	s := MvvLva(m.Piece().Figure(), m.Capture.Figure())
+	s += MvvLva(NoFigure, m.Promotion().Figure())
+	s += int(m.Data) << 8
+	return s
 }
 
 func (c sorterByMvvLva) Len() int {
@@ -239,7 +241,7 @@ func (eng *Engine) popMove() Move {
 
 // retrieveHash gets from GlobalHashTable the current position.
 func (eng *Engine) retrieveHash() (HashEntry, bool) {
-	entry, ok := GlobalHashTable.Get(eng.Position.Zobrist)
+	entry, ok := GlobalHashTable.Get(eng.Position)
 	if ok {
 		eng.Stats.CacheHit++
 	} else {
@@ -257,15 +259,13 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 		kind = FailedHigh
 	}
 
-	entry := HashEntry{
-		Lock:     eng.Position.Zobrist,
-		Score:    score,
-		Depth:    eng.maxPly - ply,
-		Favorite: move,
-		Kind:     kind,
-	}
-
-	GlobalHashTable.Put(entry)
+	GlobalHashTable.Put(eng.Position, HashEntry{
+		Score:  score,
+		Depth:  eng.maxPly - ply,
+		Kind:   kind,
+		Target: move.Target,
+		To:     move.To,
+	})
 }
 
 // quiescence searches a quite move.
@@ -385,33 +385,18 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
 
-	// Try the killer move first.
-	// Entry may not have a killer move for cached quiescence moves.
-	if has && entry.Favorite.MoveType != NoMove {
-		score := eng.tryMove(localAlpha, beta, ply, entry.Favorite)
-		if score >= beta { // Fail high.
-			eng.updateHash(alpha, beta, ply, entry.Favorite, score)
-			return score
-		}
-		if score > bestScore {
-			bestMove, bestScore = entry.Favorite, score
-			if score > localAlpha {
-				localAlpha = score
-			}
+	start := len(eng.moves)
+	eng.moves = eng.Position.GenerateMoves(eng.moves)
+	for i := range eng.moves[start:] {
+		m := &eng.moves[start+i]
+		if m.Target == entry.Target && m.To == entry.To {
+			m.Data += moveBonus[hashMove]
 		}
 	}
 
-	// Try all moves if the killer move failed to produce a cut-off.
-	start := len(eng.moves)
-	eng.moves = eng.Position.GenerateMoves(eng.moves)
 	sort.Sort(sorterByMvvLva(eng.moves[start:]))
-
 	for start < len(eng.moves) {
 		move := eng.popMove()
-		if has && move == entry.Favorite {
-			continue
-		}
-
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.
 			eng.moves = eng.moves[:start]

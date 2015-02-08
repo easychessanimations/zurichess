@@ -4,6 +4,7 @@
 package engine
 
 import (
+	"log"
 	"unsafe"
 )
 
@@ -18,13 +19,15 @@ const (
 
 // HashEntry is a value in the transposition table.
 type HashEntry struct {
-	// Lock is used to handle hashing conflicts.
-	// Normally, Lock is the position's zobrist key.
-	Lock     uint64
-	Score    int16    // score of the position
-	Depth    int16    // remaining search depth
-	Favorite Move     // or best move found
-	Kind     HashKind // type of hash
+	Score  int16    // score of the position
+	Depth  int16    // remaining search depth
+	Kind   HashKind // type of hash
+	Target Piece    // from favorite move
+	To     Square   // from favorite move
+
+	// lock is used to handle hashing conflicts.
+	// Normally, lock is derived from the position's Zobrist key.
+	lock uint32
 }
 
 // HashTable is a transposition table.
@@ -32,20 +35,23 @@ type HashEntry struct {
 // it doesn't have to recompute them again.
 type HashTable struct {
 	table []HashEntry // len(table) is a power of two and equals mask+1
-	mask  uint64      // mask is used to determine the index in the table.
+	mask  uint32      // mask is used to determine the index in the table.
 }
 
 // NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
 func NewHashTable(hashSizeMB int) *HashTable {
 	// Choose hashSize such that it is a power of two.
 	hashEntrySize := uint64(unsafe.Sizeof(HashEntry{}))
-	hashSize := (uint64(hashSizeMB) << 20) / hashEntrySize
+	hashSize := uint64(hashSizeMB) << 20 / hashEntrySize
+	log.Printf("Building an index of %d elements of %d bytes",
+		hashSize, hashEntrySize)
+
 	for hashSize&(hashSize-1) != 0 {
 		hashSize &= hashSize - 1
 	}
 	return &HashTable{
 		table: make([]HashEntry, hashSize),
-		mask:  hashSize - 1,
+		mask:  uint32(hashSize - 1),
 	}
 }
 
@@ -54,25 +60,34 @@ func (ht *HashTable) Size() int {
 	return int(ht.mask + 1)
 }
 
+// split splits lock into a lock and a hash table index.
+func split(lock uint64, mask uint32) (uint32, uint32) {
+	return uint32(lock >> 32), uint32(lock) & mask
+}
+
 // Put puts a new entry in the database.
-func (ht *HashTable) Put(entry HashEntry) {
-	key := entry.Lock & ht.mask
+func (ht *HashTable) Put(pos *Position, entry HashEntry) {
+	lock, key := split(pos.Zobrist, ht.mask)
+	entry.lock = lock
+
 	if ht.table[key].Kind == NoKind ||
-		ht.table[key].Lock == entry.Lock ||
+		ht.table[key].lock == entry.lock ||
 		entry.Depth <= ht.table[key].Depth+1 {
 		ht.table[key] = entry
 	}
 }
 
-// Get returns an entry from the database.
-// Lock of the returned entry matches lock.
-func (ht *HashTable) Get(lock uint64) (HashEntry, bool) {
-	key := lock & ht.mask
-	if ht.table[key].Kind != NoKind && ht.table[key].Lock == lock {
+// Get returns the hash entry for position.
+//
+// Observation: due to collision errors, the HashEntry returned might be
+// from a different table. However, these errors are not common because
+// we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
+func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
+	lock, key := split(pos.Zobrist, ht.mask)
+	if ht.table[key].Kind != NoKind && ht.table[key].lock == lock {
 		return ht.table[key], true
-	} else {
-		return HashEntry{}, false
 	}
+	return HashEntry{}, false
 }
 
 var (
