@@ -22,6 +22,7 @@ type HashEntry struct {
 	Depth  int16    // remaining search depth
 	Kind   HashKind // type of hash
 	Target Piece    // from favorite move
+	From   Square   // from favorite move
 	To     Square   // from favorite move
 
 	// lock is used to handle hashing conflicts.

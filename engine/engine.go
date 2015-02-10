@@ -265,6 +265,7 @@ func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
 		Depth:  eng.maxPly - ply,
 		Kind:   kind,
 		Target: move.Target,
+		From:   move.From,
 		To:     move.To,
 	})
 }
@@ -338,7 +339,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
 		// Awards bonus for hash and killer moves.
 		// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
 		m := &eng.moves[start+i]
-		if m.Target == entry.Target && m.To == entry.To {
+		if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
 			m.Data += moveBonus[hashMove]
 		}
 		for _, k := range eng.killer[ply] {
