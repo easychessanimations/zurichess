@@ -2,7 +2,8 @@
 
 [Website](https://bitbucket.org/brtzsnr/zurichess) |
 [CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Zurichess%20150116#Zurichess_150116) |
-[Documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess)
+[Documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess) |
+[Wiki](http://chessprogramming.wikispaces.com/Zurichess)
 
 zurichess is a chess engine and a chess library written in [Go](http://golang).
 
@@ -56,7 +57,29 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## Testing
 
-[Zuritest](https://bitbucket.org/brtzsnr/zuritest) is the framework used to test zurichess.
+[zuritest](https://bitbucket.org/brtzsnr/zuritest) is the framework used to test zurichess.
+
+## History
+
+### zurichess - current
+
+* Implemented aspiration window search with gradual widening.
+* Improved replacement strategy in transposition table.
+* Doubled the number of entries in the transposition table.
+* Added a separate table for principal variation.
+* Cleaned code and improved documentation.
+* Developed [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
+* Fail-softly in more situations.
+* Implemented UCI command _go movetime_.
+
+### zurichess - appenzeller
+
+* Alpha-beta pruning on top of negamax framework
+* Fancy magic bitboards
+* Transposition table
+* Move ordering: table move & MVV/VLA
+* Tapered eval
+* [Simplified evaluation function](https://chessprogramming.wikispaces.com/Simplified+evaluation+function)
 
 ## External links
 
