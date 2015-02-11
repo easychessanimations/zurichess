@@ -74,11 +74,11 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ### zurichess - appenzeller
 
-* Alpha-beta pruning on top of negamax framework
-* Fancy magic bitboards
-* Transposition table
-* Move ordering: table move & MVV/VLA
-* Tapered eval
+* Core search function is a mini-max with alpha-beta pruning on top of a negamax framework.
+* Fancy magic bitboards for sliding attacks.
+* Transposition table with Zobrist hashing.
+* Move ordering is done using table move & Most Valuable Victim / Least Valuable Victim.
+* Tapered eval.
 * [Simplified evaluation function](https://chessprogramming.wikispaces.com/Simplified+evaluation+function)
 
 ## External links
