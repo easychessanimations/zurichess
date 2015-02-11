@@ -24,7 +24,7 @@ type sorterByMvvLva []Move
 func score(m Move) int {
 	s := MvvLva(m.Piece().Figure(), m.Capture.Figure())
 	s += MvvLva(NoFigure, m.Promotion().Figure())
-	s += int(m.Data) << 8
+	s += int(m.Data) << 5
 	return s
 }
 
@@ -66,8 +66,9 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    EngineStats
 
-	moves   []Move // moves stack
-	pvTable pvTable
+	moves   []Move    // moves stack
+	killer  [][2]Move // killer moves
+	pvTable pvTable   // principal variation table
 
 	pieces       [ColorArraySize][FigureArraySize]int
 	scoreMidGame int
@@ -328,6 +329,28 @@ func (eng *Engine) tryMove(α, β, ply int16, move Move) int16 {
 	return score
 }
 
+// generateMoves generates and orders moves.
+// Returns length of eng.moves before the function was called.
+func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
+	start = len(eng.moves)
+	eng.moves = eng.Position.GenerateMoves(eng.moves)
+	for i := range eng.moves[start:] {
+		// Awards bonus for hash and killer moves.
+		// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
+		m := &eng.moves[start+i]
+		if m.Target == entry.Target && m.To == entry.To {
+			m.Data += moveBonus[hashMove]
+		}
+		for _, k := range eng.killer[ply] {
+			if m.Target == k.Target && m.From == k.From && m.To == k.To {
+				m.Data += moveBonus[killerMove]
+			}
+		}
+	}
+	sort.Sort(sorterByMvvLva(eng.moves[start:]))
+	return start
+}
+
 // negamax implements negamax framework.
 // http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 //
@@ -381,24 +404,20 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 		eng.updateHash(alpha, beta, ply, Move{}, score)
 		return score
 	}
+	if len(eng.killer) <= int(ply) {
+		eng.killer = append(eng.killer, [2]Move{})
+	}
 
 	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
-
-	start := len(eng.moves)
-	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	for i := range eng.moves[start:] {
-		m := &eng.moves[start+i]
-		if m.Target == entry.Target && m.To == entry.To {
-			m.Data += moveBonus[hashMove]
-		}
-	}
-
-	sort.Sort(sorterByMvvLva(eng.moves[start:]))
+	start := eng.generateMoves(ply, &entry)
 	for start < len(eng.moves) {
 		move := eng.popMove()
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.
+			// Save killer move.
+			eng.killer[ply][1] = eng.killer[ply][0]
+			eng.killer[ply][0] = move
 			eng.moves = eng.moves[:start]
 			eng.updateHash(alpha, beta, ply, move, score)
 			return score

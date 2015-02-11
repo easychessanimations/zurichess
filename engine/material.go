@@ -30,14 +30,15 @@ var (
 		0, 981, 1815, 1839, 2673, 3391, 20000, // King
 	}
 
-	// See sorterByMvvLva. These bonuses are multiplied by 256.
-	moveBonus = [...]int8{32}
+	// See sorterByMvvLva. These bonuses are multiplied by 32.
+	moveBonus = [...]int8{32, 16}
 )
 
 const (
 	// Bonus indexes in moveBonus array.
 
-	hashMove = iota
+	hashMove   = iota
+	killerMove = iota
 )
 
 // Material evaluates a position from static point of view,
