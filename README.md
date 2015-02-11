@@ -61,7 +61,7 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## History
 
-### zurichess - current
+### zurichess - appenzeller (in development)
 
 * Implemented aspiration window search with gradual widening.
 * Improved replacement strategy in transposition table.
@@ -72,14 +72,14 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 * Fail-softly in more situations.
 * Implemented UCI command _go movetime_.
 
-### zurichess - appenzeller
+### zurichess - aargau (stable)
 
 * Core search function is a mini-max with alpha-beta pruning on top of a negamax framework.
-* Fancy magic bitboards for sliding attacks.
-* Transposition table with Zobrist hashing.
-* Move ordering is done using table move & Most Valuable Victim / Least Valuable Victim.
-* Tapered eval.
-* [Simplified evaluation function](https://chessprogramming.wikispaces.com/Simplified+evaluation+function)
+* Sliding attacks are implemented using fancy magic bitboards.
+* Search is sped up with transposition table with Zobrist hashing.
+* Move ordering inside alpha-beta is done using table move & Most Valuable Victim / Least Valuable Victim.
+* Quiescence search is used to reduce search instability and horizon effect.
+* [Simplified evaluation function](https://chessprogramming.wikispaces.com/Simplified+evaluation+function) with tapered eval.
 
 ## External links
 
