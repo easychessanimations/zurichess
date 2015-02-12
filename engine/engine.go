@@ -389,9 +389,11 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 		move := eng.popMove()
 		score := eng.tryMove(localAlpha, beta, ply, move)
 		if score >= beta { // Fail high.
-			// Save killer move.
-			eng.killer[ply][1] = eng.killer[ply][0]
-			eng.killer[ply][0] = move
+			if move.Capture == NoPiece {
+				// Save quiet killer move.
+				eng.killer[ply][1] = eng.killer[ply][0]
+				eng.killer[ply][0] = move
+			}
 			eng.moves = eng.moves[:start]
 			eng.updateHash(alpha, beta, ply, score, &move)
 			return score
