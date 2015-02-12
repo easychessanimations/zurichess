@@ -252,7 +252,7 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 }
 
 // updateHash updates GlobalHashTable with current position.
-func (eng *Engine) updateHash(alpha, beta, ply int16, move Move, score int16) {
+func (eng *Engine) updateHash(alpha, beta, ply, score int16, move *Move) {
 	kind := Exact
 	if score <= alpha {
 		kind = FailedLow
@@ -402,7 +402,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	if ply == eng.maxPly {
 		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(alpha, beta, 0)
-		eng.updateHash(alpha, beta, ply, Move{}, score)
+		eng.updateHash(alpha, beta, ply, score, &Move{})
 		return score
 	}
 	if len(eng.killer) <= int(ply) {
@@ -420,7 +420,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 			eng.killer[ply][1] = eng.killer[ply][0]
 			eng.killer[ply][0] = move
 			eng.moves = eng.moves[:start]
-			eng.updateHash(alpha, beta, ply, move, score)
+			eng.updateHash(alpha, beta, ply, score, &move)
 			return score
 		}
 		if score > bestScore {
@@ -440,7 +440,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 		}
 	}
 
-	eng.updateHash(alpha, beta, ply, bestMove, bestScore)
+	eng.updateHash(alpha, beta, ply, bestScore, &bestMove)
 	if alpha < bestScore && bestScore < beta && bestMove.MoveType != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
