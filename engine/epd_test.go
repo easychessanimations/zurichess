@@ -19,9 +19,9 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 			t.Errorf("expected %v at %v, got %v", epi, sq, api)
 		}
 	}
-	if expected.ToMove != actual.ToMove {
+	if expected.SideToMove != actual.SideToMove {
 		t.Errorf("expected to move %v, got %v",
-			expected.ToMove, actual.ToMove)
+			expected.SideToMove, actual.SideToMove)
 	}
 	if expected.Castle != actual.Castle {
 		t.Errorf("expected Castle rights %v, got %v",
@@ -58,7 +58,7 @@ func TestFENStartPosition(t *testing.T) {
 		expected.Put(RankFile(6, f), BlackPawn)
 	}
 
-	expected.ToMove = White
+	expected.SideToMove = White
 	expected.Castle = AnyCastle
 	testFENHelper(t, expected, FENStartPos)
 }
@@ -101,7 +101,7 @@ func TestFENKiwipete(t *testing.T) {
 	expected.Put(SquareG6, BlackPawn)
 	expected.Put(SquareH3, BlackPawn)
 
-	expected.ToMove = White
+	expected.SideToMove = White
 	expected.Castle = AnyCastle
 	testFENHelper(t, expected, FENKiwipete)
 }

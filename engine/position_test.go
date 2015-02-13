@@ -20,9 +20,9 @@ type testEngine struct {
 
 func (te *testEngine) Move(m string) {
 	move := te.Pos.UCIToMove(m)
-	if te.Pos.ToMove == move.Capture.Color() {
+	if te.Pos.SideToMove == move.Capture.Color() {
 		te.T.Errorf("%v cannot capture its own color (move %v)",
-			te.Pos.ToMove, move)
+			te.Pos.SideToMove, move)
 	}
 
 	te.moves = append(te.moves, move)
@@ -130,7 +130,7 @@ func TestPutGetRemove(t *testing.T) {
 }
 
 func TestgenKnightMoves(t *testing.T) {
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	pos.Put(SquareB2, WhiteKnight)
 	pos.Put(SquareF4, WhiteKnight)
 	pos.Put(SquareC4, WhitePawn)
@@ -140,7 +140,7 @@ func TestgenKnightMoves(t *testing.T) {
 }
 
 func TestgenRookMoves(t *testing.T) {
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	pos.Put(SquareB2, WhiteRook)
 	pos.Put(SquareF2, WhiteKing)
 	pos.Put(SquareB6, BlackKing)
@@ -151,7 +151,7 @@ func TestgenRookMoves(t *testing.T) {
 
 func TestgenKingMoves(t *testing.T) {
 	// King is alone.
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	te := &testEngine{T: t, Pos: pos}
 
 	pos.Put(SquareA2, WhiteKing)
@@ -252,7 +252,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	// White
-	pos.ToMove = White
+	pos.SideToMove = White
 	te.Move("e1c1")
 	te.Piece(SquareA1, NoPiece)
 	te.Piece(SquareC1, WhiteKing)
@@ -266,7 +266,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te.Piece(SquareE1, WhiteKing)
 
 	// Black
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	te.Move("e8c8")
 	te.Piece(SquareA8, NoPiece)
 	te.Piece(SquareC8, BlackKing)
@@ -344,7 +344,7 @@ func TestCannotCastleAfterRookCapture(t *testing.T) {
 }
 
 func TestgenBishopMoves(t *testing.T) {
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -360,7 +360,7 @@ func TestgenBishopMoves(t *testing.T) {
 }
 
 func TestgenQueenMoves(t *testing.T) {
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -378,11 +378,11 @@ func TestgenQueenMoves(t *testing.T) {
 func TestgenPawnAdvanceMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
-	pos.ToMove = White
+	pos.SideToMove = White
 	moves := pos.genPawnAdvanceMoves(false, nil)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	moves = pos.genPawnAdvanceMoves(false, nil)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
@@ -390,11 +390,11 @@ func TestgenPawnAdvanceMoves(t *testing.T) {
 func TestgenPawnDoubleAdvanceMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
-	pos.ToMove = White
+	pos.SideToMove = White
 	moves := pos.genPawnDoubleAdvanceMoves(nil)
 	testMoves(t, moves, []string{"d2d4", "e2e4"})
 
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	moves = pos.genPawnDoubleAdvanceMoves(nil)
 	testMoves(t, moves, []string{"d7d5", "f7f5"})
 }
@@ -402,11 +402,11 @@ func TestgenPawnDoubleAdvanceMoves(t *testing.T) {
 func TestGenPawnAttackMoves1(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
-	pos.ToMove = White
+	pos.SideToMove = White
 	moves := pos.genPawnAttackMoves(nil)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	moves = pos.genPawnAttackMoves(nil)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
@@ -414,11 +414,11 @@ func TestGenPawnAttackMoves1(t *testing.T) {
 func TestGenPawnAttackMoves2(t *testing.T) {
 	pos, _ := PositionFromFEN(FENKiwipete)
 
-	pos.ToMove = White
+	pos.SideToMove = White
 	moves := pos.genPawnAttackMoves(nil)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	moves = pos.genPawnAttackMoves(nil)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
@@ -452,7 +452,7 @@ func TestPawnAttacks(t *testing.T) {
 
 func TestPawnPromotions(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard2)
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Pawn(SquareF2, []string{"f2f1N", "f2f1B", "f2f1R", "f2f1Q"})
@@ -537,7 +537,7 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	te.Piece(SquareD5, BlackPawn)
 
 	// Makes sure that black pawn at A2/B2 doesn't take Enpassant.
-	pos.ToMove = Black
+	pos.SideToMove = Black
 	pos.Enpassant = SquareA1
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
@@ -577,7 +577,7 @@ func TestIsAttackedByBishop(t *testing.T) {
 }
 
 func TestIsAttackedByKing(t *testing.T) {
-	pos := &Position{ToMove: White}
+	pos := &Position{SideToMove: White}
 	te := &testEngine{T: t, Pos: pos}
 
 	pos.Put(SquareE1, WhiteKing)

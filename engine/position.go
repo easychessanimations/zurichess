@@ -25,12 +25,12 @@ func init() {
 
 // Position encodes the chess board.
 type Position struct {
-	ByFigure  [FigureArraySize]Bitboard
-	ByColor   [ColorArraySize]Bitboard
-	ToMove    Color
-	Castle    Castle
-	Enpassant Square
-	Zobrist   uint64
+	ByFigure   [FigureArraySize]Bitboard
+	ByColor    [ColorArraySize]Bitboard
+	SideToMove Color
+	Castle     Castle
+	Enpassant  Square
+	Zobrist    uint64
 }
 
 // Verify check the validity of the position.
@@ -60,9 +60,9 @@ func (pos *Position) SetCastlingAbility(castle Castle) {
 
 // SetSideToMove sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetSideToMove(col Color) {
-	pos.Zobrist ^= ZobristColor[pos.ToMove]
-	pos.ToMove = col
-	pos.Zobrist ^= ZobristColor[pos.ToMove]
+	pos.Zobrist ^= ZobristColor[pos.SideToMove]
+	pos.SideToMove = col
+	pos.Zobrist ^= ZobristColor[pos.SideToMove]
 }
 
 // SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
@@ -142,10 +142,10 @@ func (pos *Position) PrettyPrint() {
 				line += string(pieceToSymbol[pos.Get(sq)])
 			}
 		}
-		if r == 7 && pos.ToMove == Black {
+		if r == 7 && pos.SideToMove == Black {
 			line += " *"
 		}
-		if r == 0 && pos.ToMove == White {
+		if r == 0 && pos.SideToMove == White {
 			line += " *"
 		}
 		log.Println(line)
@@ -164,9 +164,9 @@ func (pos *Position) fix(move Move) Move {
 // DoMove performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
-	if move.SideToMove() != pos.ToMove {
+	if move.SideToMove() != pos.SideToMove {
 		panic(fmt.Errorf("bad move %v: expected %v piece at %v, got %v",
-			move, pos.ToMove, move.From, move.Piece()))
+			move, pos.SideToMove, move.From, move.Piece()))
 	}
 
 	// Update castling rights based on the source&target squares.
@@ -193,13 +193,13 @@ func (pos *Position) DoMove(move Move) {
 	pos.Remove(move.From, pi)
 	pos.Remove(move.CaptureSquare(), move.Capture)
 	pos.Put(move.To, move.Target)
-	pos.SetSideToMove(pos.ToMove.Other())
+	pos.SetSideToMove(pos.SideToMove.Other())
 }
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
 func (pos *Position) UndoMove(move Move) {
-	pos.SetSideToMove(pos.ToMove.Other())
+	pos.SetSideToMove(pos.SideToMove.Other())
 
 	// Modify the chess board.
 	pi := move.Piece()
@@ -231,7 +231,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 				From:     from,
 				To:       to,
 				Capture:  capt,
-				Target:   ColorFigure(pos.ToMove, Pawn),
+				Target:   ColorFigure(pos.SideToMove, Pawn),
 			}))
 		}
 	} else {
@@ -241,7 +241,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 				From:     from,
 				To:       to,
 				Capture:  capt,
-				Target:   ColorFigure(pos.ToMove, promo),
+				Target:   ColorFigure(pos.SideToMove, promo),
 			}))
 		}
 	}
@@ -250,11 +250,11 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 
 // genPawnAdvanceMoves moves pawns one square.
 func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
-	bb := pos.ByPiece(pos.ToMove, Pawn)
+	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
-	if pos.ToMove == White {
+	if pos.SideToMove == White {
 		bb &= free >> 8
 		forward = RankFile(+1, 0)
 	} else {
@@ -272,11 +272,11 @@ func (pos *Position) genPawnAdvanceMoves(violent bool, moves []Move) []Move {
 
 // genPawnDoubleAdvanceMoves moves pawns two square.
 func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
-	bb := pos.ByPiece(pos.ToMove, Pawn)
+	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	var forward Square
 
-	if pos.ToMove == White {
+	if pos.SideToMove == White {
 		bb &= RankBb(1) & (free >> 8) & (free >> 16)
 		forward = RankFile(+2, 0)
 	} else {
@@ -294,19 +294,19 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 
 func (pos *Position) pawnCapture(to Square) Piece {
 	if pos.Enpassant != SquareA1 && to == pos.Enpassant {
-		return ColorFigure(pos.ToMove.Other(), Pawn)
+		return ColorFigure(pos.SideToMove.Other(), Pawn)
 	}
 	return pos.Get(to)
 }
 
 func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
-	enemy := pos.ByColor[pos.ToMove.Other()]
+	enemy := pos.ByColor[pos.SideToMove.Other()]
 	if pos.Enpassant != SquareA1 {
 		enemy |= pos.Enpassant.Bitboard()
 	}
 
 	var forward Square
-	if pos.ToMove == White {
+	if pos.SideToMove == White {
 		enemy >>= 8
 		forward = RankFile(+1, 0)
 	} else {
@@ -315,7 +315,7 @@ func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
 	}
 
 	// Left
-	bb := pos.ByPiece(pos.ToMove, Pawn)
+	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	att := forward.Relative(0, -1)
 	for bbl := bb & BbPawnLeftAttack & (enemy << 1); bbl > 0; {
 		from := bbl.Pop()
@@ -347,10 +347,10 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, violent bool, moves []Move) []Move {
 	if violent {
 		// Capture enemy pieces.
-		att &= pos.ByColor[pos.ToMove.Other()]
+		att &= pos.ByColor[pos.SideToMove.Other()]
 	} else {
 		// Generate all moves, except capturing own pieces.
-		att &= ^pos.ByColor[pos.ToMove]
+		att &= ^pos.ByColor[pos.SideToMove]
 	}
 
 	for bb := att; bb != 0; {
@@ -367,8 +367,8 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, viole
 }
 
 func (pos *Position) genKnightMoves(violent bool, moves []Move) []Move {
-	pi := ColorFigure(pos.ToMove, Knight)
-	for bb := pos.ByPiece(pos.ToMove, Knight); bb != 0; {
+	pi := ColorFigure(pos.SideToMove, Knight)
+	for bb := pos.ByPiece(pos.SideToMove, Knight); bb != 0; {
 		from := bb.Pop()
 		att := BbKnightAttack[from]
 		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
@@ -377,9 +377,9 @@ func (pos *Position) genKnightMoves(violent bool, moves []Move) []Move {
 }
 
 func (pos *Position) genBishopMoves(fig Figure, violent bool, moves []Move) []Move {
-	pi := ColorFigure(pos.ToMove, fig)
+	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
-	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
+	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := BishopMagic[from].Attack(ref)
 		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
@@ -388,9 +388,9 @@ func (pos *Position) genBishopMoves(fig Figure, violent bool, moves []Move) []Mo
 }
 
 func (pos *Position) genRookMoves(fig Figure, violent bool, moves []Move) []Move {
-	pi := ColorFigure(pos.ToMove, fig)
+	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
-	for bb := pos.ByPiece(pos.ToMove, fig); bb != 0; {
+	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
 		att := RookMagic[from].Attack(ref)
 		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
@@ -406,17 +406,17 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genKingMovesNear(violent bool, moves []Move) []Move {
-	pi := ColorFigure(pos.ToMove, King)
-	from := pos.ByPiece(pos.ToMove, King).AsSquare()
+	pi := ColorFigure(pos.SideToMove, King)
+	from := pos.ByPiece(pos.SideToMove, King).AsSquare()
 	att := BbKingAttack[from]
 	moves = pos.genBitboardMoves(pi, from, att, violent, moves)
 	return moves
 }
 
 func (pos *Position) genKingCastles(moves []Move) []Move {
-	rank := pos.ToMove.KingHomeRank()
+	rank := pos.SideToMove.KingHomeRank()
 	oo, ooo := WhiteOO, WhiteOOO
-	if pos.ToMove == Black {
+	if pos.SideToMove == Black {
 		oo, ooo = BlackOO, BlackOOO
 	}
 
@@ -429,7 +429,7 @@ func (pos *Position) genKingCastles(moves []Move) []Move {
 		}
 
 		r4 := RankFile(rank, 4)
-		other := pos.ToMove.Other()
+		other := pos.SideToMove.Other()
 		if pos.IsAttackedBy(r4, other) ||
 			pos.IsAttackedBy(r5, other) ||
 			pos.IsAttackedBy(r6, other) {
@@ -440,7 +440,7 @@ func (pos *Position) genKingCastles(moves []Move) []Move {
 			MoveType: Castling,
 			From:     r4,
 			To:       r6,
-			Target:   ColorFigure(pos.ToMove, King),
+			Target:   ColorFigure(pos.SideToMove, King),
 		}))
 	}
 EndCastleOO:
@@ -455,7 +455,7 @@ EndCastleOO:
 		}
 
 		r4 := RankFile(rank, 4)
-		other := pos.ToMove.Other()
+		other := pos.SideToMove.Other()
 		if pos.IsAttackedBy(r4, other) ||
 			pos.IsAttackedBy(r3, other) ||
 			pos.IsAttackedBy(r2, other) {
@@ -466,7 +466,7 @@ EndCastleOO:
 			MoveType: Castling,
 			From:     r4,
 			To:       r2,
-			Target:   ColorFigure(pos.ToMove, King),
+			Target:   ColorFigure(pos.SideToMove, King),
 		}))
 	}
 EndCastleOOO:

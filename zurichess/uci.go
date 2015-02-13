@@ -151,7 +151,7 @@ func (uci *UCI) go_(args []string) {
 	}
 
 	var tc engine.TimeControl
-	if uci.Engine.Position.ToMove == engine.White {
+	if uci.Engine.Position.SideToMove == engine.White {
 		tc = &white
 	} else {
 		tc = &black

@@ -55,7 +55,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	}
 
 	if s[b:e] == "o-o" || s[b:e] == "O-O" { // king side castling
-		if pos.ToMove == White {
+		if pos.SideToMove == White {
 			move = Move{
 				MoveType: Castling,
 				From:     SquareE1,
@@ -72,7 +72,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		}
 		piece = move.Target
 	} else if s[b:e] == "o-o-o" || s[b:e] == "O-O-O" { // queen side castling
-		if pos.ToMove == White {
+		if pos.SideToMove == White {
 			move = Move{
 				MoveType: Castling,
 				From:     SquareE1,
@@ -91,12 +91,12 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	} else { // all other moves
 		// Get the piece.
 		if ('a' <= s[b] && s[b] <= 'h') || s[b] == 'x' {
-			piece = ColorFigure(pos.ToMove, Pawn)
+			piece = ColorFigure(pos.SideToMove, Pawn)
 		} else {
 			if fig := symbolToFigure[rune(s[b])]; fig == NoFigure {
 				return Move{}, errorUnknownFigure
 			} else {
-				piece = ColorFigure(pos.ToMove, fig)
+				piece = ColorFigure(pos.SideToMove, fig)
 			}
 			b++
 		}
@@ -120,7 +120,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 				return Move{}, errorUnknownFigure
 			} else {
 				move.MoveType = Promotion
-				move.Target = ColorFigure(pos.ToMove, fig)
+				move.Target = ColorFigure(pos.SideToMove, fig)
 			}
 			e--
 			if e-1 >= b && s[e-1] == '=' {
@@ -140,7 +140,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		}
 		if move.To != SquareA1 && move.To == pos.Enpassant {
 			move.MoveType = Enpassant
-			move.Capture = ColorFigure(pos.ToMove.Other(), Pawn)
+			move.Capture = ColorFigure(pos.SideToMove.Other(), Pawn)
 		} else {
 			move.Capture = pos.Get(move.To)
 		}
@@ -211,7 +211,7 @@ func (pos *Position) UCIToMove(s string) Move {
 	pi := pos.Get(from)
 	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
 		moveType = Enpassant
-		capt = ColorFigure(pos.ToMove.Other(), Pawn)
+		capt = ColorFigure(pos.SideToMove.Other(), Pawn)
 	}
 	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
 		moveType = Castling
@@ -221,7 +221,7 @@ func (pos *Position) UCIToMove(s string) Move {
 	}
 	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
 		moveType = Promotion
-		promo = ColorFigure(pos.ToMove, symbolToFigure[rune(s[4])])
+		promo = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
 	}
 
 	return pos.fix(Move{

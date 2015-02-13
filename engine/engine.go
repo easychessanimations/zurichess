@@ -83,10 +83,10 @@ func (eng *Engine) put(col Color, fig Figure, delta int) {
 
 // adjust updates score after making a move.
 // delta is -1 if the move is taken back, 1 otherwise.
-// Position.ToMove must have not been updated already.
+// Position.SideToMove must have not been updated already.
 // TODO: enpassant.
 func (eng *Engine) adjust(move Move, delta int) {
-	color := eng.Position.ToMove
+	color := eng.Position.SideToMove
 	if move.MoveType == Promotion {
 		eng.put(color, Pawn, -delta)
 		eng.put(move.Target.Color(), move.Target.Figure(), delta)
@@ -245,7 +245,7 @@ func (eng *Engine) updateHash(alpha, beta, ply, score int16, move *Move) {
 
 // quiescence searches a quite move.
 func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
-	color := eng.Position.ToMove
+	color := eng.Position.SideToMove
 	score := int16(ColorWeight[color]) * eng.Score()
 	if score >= beta {
 		return score
@@ -287,7 +287,7 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 }
 
 func (eng *Engine) tryMove(α, β, ply int16, move Move) int16 {
-	color := eng.Position.ToMove
+	color := eng.Position.SideToMove
 	eng.DoMove(move)
 	if eng.Position.IsChecked(color) {
 		eng.UndoMove(move)
@@ -346,7 +346,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
 //
 // At ply 0 negamax sets eng.root.
 func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
-	color := eng.Position.ToMove
+	color := eng.Position.SideToMove
 	if score, done := eng.EndPosition(); done {
 		return int16(ColorWeight[color]) * score
 	}

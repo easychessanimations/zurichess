@@ -170,7 +170,7 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 		*moves = (*moves)[:last]
 
 		pos.DoMove(move)
-		if pos.IsChecked(pos.ToMove.Other()) {
+		if pos.IsChecked(pos.SideToMove.Other()) {
 			pos.UndoMove(move)
 			continue
 		}
@@ -211,7 +211,7 @@ func split(pos *engine.Position, depth, splitDepth int) counters {
 		moves := pos.GenerateMoves(nil)
 		for _, move := range moves {
 			pos.DoMove(move)
-			if !pos.IsChecked(pos.ToMove.Other()) {
+			if !pos.IsChecked(pos.SideToMove.Other()) {
 				splitMoves = append(splitMoves, move.String())
 				r.Add(split(pos, depth-1, splitDepth-1))
 				splitMoves = splitMoves[:len(splitMoves)-1]
