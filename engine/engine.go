@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sort"
 	"time"
 )
 
@@ -15,32 +14,6 @@ var (
 	ErrorCheckMate = errors.New("current position is checkmate")
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
-
-// sorterByMvvLva implements sort.Interface.
-// Compares moves by Most Valuable Victim / Least Valuable Aggressor
-// https://chessprogramming.wikispaces.com/MVV-LVA
-type sorterByMvvLva []Move
-
-func score(m Move) int {
-	s := MvvLva(m.Piece().Figure(), m.Capture.Figure())
-	s += MvvLva(NoFigure, m.Promotion().Figure())
-	s += int(m.Data) << 5
-	return s
-}
-
-func (c sorterByMvvLva) Len() int {
-	return len(c)
-}
-
-func (c sorterByMvvLva) Swap(i, j int) {
-	c[i], c[j] = c[j], c[i]
-}
-
-func (c sorterByMvvLva) Less(i, j int) bool {
-	si := score(c[i])
-	sj := score(c[j])
-	return si < sj
-}
 
 // EngineOptions keeps engine's optins.
 type EngineOptions struct {
@@ -285,7 +258,7 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	bestMove := Move{}
 	start := len(eng.moves)
 	eng.moves = eng.Position.GenerateViolentMoves(eng.moves)
-	sort.Sort(sorterByMvvLva(eng.moves[start:]))
+	sortMoves(eng.moves[start:])
 
 	for start < len(eng.moves) {
 		move := eng.popMove()
@@ -348,7 +321,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
 			}
 		}
 	}
-	sort.Sort(sorterByMvvLva(eng.moves[start:]))
+	sortMoves(eng.moves[start:])
 	return start
 }
 

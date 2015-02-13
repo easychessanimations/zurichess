@@ -18,18 +18,6 @@ var (
 	KnightPawnBonus int = 6
 	RookPawnPenalty int = 12
 
-	// See MvvLva()
-	// mvvLva[attacker * FigureSize + victim]
-	mvvLva = [FigureArraySize * FigureArraySize]int{
-		0, 369, 902, 1432, 2102, 2534, 20000, // Promotion
-		0, 1017, 1151, 1735, 2093, 2146, 20000, // Pawn
-		0, 454, 1213, 1602, 2410, 2973, 20000, // Knight
-		0, 447, 641, 1340, 1906, 2740, 20000, // Bishop
-		0, 24, 599, 1174, 1737, 2565, 20000, // Rook
-		0, 81, 521, 1074, 1604, 1972, 20000, // Queen
-		0, 981, 1815, 1839, 2673, 3391, 20000, // King
-	}
-
 	// See sorterByMvvLva. These bonuses are multiplied by 32.
 	moveBonus = [...]int8{32, 16}
 )
@@ -279,19 +267,4 @@ func SetMaterialValue(name string, array []int, str string) error {
 		}
 	}
 	return nil
-}
-
-// SetMvvLva sets the mvv lva table.
-func SetMvvLva(str string) error {
-	return SetMaterialValue("MvvLva", mvvLva[:], str)
-}
-
-// MvvLva returns a ordering score.
-//
-// MvvLva stands for "Most valuable victim, Least valuable attacker".
-// See https://chessprogramming.wikispaces.com/MVV-LVA.
-// In zurichess the MVV/LVA formula is not used,
-// but the values are optimized and stored in the mvvLva array.
-func MvvLva(att, capt Figure) int {
-	return mvvLva[int(att)*FigureArraySize+int(capt)]
 }
