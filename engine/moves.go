@@ -140,7 +140,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		}
 		if move.To != SquareA1 && move.To == pos.Enpassant {
 			move.MoveType = Enpassant
-			move.Capture = ColorFigure(pos.SideToMove.Other(), Pawn)
+			move.Capture = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 		} else {
 			move.Capture = pos.Get(move.To)
 		}
@@ -211,7 +211,7 @@ func (pos *Position) UCIToMove(s string) Move {
 	pi := pos.Get(from)
 	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
 		moveType = Enpassant
-		capt = ColorFigure(pos.SideToMove.Other(), Pawn)
+		capt = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
 	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
 		moveType = Castling

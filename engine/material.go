@@ -66,7 +66,7 @@ func (m *Material) EvaluatePosition(pos *Position) int {
 func (m *Material) EvaluateMove(move Move) int {
 	score := 0
 	mask := ColorMask[move.SideToMove()]
-	otherMask := ColorMask[move.SideToMove().Other()]
+	otherMask := ColorMask[move.SideToMove().Opposite()]
 
 	if move.MoveType == Promotion {
 		fig := move.Promotion().Figure()

@@ -127,7 +127,7 @@ func (pos *Position) Get(sq Square) Piece {
 // IsChecked returns true if co's king is checked.
 func (pos *Position) IsChecked(col Color) bool {
 	kingSq := pos.ByPiece(col, King).AsSquare()
-	return pos.IsAttackedBy(kingSq, col.Other())
+	return pos.IsAttackedBy(kingSq, col.Opposite())
 }
 
 // PrettyPrint pretty prints the current position.
@@ -193,13 +193,13 @@ func (pos *Position) DoMove(move Move) {
 	pos.Remove(move.From, pi)
 	pos.Remove(move.CaptureSquare(), move.Capture)
 	pos.Put(move.To, move.Target)
-	pos.SetSideToMove(pos.SideToMove.Other())
+	pos.SetSideToMove(pos.SideToMove.Opposite())
 }
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
 func (pos *Position) UndoMove(move Move) {
-	pos.SetSideToMove(pos.SideToMove.Other())
+	pos.SetSideToMove(pos.SideToMove.Opposite())
 
 	// Modify the chess board.
 	pi := move.Piece()
@@ -294,13 +294,13 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 
 func (pos *Position) pawnCapture(to Square) Piece {
 	if pos.Enpassant != SquareA1 && to == pos.Enpassant {
-		return ColorFigure(pos.SideToMove.Other(), Pawn)
+		return ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
 	return pos.Get(to)
 }
 
 func (pos *Position) genPawnAttackMoves(moves []Move) []Move {
-	enemy := pos.ByColor[pos.SideToMove.Other()]
+	enemy := pos.ByColor[pos.SideToMove.Opposite()]
 	if pos.Enpassant != SquareA1 {
 		enemy |= pos.Enpassant.Bitboard()
 	}
@@ -347,7 +347,7 @@ func (pos *Position) genPawnMoves(moves []Move) []Move {
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, violent bool, moves []Move) []Move {
 	if violent {
 		// Capture enemy pieces.
-		att &= pos.ByColor[pos.SideToMove.Other()]
+		att &= pos.ByColor[pos.SideToMove.Opposite()]
 	} else {
 		// Generate all moves, except capturing own pieces.
 		att &= ^pos.ByColor[pos.SideToMove]
@@ -429,7 +429,7 @@ func (pos *Position) genKingCastles(moves []Move) []Move {
 		}
 
 		r4 := RankFile(rank, 4)
-		other := pos.SideToMove.Other()
+		other := pos.SideToMove.Opposite()
 		if pos.IsAttackedBy(r4, other) ||
 			pos.IsAttackedBy(r5, other) ||
 			pos.IsAttackedBy(r6, other) {
@@ -455,7 +455,7 @@ EndCastleOO:
 		}
 
 		r4 := RankFile(rank, 4)
-		other := pos.SideToMove.Other()
+		other := pos.SideToMove.Opposite()
 		if pos.IsAttackedBy(r4, other) ||
 			pos.IsAttackedBy(r3, other) ||
 			pos.IsAttackedBy(r2, other) {

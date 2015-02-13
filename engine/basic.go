@@ -108,9 +108,9 @@ var (
 	kingHomeRank = [ColorArraySize]int{0, 0, 7}
 )
 
-// Other returns the reversed color.
+// Opposite returns the reversed color.
 // Result is undefined if c is not White or Black.
-func (c Color) Other() Color {
+func (c Color) Opposite() Color {
 	return White + Black - c
 }
 
