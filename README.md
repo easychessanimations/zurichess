@@ -63,14 +63,15 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ### zurichess - appenzeller (in development)
 
+* Cleaned code and improved documentation.
 * Implemented aspiration window search with gradual widening.
 * Improved replacement strategy in transposition table.
 * Doubled the number of entries in the transposition table.
-* Added a separate table for principal variation.
-* Cleaned code and improved documentation.
 * Developed [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
 * Fail-softly in more situations.
 * Implemented UCI command _go movetime_.
+* Added a separate table for principal variation.
+* Added killer heuristic to improve move ordering.
 
 ### zurichess - aargau (stable)
 
