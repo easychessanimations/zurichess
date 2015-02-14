@@ -53,7 +53,7 @@ func (te *testEngine) Piece(sq Square, expected Piece) {
 
 // Filter pawn moves not starting at sq.
 func (te *testEngine) Pawn(sq Square, expected []string) {
-	actual, end := te.Pos.genPawnMoves(nil), 0
+	actual, end := te.Pos.GenerateFigureMoves(Pawn, nil), 0
 	for i := range actual {
 		if actual[i].From == sq {
 			actual[end] = actual[i]
@@ -403,11 +403,11 @@ func TestGenPawnAttackMoves1(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.SideToMove = White
-	moves := pos.genPawnAttackMoves(nil)
+	moves := pos.genPawnAttackMoves(false, nil)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
 	pos.SideToMove = Black
-	moves = pos.genPawnAttackMoves(nil)
+	moves = pos.genPawnAttackMoves(false, nil)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
 
@@ -415,11 +415,11 @@ func TestGenPawnAttackMoves2(t *testing.T) {
 	pos, _ := PositionFromFEN(FENKiwipete)
 
 	pos.SideToMove = White
-	moves := pos.genPawnAttackMoves(nil)
+	moves := pos.genPawnAttackMoves(false, nil)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
 	pos.SideToMove = Black
-	moves = pos.genPawnAttackMoves(nil)
+	moves = pos.genPawnAttackMoves(false, nil)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
 
