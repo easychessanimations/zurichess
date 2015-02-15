@@ -7,6 +7,11 @@ import (
 	"unsafe"
 )
 
+var (
+	DefaultHashTableSizeMB = 96
+	GlobalHashTable        *HashTable
+)
+
 type HashKind uint8
 
 const (
@@ -92,11 +97,6 @@ func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
 	}
 	return HashEntry{}, false
 }
-
-var (
-	DefaultHashTableSizeMB = 32
-	GlobalHashTable        *HashTable
-)
 
 func init() {
 	GlobalHashTable = NewHashTable(DefaultHashTableSizeMB)
