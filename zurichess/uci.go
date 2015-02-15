@@ -20,7 +20,9 @@ type UCI struct {
 
 func NewUCI() *UCI {
 	return &UCI{
-		Engine: engine.NewEngine(nil, engine.EngineOptions{}),
+		Engine: engine.NewEngine(nil, engine.EngineOptions{
+			AnalyseMode: false,
+		}),
 	}
 }
 
@@ -115,49 +117,51 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	var white, black engine.OnClockTimeControl
+	tc := &engine.OnClockTimeControl{
+		NumPieces: uci.Engine.Position.NumPieces(),
+	}
+
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "infinite":
-			white.Time = 1000000 * time.Hour
-			black.Time = 1000000 * time.Hour
+			i++
+			tc.Time = 1000000 * time.Hour
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			white.Time = time.Duration(t) * time.Millisecond
+			if uci.Engine.Position.SideToMove == engine.White {
+				tc.Time = time.Duration(t) * time.Millisecond
+			}
 		case "winc":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			white.Inc = time.Duration(t) * time.Millisecond
+			if uci.Engine.Position.SideToMove == engine.White {
+				tc.Inc = time.Duration(t) * time.Millisecond
+			}
 		case "btime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			black.Time = time.Duration(t) * time.Millisecond
+			if uci.Engine.Position.SideToMove == engine.Black {
+				tc.Time = time.Duration(t) * time.Millisecond
+			}
 		case "binc":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			black.Inc = time.Duration(t) * time.Millisecond
+			if uci.Engine.Position.SideToMove == engine.Black {
+				tc.Inc = time.Duration(t) * time.Millisecond
+			}
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			white.MovesToGo = t
-			black.MovesToGo = t
+			tc.MovesToGo = t
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			white.Time, white.Inc, white.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
-			black.Time, black.Inc, black.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
+			tc.Time, tc.Inc, tc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
 		}
 	}
 
-	var tc engine.TimeControl
-	if uci.Engine.Position.SideToMove == engine.White {
-		tc = &white
-	} else {
-		tc = &black
-	}
 	tc.Start()
-
 	moves := uci.Engine.Play(tc)
 	hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
 	log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",

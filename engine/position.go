@@ -77,6 +77,11 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 	return pos.ByColor[col] & pos.ByFigure[fig]
 }
 
+// NumPieces returns the number of pieces on the board.
+func (pos *Position) NumPieces() int {
+	return (pos.ByColor[White] | pos.ByColor[Black]).Popcnt()
+}
+
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {

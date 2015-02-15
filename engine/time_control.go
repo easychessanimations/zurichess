@@ -6,7 +6,7 @@ import (
 
 const (
 	defaultMovesToGo    = 30 // default number of more moves expected to play
-	defaultbranchFactor = 9  // default branching factor
+	defaultbranchFactor = 2  // default branching factor
 )
 
 type TimeControl interface {
@@ -39,6 +39,8 @@ func (tc *FixedDepthTimeControl) NextDepth() int {
 // OnClockTimeControl is a time control that tries to split the
 // remaining time over MovesToGo.
 type OnClockTimeControl struct {
+	// Number of remaining pieces on the board.
+	NumPieces int
 	// Remaining time.
 	Time time.Duration
 	// Time increment after each move.
@@ -56,16 +58,22 @@ type OnClockTimeControl struct {
 }
 
 func (tc *OnClockTimeControl) Start() {
-	movesToGo := time.Duration(defaultMovesToGo)
+	movesToGo := defaultMovesToGo
 	if tc.MovesToGo != 0 {
-		movesToGo = time.Duration(tc.MovesToGo)
+		movesToGo = tc.MovesToGo
+	}
+
+	// Branch more when there are more pieces.
+	// With fewer pieces, hash table kicks in.
+	branchFactor := defaultbranchFactor
+	for np := tc.NumPieces; np > 0; np /= 2 {
+		branchFactor++
 	}
 
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
-	branchFactor := time.Duration(defaultbranchFactor)
-	for i := 8; i > 0; i /= 2 {
-		if movesToGo <= time.Duration(i) {
+	for i := 4; i > 0; i /= 2 {
+		if movesToGo <= i {
 			branchFactor++
 		}
 	}
@@ -73,8 +81,8 @@ func (tc *OnClockTimeControl) Start() {
 	// Compute how much time to think according to the formula below.
 	// The formula allows engine to use more of time.Left in the begining
 	// and rely more on the inc time later.
-	thinkTime := (tc.Time + (movesToGo-1)*tc.Inc) / movesToGo
-	tc.timeLimit = time.Now().Add(thinkTime / defaultbranchFactor)
+	thinkTime := (tc.Time + time.Duration(movesToGo-1)*tc.Inc) / time.Duration(movesToGo)
+	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 	tc.currDepth = 0
 }
 
