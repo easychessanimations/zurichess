@@ -15,6 +15,11 @@ var (
 	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
+const (
+	depthMultiplier     = 4
+	checkDepthExtension = 2
+)
+
 // EngineOptions keeps engine's optins.
 type EngineOptions struct {
 	AnalyseMode bool // true to display info strings
@@ -286,14 +291,14 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	return localAlpha
 }
 
-func (eng *Engine) tryMove(α, β, ply int16, move Move) int16 {
+func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	color := eng.Position.SideToMove
 	eng.DoMove(move)
 	if eng.Position.IsChecked(color) {
 		eng.UndoMove(move)
 		return -InfinityScore
 	}
-	score := -eng.negamax(-β, -α, ply+1)
+	score := -eng.negamax(-β, -α, ply+1, depth-depthMultiplier)
 	if score > KnownWinScore {
 		// If the position is a win the score is decreased
 		// slightly to the search takes the shortest path.
@@ -345,10 +350,10 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
 // minimizing nodes already have a better alternative.
 //
 // At ply 0 negamax sets eng.root.
-func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
-	color := eng.Position.SideToMove
+func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
+	sideToMove := eng.Position.SideToMove
 	if score, done := eng.EndPosition(); done {
-		return int16(ColorWeight[color]) * score
+		return int16(ColorWeight[sideToMove]) * score
 	}
 
 	// Check the transposition table.
@@ -372,7 +377,13 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 		}
 	}
 
-	if ply == eng.maxPly {
+	if eng.Position.IsChecked(sideToMove) {
+		// Extend search when the side to move is in check.
+                // https://chessprogramming.wikispaces.com/Check+Extensions
+		depth += checkDepthExtension
+	}
+
+	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(alpha, beta, 0)
 		eng.updateHash(alpha, beta, ply, score, &Move{})
@@ -387,7 +398,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 	start := eng.generateMoves(ply, &entry)
 	for start < len(eng.moves) {
 		move := eng.popMove()
-		score := eng.tryMove(localAlpha, beta, ply, move)
+		score := eng.tryMove(localAlpha, beta, ply, depth, move)
 		if score >= beta { // Fail high.
 			if move.Capture == NoPiece {
 				// Save quiet killer move.
@@ -408,7 +419,7 @@ func (eng *Engine) negamax(alpha, beta, ply int16) int16 {
 
 	// If no move was found then the game is over.
 	if bestMove.MoveType == NoMove {
-		if eng.Position.IsChecked(color) {
+		if eng.Position.IsChecked(sideToMove) {
 			bestScore = -MateScore
 		} else {
 			bestScore = 0
@@ -451,7 +462,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	α, β := γ-δ, γ+δ
 
 	for {
-		score := eng.negamax(int16(α), int16(β), 0)
+		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*depthMultiplier)
 		if int(score) <= α {
 			α = inf(α - δ)
 			δ += δ / 2
