@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	DepthMultiplier        = 8                   // depth multiplier for fractional depths
-	CheckDepthExtension    = 6                   // how much to extend search in case of checks
-	NullMoveDepthLimit     = DepthMultiplier     // disable null-move below this limit
-	NullMoveDepthReduction = 1 * DepthMultiplier // default null-move depth reduction. Can reduce more in some situations.
+	DepthMultiplier        = 8 // depth multiplier for fractional depths
+	CheckDepthExtension    = 6 // how much to extend search in case of checks
+	NullMoveDepthLimit     = 8 // disable null-move below this limit
+	NullMoveDepthReduction = 8 // default null-move depth reduction. Can reduce more in some situations.
+	PVSDepthLimit          = 7
 )
 
 var (
@@ -241,7 +242,17 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	return localα
 }
 
-func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
+// tryMove makes a move a descends on the search tree.
+//
+// α, β represent lower and upper bounds.
+// ply is the move number (increasing).
+// depth is the fractional depth (decreasing)
+// nullWindow indicates whether to scout first.
+// move is the move to execute
+//
+// Returns the score from the deeper search.
+func (eng *Engine) tryMove(α, β, ply, depth int16, nullWindow bool, move Move) int16 {
+	depth -= DepthMultiplier
 	side := eng.Position.SideToMove
 	eng.Position.DoMove(move)
 	if eng.Position.IsChecked(side) {
@@ -249,7 +260,15 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 		return -InfinityScore
 	}
 
-	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType() != NoMove)
+	var score int16
+	if nullWindow && α+1 != β && depth > PVSDepthLimit {
+		score = -eng.negamax(-α-1, -α, ply+1, depth, move.MoveType() != NoMove)
+		if α < score && score < β {
+			score = -eng.negamax(-β, -α, ply+1, depth, move.MoveType() != NoMove)
+		}
+	} else {
+		score = -eng.negamax(-β, -α, ply+1, depth, move.MoveType() != NoMove)
+	}
 	eng.Position.UndoMove(move)
 	return score
 }
@@ -335,20 +354,22 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		}
 	}
 
+	// Extend search when the side to move is in check.
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	if sideIsChecked {
-		// Extend search when the side to move is in check.
 		depth += CheckDepthExtension
 	}
 
+	// Stop searching when maximum depth is reached.
 	if depth <= 0 {
-		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(α, β, ply)
 		eng.updateHash(α, β, ply, depth, score, Move(0))
 		return score
 	}
 
 	// Do a null move.
+	// If the null move fails high it means this position is to good,
+	// so opponent will not play it.
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
 		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
@@ -360,19 +381,22 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 			// Reduce more when there are three minor/major pieces.
 			reduction += DepthMultiplier
 		}
-		score := eng.tryMove(β-1, β, ply, depth-reduction, Move(0))
+		score := eng.tryMove(β-1, β, ply, depth-reduction, false, Move(0))
 		if score >= β {
 			return score
 		}
 	}
 
+	// Search with a null window if there is already a good move.
+	nullWindow := false
+	allowNullWindow := has && len(eng.killer) > int(ply)
+
 	localα := α
 	bestMove, bestScore := Move(0), -InfinityScore
 
 	eng.generateMoves(ply, entry.Move)
-	var move Move
-	for eng.stack.PopMove(&move) {
-		score := eng.tryMove(localα, β, ply, depth, move)
+	for move := Move(0); eng.stack.PopMove(&move); {
+		score := eng.tryMove(localα, β, ply, depth, nullWindow, move)
 		if score >= β { // Fail high, cut node.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
@@ -380,6 +404,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 			return score
 		}
 		if score > bestScore {
+			nullWindow = allowNullWindow
 			bestMove, bestScore = move, score
 			if score > localα {
 				localα = score
@@ -398,6 +423,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		eng.saveKiller(ply, bestMove)
 	}
 
+	// Update hash and principal variation tables.
 	eng.updateHash(α, β, ply, depth, bestScore, bestMove)
 	if α < bestScore && bestScore < β && bestMove.MoveType() != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
@@ -429,7 +455,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, δ := int(estimated), 15
+	γ, δ := int(estimated), 21
 	α, β := inf(γ-δ), sup(γ+δ)
 	score := estimated
 
