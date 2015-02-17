@@ -172,7 +172,7 @@ var (
 	// EndGameMaterial defines the material values for end game.
 	EndGameMaterial = Material{
 		FigureBonus: [FigureArraySize]int{
-			0, 100, 345, 355, 525, 1000, 10000,
+			0, 115, 345, 355, 525, 1000, 10000,
 		},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 
