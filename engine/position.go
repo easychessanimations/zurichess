@@ -8,8 +8,6 @@ import (
 var (
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
-	// Pieces into which a pawn can be promoted.
-	pawnPromotions = []Figure{Knight, Bishop, Rook, Queen}
 	// Maps pieces to symbols. ? means invalid.
 	pieceToSymbol = ".????pP??nN??bB??rR??qQ??kK?"
 )

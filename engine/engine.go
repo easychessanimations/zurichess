@@ -20,8 +20,8 @@ const (
 	checkDepthExtension = 2
 )
 
-// EngineOptions keeps engine's optins.
-type EngineOptions struct {
+// Options keeps engine's optins.
+type Options struct {
 	AnalyseMode bool // true to display info strings
 }
 
@@ -52,7 +52,7 @@ func (s *Stats) CacheHitRatio() float32 {
 
 // Engine implements the logic to search the best move for a position.
 type Engine struct {
-	Options  EngineOptions
+	Options  Options
 	Position *Position // current Position
 	Stats    Stats
 
@@ -68,7 +68,7 @@ type Engine struct {
 
 // NewEngine creates a new engine.
 // If pos is nil, the start position is used.
-func NewEngine(pos *Position, opt EngineOptions) *Engine {
+func NewEngine(pos *Position, opt Options) *Engine {
 	eng := &Engine{
 		Options: opt,
 		moves:   make([]Move, 0, 1024),
@@ -391,7 +391,7 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 
 	if eng.Position.IsChecked(sideToMove) {
 		// Extend search when the side to move is in check.
-                // https://chessprogramming.wikispaces.com/Check+Extensions
+		// https://chessprogramming.wikispaces.com/Check+Extensions
 		depth += checkDepthExtension
 	}
 
@@ -499,9 +499,8 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		score = eng.alphaBeta(score)
-		now := time.Now()
-
 		moves = eng.pvTable.Get(eng.Position)
+		now := time.Now()
 
 		if eng.Options.AnalyseMode {
 			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",

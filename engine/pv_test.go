@@ -32,7 +32,7 @@ func TestPV(t *testing.T) {
 		}
 		for i := range pv {
 			if moves[i] != pv[i] {
-				t.Errorf("#%d Expected move %v, got %v", pv[i], moves[i])
+				t.Errorf("#%d Expected move %v, got %v", i, pv[i], moves[i])
 			}
 		}
 	}

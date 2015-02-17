@@ -22,7 +22,7 @@ type UCI struct {
 }
 
 func NewUCI() *UCI {
-	options := engine.EngineOptions{AnalyseMode: false}
+	options := engine.Options{AnalyseMode: false}
 	return &UCI{
 		Engine: engine.NewEngine(nil, options),
 		Stop:   make(chan struct{}, 1),

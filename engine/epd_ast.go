@@ -231,7 +231,6 @@ func parseCastlingAbility(pos *Position, str string) (Castle, error) {
 func parseEnpassantSquare(str string) (Square, error) {
 	if str[:1] == "-" {
 		return SquareA1, nil
-	} else {
-		return SquareFromString(str)
 	}
+	return SquareFromString(str)
 }

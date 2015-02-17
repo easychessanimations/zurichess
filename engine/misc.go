@@ -12,11 +12,6 @@ var debrujin64 = [64]uint{
 	62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58,
 }
 
-// lsb returns the least significant bit of n.
-func lsb(n uint64) uint64 {
-	return n & (-n)
-}
-
 // logN returns the logarithm of n, where n is a power of two.
 func logN(n uint64) uint {
 	return debrujin64[n*debrujinMul>>debrujinShift]

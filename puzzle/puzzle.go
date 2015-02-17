@@ -102,7 +102,7 @@ func main() {
 
 		// Evaluate position.
 		timeControl.Start()
-		ai := engine.NewEngine(nil, engine.EngineOptions{})
+		ai := engine.NewEngine(nil, engine.Options{})
 		ai.SetPosition(epd.Position)
 		actual := ai.Play(timeControl)
 
