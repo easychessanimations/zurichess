@@ -63,17 +63,23 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ### zurichess - appenzeller (in development)
 
+This release's theme is improving search.
+
 * Cleaned code and improved documentation.
 * Implemented aspiration window search with gradual widening.
 * Improved replacement strategy in transposition table.
 * Doubled the number of entries in the transposition table.
 * Developed [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
 * Fail-softly in more situations.
-* Implemented UCI command _go movetime_.
+* Implemented UCI commands _go movetime_ and _stop_.
 * Added a separate table for principal variation.
 * Added killer heuristic to improve move ordering.
+* Extended search when current position is in check.
+* Improved time-control. In particular zurichess uses more time when there are fewer pieces on the board.
 
 ### zurichess - aargau (stable)
+
+This is the first public release. ELO is about 1727 according to CCRL40/4.
 
 * Core search function is a mini-max with alpha-beta pruning on top of a negamax framework.
 * Sliding attacks are implemented using fancy magic bitboards.
