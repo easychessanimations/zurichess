@@ -55,12 +55,12 @@ func (sq Square) Relative(dr, df int) Square {
 	return sq + Square(dr*8+df)
 }
 
-// Rank returns a number 0...7 representing the rank of the square.
+// Rank returns a number from 0 to 7 representing the rank of the square.
 func (sq Square) Rank() int {
 	return int(sq / 8)
 }
 
-// File returns a number 0...7 representing the file of the square.
+// File returns a number from 0 to 7 representing the file of the square.
 func (sq Square) File() int {
 	return int(sq % 8)
 }
@@ -72,7 +72,7 @@ func (sq Square) String() string {
 	})
 }
 
-// Figure represents a colorless piece
+// Figure represents a piece without a color.
 type Figure uint
 
 const (
@@ -89,7 +89,7 @@ const (
 	FigureMaxValue  = King
 )
 
-// Color represents a color.
+// Color represents a side.
 type Color uint
 
 const (
@@ -103,8 +103,8 @@ const (
 )
 
 var (
-	ColorWeight  = [ColorArraySize]int{0, 1, -1}
-	ColorMask    = [ColorArraySize]Square{0, 0, 63} // ColorMask[color] ^ square rotates the board.
+	colorWeight  = [ColorArraySize]int{0, 1, -1}
+	colorMask    = [ColorArraySize]Square{0, 0, 63} // colorMask[color] ^ square rotates the board.
 	kingHomeRank = [ColorArraySize]int{0, 0, 7}
 )
 
@@ -120,7 +120,7 @@ func (c Color) KingHomeRank() int {
 	return kingHomeRank[c]
 }
 
-// Piece is a combination of piece type and color
+// Piece is a figure owned by one side.
 type Piece uint8
 
 // ColorFigure returns a piece with col and fig.
@@ -153,7 +153,8 @@ func FileBb(file int) Bitboard {
 	return fileA << uint(file)
 }
 
-// If the bitboard has a single piece, returns the occupied square.
+// As square returns the occupied square if the bitboard has a single piece.
+// If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
 	return Square(logN(uint64(bb)))
 }
@@ -242,13 +243,17 @@ func (m Move) String() string {
 	return r
 }
 
-// Castle mask
+// Castling rights mask.
 type Castle uint8
 
 const (
+	// White can castle on King side.
 	WhiteOO Castle = 1 << iota
+	// White can castle on Queen side.
 	WhiteOOO
+	// Black can castle on King side.
 	BlackOO
+	// Black can castle on Queen side.
 	BlackOOO
 
 	NoCastle  Castle = 0
@@ -280,7 +285,8 @@ func (ca Castle) String() string {
 	return string(r)
 }
 
-// CastlingRook returns which rook is moved on castling.
+// CastlingRook returns the rook moved during castling
+// together with starting and stopping squares.
 func CastlingRook(kingEnd Square) (Piece, Square, Square) {
 	// Explanation how rookStart works for king on E1.
 	// if kingEnd == C1 == b010, then rookStart == A1 == b000

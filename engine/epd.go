@@ -26,18 +26,18 @@ func parse(what int, line string) (*EPD, error) {
 	return epd, nil
 }
 
-// ParseFEN parses a FEN string.
+// ParseFEN parses a FEN string and returns an EPD.
 func ParseFEN(line string) (*EPD, error) {
 	return parse(_hiddenFEN, line)
 
 }
 
-// ParseEPD parses a EPD string.
+// ParseEPD parses a EPD string and returns an EPD.
 func ParseEPD(line string) (*EPD, error) {
 	return parse(_hiddenEPD, line)
 }
 
-// Same as ParseFEN, but returns only the position.
+// PositionFromFEN parses a FEN string and returns the position.
 // Mostly useful for testing.
 func PositionFromFEN(fen string) (*Position, error) {
 	epd, err := ParseFEN(fen)

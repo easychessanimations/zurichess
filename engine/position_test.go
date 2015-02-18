@@ -538,7 +538,7 @@ func TestPawnTakesEnpassant(t *testing.T) {
 
 	// Makes sure that black pawn at A2/B2 doesn't take Enpassant.
 	pos.SideToMove = Black
-	pos.Enpassant = SquareA1
+	pos.EnpassantSquare = SquareA1
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
 	pos.Put(SquareB2, BlackPawn)

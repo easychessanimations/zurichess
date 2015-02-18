@@ -27,9 +27,9 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 		t.Errorf("expected Castle rights %v, got %v",
 			expected.Castle, actual.Castle)
 	}
-	if expected.Enpassant != actual.Enpassant {
+	if expected.EnpassantSquare != actual.EnpassantSquare {
 		t.Errorf("expected enpassant square %v, got %v",
-			expected.Enpassant, actual.Enpassant)
+			expected.EnpassantSquare, actual.EnpassantSquare)
 	}
 }
 

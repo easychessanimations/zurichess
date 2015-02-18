@@ -14,6 +14,7 @@ var (
 
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
+	// See http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm.
 	BishopPairBonus int = 40
 	KnightPawnBonus int = 6
 	RookPawnPenalty int = 12
@@ -47,7 +48,7 @@ func (m *Material) EvaluatePosition(pos *Position) int {
 	score := 0
 	for col := ColorMinValue; col <= ColorMaxValue; col++ {
 		colScore := 0
-		colMask := ColorMask[col]
+		colMask := colorMask[col]
 		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
 			for bb := pos.ByPiece(col, fig); bb != 0; {
 				sq := bb.Pop()
@@ -55,7 +56,7 @@ func (m *Material) EvaluatePosition(pos *Position) int {
 				colScore += m.PieceSquareTable[fig][sq^colMask]
 			}
 		}
-		score += ColorWeight[col] * colScore
+		score += colorWeight[col] * colScore
 	}
 	return score
 }
@@ -65,8 +66,8 @@ func (m *Material) EvaluatePosition(pos *Position) int {
 // after and before the move is executed.
 func (m *Material) EvaluateMove(move Move) int {
 	score := 0
-	mask := ColorMask[move.SideToMove()]
-	otherMask := ColorMask[move.SideToMove().Opposite()]
+	mask := colorMask[move.SideToMove()]
+	otherMask := colorMask[move.SideToMove().Opposite()]
 
 	if move.MoveType == Promotion {
 		fig := move.Promotion().Figure()
@@ -91,7 +92,7 @@ func (m *Material) EvaluateMove(move Move) int {
 		score += m.FigureBonus[fig]
 		score += m.PieceSquareTable[fig][move.CaptureSquare()^otherMask]
 	}
-	return ColorWeight[move.SideToMove()] * score
+	return colorWeight[move.SideToMove()] * score
 }
 
 var (

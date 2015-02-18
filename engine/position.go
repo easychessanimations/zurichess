@@ -23,12 +23,12 @@ func init() {
 
 // Position encodes the chess board.
 type Position struct {
-	ByFigure   [FigureArraySize]Bitboard
-	ByColor    [ColorArraySize]Bitboard
-	SideToMove Color
-	Castle     Castle
-	Enpassant  Square
-	Zobrist    uint64
+	ByFigure        [FigureArraySize]Bitboard // bitboards of square occupancy by figure.
+	ByColor         [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
+	SideToMove      Color                     // which side is to move. SideToMove is pdated by DoMove and UndoMove.
+	Castle          Castle                    // remaining castling rights.
+	EnpassantSquare Square                    // enpassant square. If none, then SquareA1.
+	Zobrist         uint64                    // Zobrist hash of the position.
 }
 
 // Verify check the validity of the position.
@@ -51,23 +51,23 @@ func (pos *Position) Verify() error {
 
 // SetCastlingAbility sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
-	pos.Zobrist ^= ZobristCastle[pos.Castle]
+	pos.Zobrist ^= zobristCastle[pos.Castle]
 	pos.Castle = castle
-	pos.Zobrist ^= ZobristCastle[pos.Castle]
+	pos.Zobrist ^= zobristCastle[pos.Castle]
 }
 
 // SetSideToMove sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetSideToMove(col Color) {
-	pos.Zobrist ^= ZobristColor[pos.SideToMove]
+	pos.Zobrist ^= zobristColor[pos.SideToMove]
 	pos.SideToMove = col
-	pos.Zobrist ^= ZobristColor[pos.SideToMove]
+	pos.Zobrist ^= zobristColor[pos.SideToMove]
 }
 
 // SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
-	pos.Zobrist ^= ZobristEnpassant[pos.Enpassant]
-	pos.Enpassant = sq
-	pos.Zobrist ^= ZobristEnpassant[pos.Enpassant]
+	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare]
+	pos.EnpassantSquare = sq
+	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare]
 }
 
 // ByPiece is a shortcut for ByColor[col]&ByFigure[fig].
@@ -83,7 +83,7 @@ func (pos *Position) NumPieces() int {
 // Put puts a piece on the board.
 // Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
-	pos.Zobrist ^= ZobristPiece[pi][sq]
+	pos.Zobrist ^= zobristPiece[pi][sq]
 	bb := sq.Bitboard()
 	pos.ByColor[pi.Color()] |= bb
 	pos.ByFigure[pi.Figure()] |= bb
@@ -92,7 +92,7 @@ func (pos *Position) Put(sq Square, pi Piece) {
 // Remove removes a piece from the table.
 // Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
-	pos.Zobrist ^= ZobristPiece[pi][sq]
+	pos.Zobrist ^= zobristPiece[pi][sq]
 	bb := ^sq.Bitboard()
 	pos.ByColor[pi.Color()] &= bb
 	pos.ByFigure[pi.Figure()] &= bb
@@ -103,13 +103,13 @@ func (pos *Position) IsEmpty(sq Square) bool {
 	return (pos.ByColor[White]|pos.ByColor[Black])>>sq&1 == 0
 }
 
-// GetColor returns the piece's color at sq.
+// GetColor returns the piece color at sq.
 func (pos *Position) GetColor(sq Square) Color {
 	return White*Color(pos.ByColor[White]>>sq&1) +
 		Black*Color(pos.ByColor[Black]>>sq&1)
 }
 
-// GetFigure returns the piece's type at sq.
+// GetFigure returns the figure at sq.
 func (pos *Position) GetFigure(sq Square) Figure {
 	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
 		if pos.ByFigure[fig]&sq.Bitboard() != 0 {
@@ -127,19 +127,19 @@ func (pos *Position) Get(sq Square) Piece {
 	return NoPiece
 }
 
-// IsChecked returns true if co's king is checked.
-func (pos *Position) IsChecked(col Color) bool {
-	kingSq := pos.ByPiece(col, King).AsSquare()
-	return pos.IsAttackedBy(kingSq, col.Opposite())
+// IsChecked returns true if side's king is checked.
+func (pos *Position) IsChecked(side Color) bool {
+	kingSq := pos.ByPiece(side, King).AsSquare()
+	return pos.IsAttackedBy(kingSq, side.Opposite())
 }
 
-// PrettyPrint pretty prints the current position.
+// PrettyPrint pretty prints the current position to log.
 func (pos *Position) PrettyPrint() {
 	for r := 7; r >= 0; r-- {
 		line := ""
 		for f := 0; f < 8; f++ {
 			sq := RankFile(r, f)
-			if sq == pos.Enpassant {
+			if sq == pos.EnpassantSquare {
 				line += ","
 			} else {
 				line += string(pieceToSymbol[pos.Get(sq)])
@@ -160,7 +160,7 @@ func (pos *Position) PrettyPrint() {
 // Does not set capture.
 func (pos *Position) fix(move Move) Move {
 	move.SavedCastle = pos.Castle
-	move.SavedEnpassant = pos.Enpassant
+	move.SavedEnpassant = pos.EnpassantSquare
 	return move
 }
 
@@ -237,7 +237,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 			pMin, pMax = Knight, Queen
 		}
 	}
-	if moveType == Normal && pos.Enpassant != SquareA1 && pos.Enpassant == to {
+	if moveType == Normal && pos.EnpassantSquare != SquareA1 && pos.EnpassantSquare == to {
 		moveType = Enpassant
 	}
 
@@ -298,7 +298,7 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves []Move) []Move {
 }
 
 func (pos *Position) pawnCapture(to Square) Piece {
-	if pos.Enpassant != SquareA1 && to == pos.Enpassant {
+	if pos.EnpassantSquare != SquareA1 && to == pos.EnpassantSquare {
 		return ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
 	return pos.Get(to)
@@ -306,8 +306,8 @@ func (pos *Position) pawnCapture(to Square) Piece {
 
 func (pos *Position) genPawnAttackMoves(violent bool, moves []Move) []Move {
 	enemy := pos.ByColor[pos.SideToMove.Opposite()]
-	if pos.Enpassant != SquareA1 {
-		enemy |= pos.Enpassant.Bitboard()
+	if pos.EnpassantSquare != SquareA1 {
+		enemy |= pos.EnpassantSquare.Bitboard()
 	}
 
 	var forward Square

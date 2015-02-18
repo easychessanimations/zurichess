@@ -1,3 +1,4 @@
+// Package engine implements board, moves and search.
 package engine
 
 import (
@@ -20,13 +21,14 @@ const (
 	checkDepthExtension = 2
 )
 
-// Options keeps engine's optins.
+// Options keeps engine's options.
 type Options struct {
 	AnalyseMode bool // true to display info strings
 }
 
 // Stats stores some basic stats on the engine.
-// Statistics are per each depth search.
+//
+// Statistics are reset every iteration of the iterative deepening search.
 type Stats struct {
 	Start     time.Time // when computation was started
 	CacheHit  uint64    // number of times the position was found transposition table
@@ -66,8 +68,8 @@ type Engine struct {
 	maxPly       int16 // max ply currently searching at.
 }
 
-// NewEngine creates a new engine.
-// If pos is nil, the start position is used.
+// NewEngine creates a new engine to search for pos.
+// If pos is nil then the start position is used.
 func NewEngine(pos *Position, opt Options) *Engine {
 	eng := &Engine{
 		Options: opt,
@@ -150,8 +152,7 @@ func (eng *Engine) countMaterial() {
 //
 // phase is determined by the number of pieces left in the game where
 // pawn has score 0, knight and bishop 1, rook 2, queen 2.
-// See Tapered Eval:
-// https://chessprogramming.wikispaces.com/Tapered+Eval
+// See tapered eval: // https://chessprogramming.wikispaces.com/Tapered+Eval
 func (eng *Engine) phase() (int, int) {
 	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*4
 	currPhase := totalPhase
@@ -164,11 +165,7 @@ func (eng *Engine) phase() (int, int) {
 	return currPhase, 256
 }
 
-// Score evaluates current position from white's POV.
-//
-// For figure values, bonuses, etc see:
-//      - https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-//      - http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm
+// Score evaluates current position from White's POV.
 func (eng *Engine) Score() int16 {
 	eng.Stats.Nodes++
 
@@ -190,7 +187,7 @@ func (eng *Engine) Score() int16 {
 		numPawns := eng.pieces[col][Pawn]
 		adjust := KnightPawnBonus * eng.pieces[col][Knight]
 		adjust -= RookPawnPenalty * eng.pieces[col][Rook]
-		score += adjust * ColorWeight[col] * (numPawns - 5)
+		score += adjust * colorWeight[col] * (numPawns - 5)
 	}
 
 	return int16(score)
@@ -263,7 +260,7 @@ func (eng *Engine) updateHash(alpha, beta, ply, score int16, move *Move) {
 // quiescence searches a quite move.
 func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 	color := eng.Position.SideToMove
-	score := int16(ColorWeight[color]) * eng.Score()
+	score := int16(colorWeight[color]) * eng.Score()
 	if score >= beta {
 		return score
 	}
@@ -365,7 +362,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
 func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 	sideToMove := eng.Position.SideToMove
 	if score, done := eng.EndPosition(); done {
-		return int16(ColorWeight[sideToMove]) * score
+		return int16(colorWeight[sideToMove]) * score
 	}
 
 	// Check the transposition table.

@@ -138,7 +138,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		if err != nil {
 			return Move{}, err
 		}
-		if move.To != SquareA1 && move.To == pos.Enpassant {
+		if move.To != SquareA1 && move.To == pos.EnpassantSquare {
 			move.MoveType = Enpassant
 			move.Capture = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 		} else {
@@ -209,7 +209,7 @@ func (pos *Position) UCIToMove(s string) Move {
 	promo := pos.Get(from)
 
 	pi := pos.Get(from)
-	if pi.Figure() == Pawn && pos.Enpassant != SquareA1 && to == pos.Enpassant {
+	if pi.Figure() == Pawn && pos.EnpassantSquare != SquareA1 && to == pos.EnpassantSquare {
 		moveType = Enpassant
 		capt = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
