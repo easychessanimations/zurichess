@@ -66,6 +66,7 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println("id name zurichess")
 	fmt.Println("id author Alexandru Moșoi")
 	fmt.Println()
+	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name MvvLva type string\n")
 	fmt.Printf("option name FigureBonus.MidGame type string\n")
@@ -205,6 +206,12 @@ func (uci *UCI) setoption(args []string) error {
 	}
 
 	switch args[1] {
+	case "UCI_AnalyseMode":
+		if mode, err := strconv.ParseBool(args[3]); err != nil {
+			return err
+		} else {
+			uci.Engine.Options.AnalyseMode = mode
+		}
 	case "Hash":
 		if hashSizeMB, err := strconv.ParseInt(args[3], 10, 64); err != nil {
 			return err

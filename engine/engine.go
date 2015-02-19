@@ -484,32 +484,37 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	}
 }
 
+func (eng *Engine) printInfo(score int16) {
+	now := time.Now()
+	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
+		eng.maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
+
+	fmt.Printf("pv")
+	for _, move := range eng.pvTable.Get(eng.Position) {
+		fmt.Printf(" %v", eng.Position.MoveToUCI(move))
+	}
+	fmt.Printf("\n")
+}
+
 // Play evaluates current position.
 // Returns principal variation, moves[0] is the next move.
 //
 // tc should already be started.
 func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	score := int16(0)
-	stats := &eng.Stats
-	*stats = Stats{Start: time.Now()}
+	eng.Stats = Stats{Start: time.Now()}
 
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
 		score = eng.alphaBeta(score)
 		moves = eng.pvTable.Get(eng.Position)
-		now := time.Now()
-
 		if eng.Options.AnalyseMode {
-			fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-				maxPly, score, stats.Nodes, stats.Time(now), stats.NPS(now))
-
-			fmt.Printf("pv")
-			for _, move := range moves {
-				fmt.Printf(" %v", eng.Position.MoveToUCI(move))
-			}
-			fmt.Printf("\n")
+			eng.printInfo(score)
 		}
 	}
 
+	if !eng.Options.AnalyseMode {
+		eng.printInfo(score)
+	}
 	return moves
 }
