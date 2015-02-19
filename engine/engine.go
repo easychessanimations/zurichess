@@ -258,15 +258,15 @@ func (eng *Engine) updateHash(alpha, beta, ply, score int16, move *Move) {
 }
 
 // quiescence searches a quite move.
-func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
+func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	color := eng.Position.SideToMove
 	score := int16(colorWeight[color]) * eng.Score()
-	if score >= beta {
+	if score >= β {
 		return score
 	}
-	localAlpha := alpha
-	if score > localAlpha {
-		localAlpha = score
+	localα := α
+	if score > localα {
+		localα = score
 	}
 
 	bestMove := Move{}
@@ -281,23 +281,23 @@ func (eng *Engine) quiescence(alpha, beta, ply int16) int16 {
 			eng.UndoMove(move)
 			continue
 		}
-		score := -eng.quiescence(-beta, -localAlpha, ply+1)
-		if score >= beta {
+		score := -eng.quiescence(-β, -localα, ply+1)
+		if score >= β {
 			eng.UndoMove(move)
 			eng.moves = eng.moves[:start]
 			return score
 		}
-		if score > localAlpha {
-			localAlpha = score
+		if score > localα {
+			localα = score
 			bestMove = move
 		}
 		eng.UndoMove(move)
 	}
 
-	if alpha < localAlpha && localAlpha < beta && bestMove.MoveType != NoMove {
+	if α < localα && localα < β && bestMove.MoveType != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
-	return localAlpha
+	return localα
 }
 
 func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
