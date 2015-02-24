@@ -43,7 +43,11 @@ var (
 		"b": Black,
 	}
 
-	// Maps runes to pieces. It's the reverse of the previous array.
+	colorToSymbol = map[Color]string{
+		White: "w",
+		Black: "b",
+	}
+
 	symbolToPiece = map[rune]Piece{
 		'p': BlackPawn,
 		'n': BlackKnight,

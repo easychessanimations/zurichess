@@ -31,7 +31,7 @@ var (
 	}
 )
 
-// SANToMove conversts a move to SAN format.
+// SANToMove converts a move from SAN format to internal representation.
 // SAN stand for standard algebraic notation and
 // its description can be found in FIDE handbook.
 //
@@ -185,17 +185,6 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		return pm, nil
 	}
 	return Move{}, errorNoSuchMove
-}
-
-// MoveToUCI converts a move to UCI format.
-// The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
-// incorrectly states that this is the long algebraic notation (LAN).
-func (pos *Position) MoveToUCI(move Move) string {
-	r := move.From.String() + move.To.String()
-	if move.MoveType == Promotion {
-		r += string(pieceToSymbol[move.Target])
-	}
-	return r
 }
 
 // UCIToMove parses a move given in UCI format.

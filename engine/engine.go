@@ -491,7 +491,7 @@ func (eng *Engine) printInfo(score int16) {
 
 	fmt.Printf("pv")
 	for _, move := range eng.pvTable.Get(eng.Position) {
-		fmt.Printf(" %v", eng.Position.MoveToUCI(move))
+		fmt.Printf(" %v", move.UCI())
 	}
 	fmt.Printf("\n")
 }

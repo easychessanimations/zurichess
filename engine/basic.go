@@ -11,6 +11,14 @@ import (
 
 var (
 	errorInvalidSquare = fmt.Errorf("invalid square")
+
+	figureToSymbol = map[Figure]string{
+		Knight: "N",
+		Bishop: "B",
+		Rook:   "R",
+		Queen:  "Q",
+		King:   "K",
+	}
 )
 
 // Square identifies the location on the board.
@@ -235,12 +243,28 @@ func (m *Move) IsViolent() bool {
 	return m.Capture != NoPiece || m.MoveType == Promotion
 }
 
-func (m Move) String() string {
-	r := m.From.String() + m.To.String()
-	if m.MoveType == Promotion {
-		r += string(pieceToSymbol[m.Target])
+// UCI converts a move to UCI format.
+// The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
+// incorrectly states that this is the long algebraic notation (LAN).
+func (m *Move) UCI() string {
+	return m.From.String() + m.To.String() + figureToSymbol[m.Promotion().Figure()]
+}
+
+// LAN converts a move to Long Algebraic Notation.
+// http://en.wikipedia.org/wiki/Algebraic_notation_%28chess%29#Long_algebraic_notation
+func (m *Move) LAN() string {
+	r := figureToSymbol[m.Piece().Figure()] + m.From.String()
+	if m.Capture != NoPiece {
+		r += "-"
+	} else {
+		r += "x"
 	}
+	r += m.To.String() + figureToSymbol[m.Promotion().Figure()]
 	return r
+}
+
+func (m *Move) String() string {
+	return m.UCI()
 }
 
 // Castling rights mask.
@@ -271,16 +295,16 @@ var castleToSymbol = map[Castle]byte{
 	BlackOOO: 'q',
 }
 
-func (ca Castle) String() string {
-	if ca == 0 {
+func (c Castle) String() string {
+	if c == 0 {
 		return "-"
 	}
 
 	var r []byte
-	for k, v := range castleToSymbol {
-		if ca&k != 0 {
-			r = append(r, v)
-		}
+	for c > 0 {
+		k := c & (-c)
+		r = append(r, castleToSymbol[k])
+		c -= k
 	}
 	return string(r)
 }

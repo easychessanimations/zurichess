@@ -144,3 +144,17 @@ func TestEPDParser(t *testing.T) {
 		}
 	}
 }
+
+func TestEPDString(t *testing.T) {
+	line := "r3r1k1/ppqb1ppp/8/4p1NQ/8/2P5/PP3PPP/R3R1K1 b - - bm Bd7xf5; id \"BK.12\";"
+
+	epd, err := ParseEPD(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := epd.String()
+	if line != actual {
+		t.Errorf("invalid string:\n     got: %s\nexpected: %s\n", actual, line)
+	}
+}

@@ -46,3 +46,56 @@ func PositionFromFEN(fen string) (*Position, error) {
 	}
 	return epd.Position, nil
 }
+
+var (
+	itoa = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8"}
+)
+
+// formatPiecePlacement converts a position to FEN piece placement.
+func formatPiecePlacement(pos *Position) string {
+	s := ""
+	for r := 7; r >= 0; r-- {
+		space := 0
+		for f := 0; f < 8; f++ {
+			sq := RankFile(r, f)
+			pi := pos.Get(sq)
+			if pi == NoPiece {
+				space++
+			} else {
+				if space != 0 {
+					s += itoa[space]
+					space = 0
+				}
+				s += string(pieceToSymbol[pi])
+			}
+		}
+
+		if space != 0 {
+			s += itoa[space]
+		}
+		if r != 0 {
+			s += "/"
+		}
+	}
+	return s
+}
+
+func (e *EPD) String() string {
+	s := formatPiecePlacement(e.Position)
+	s += " " + colorToSymbol[e.Position.SideToMove]
+	s += " " + e.Position.Castle.String()
+	if e.Position.EnpassantSquare == SquareA1 {
+		s += " -"
+	} else {
+		s += " " + e.Position.EnpassantSquare.String()
+	}
+
+	for _, bm := range e.BestMove {
+		s += " bm " + bm.LAN() + ";"
+	}
+	if e.Id != "" {
+		s += " id " + e.Id + ";"
+	}
+
+	return s
+}

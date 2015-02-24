@@ -16,6 +16,7 @@ import (
 
 var (
 	input      = flag.String("input", "", "file with EPD lines")
+	output     = flag.String("output", "", "file to write EPD with solutions")
 	deadline   = flag.Duration("deadline", 0, "how much time to spend for each move")
 	maxDepth   = flag.Int("max_depth", 0, "search up to max_depth plies")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -27,37 +28,44 @@ var (
 
 func main() {
 	log.SetFlags(log.Lshortfile)
+
+	// Validate falgs.
 	flag.Parse()
-
-	if *mvvLva != "" {
-		engine.SetMvvLva(*mvvLva)
-	}
-
-	// Enable cpuprofile.
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
-	// Opens input.
 	if *input == "" {
 		log.Fatal("--input not specified")
 	}
-	f, err := os.Open(*input)
-	if err != nil {
-		log.Fatal(err)
+	if *mvvLva != "" {
+		engine.SetMvvLva(*mvvLva)
 	}
-	defer f.Close()
+	if *cpuprofile != "" { // Enable cpuprofile.
+		fin, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(fin)
+		defer pprof.StopCPUProfile()
+	}
+
+	var err error
+	var fin *os.File
+	if fin, err = os.Open(*input); err != nil {
+		log.Fatalf("cannot open %s for reading: %v", *input, err)
+	}
+	defer fin.Close()
+
+	var fout *os.File
+	if *output != "" {
+		if fout, err = os.Create(*output); err != nil {
+			log.Fatalf("cannot open %s for writing: %v", *output, err)
+		}
+		defer fout.Close()
+	}
 
 	stats := engine.Stats{}
 
 	// Read file line by line.
 	solvedTests, numTests := 0, 0
-	buf := bufio.NewReader(f)
+	buf := bufio.NewReader(fin)
 	for i, o := 0, 0; ; i++ {
 		// Builds time control.
 		var timeControl engine.TimeControl
@@ -130,6 +138,11 @@ func main() {
 				float32(ai.Stats.CacheHit)/float32(ai.Stats.CacheHit+ai.Stats.CacheMiss)*100,
 				ai.Stats.Nodes/1000, solvedTests, numTests, line)
 			o++
+		}
+
+		if fout != nil {
+			epd.BestMove = []engine.Move{actual[0]}
+			fmt.Fprintln(fout, epd.String())
 		}
 
 		// Update stats.

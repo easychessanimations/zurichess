@@ -185,7 +185,7 @@ func (uci *UCI) go_(args []string) {
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
 			engine.GlobalHashTable.Size(), hit, miss,
 			float32(hit)/float32(hit+miss)*100)
-		fmt.Printf("bestmove %v\n", uci.Engine.Position.MoveToUCI(moves[0]))
+		fmt.Printf("bestmove %v\n", moves[0].UCI())
 	}()
 }
 
