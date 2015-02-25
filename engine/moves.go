@@ -213,7 +213,7 @@ func (pos *Position) UCIToMove(s string) Move {
 		promo = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
 	}
 
-	return pos.fix(Move{
+	return pos.fix(&Move{
 		MoveType: moveType,
 		From:     from,
 		To:       to,

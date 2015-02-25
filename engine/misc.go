@@ -18,10 +18,10 @@ func logN(n uint64) uint {
 }
 
 const (
-	k1 = uint64(0x5555555555555555)
-	k2 = uint64(0x3333333333333333)
-	k4 = uint64(0x0f0f0f0f0f0f0f0f)
-	kf = uint64(0x0101010101010101)
+	k1 = 0x5555555555555555
+	k2 = 0x3333333333333333
+	k4 = 0x0f0f0f0f0f0f0f0f
+	kf = 0x0101010101010101
 )
 
 // popcnt counts number of bits set in n.

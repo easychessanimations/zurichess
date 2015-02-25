@@ -158,10 +158,10 @@ func (pos *Position) PrettyPrint() {
 
 // fix updates move so that it can be undone.
 // Does not set capture.
-func (pos *Position) fix(move Move) Move {
+func (pos *Position) fix(move *Move) Move {
 	move.SavedCastle = pos.Castle
 	move.SavedEnpassant = pos.EnpassantSquare
-	return move
+	return *move
 }
 
 // DoMove performs a move of known piece.
@@ -242,7 +242,7 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 	}
 
 	for p := pMin; p <= pMax; p++ {
-		moves = append(moves, pos.fix(Move{
+		moves = append(moves, pos.fix(&Move{
 			MoveType: moveType,
 			From:     from,
 			To:       to,
@@ -352,13 +352,15 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, viole
 
 	for bb := att; bb != 0; {
 		to := bb.Pop()
-		moves = append(moves, pos.fix(Move{
-			MoveType: Normal,
-			From:     from,
-			To:       to,
-			Capture:  pos.Get(to),
-			Target:   pi,
-		}))
+		moves = append(moves, Move{
+			MoveType:       Normal,
+			From:           from,
+			To:             to,
+			Capture:        pos.Get(to),
+			Target:         pi,
+			SavedCastle:    pos.Castle,
+			SavedEnpassant: pos.EnpassantSquare,
+		})
 	}
 	return moves
 }
@@ -433,7 +435,7 @@ func (pos *Position) genKingCastles(moves []Move) []Move {
 			goto EndCastleOO
 		}
 
-		moves = append(moves, pos.fix(Move{
+		moves = append(moves, pos.fix(&Move{
 			MoveType: Castling,
 			From:     r4,
 			To:       r6,
@@ -459,7 +461,7 @@ EndCastleOO:
 			goto EndCastleOOO
 		}
 
-		moves = append(moves, pos.fix(Move{
+		moves = append(moves, pos.fix(&Move{
 			MoveType: Castling,
 			From:     r4,
 			To:       r2,

@@ -164,7 +164,8 @@ func FileBb(file int) Bitboard {
 // As square returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
-	return Square(logN(uint64(bb)))
+	// same as logN.
+	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
 }
 
 // LSB picks a square in the board.
@@ -175,12 +176,18 @@ func (bb Bitboard) LSB() Bitboard {
 
 // Popcnt counts number of squares set in bb.
 func (bb Bitboard) Popcnt() int {
-	return popcnt(uint64(bb))
+	// same as popcnt.
+	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
+	bb = bb - ((bb >> 1) & k1)
+	bb = (bb & k2) + ((bb >> 2) & k2)
+	bb = (bb + (bb >> 4)) & k4
+	bb = (bb * kf) >> 56
+	return int(bb)
 }
 
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
-	sq := (*bb).LSB()
+	sq := *bb & (-*bb)
 	*bb -= sq
 	return sq.AsSquare()
 }
