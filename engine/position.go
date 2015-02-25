@@ -156,14 +156,6 @@ func (pos *Position) PrettyPrint() {
 
 }
 
-// fix updates move so that it can be undone.
-// Does not set capture.
-func (pos *Position) fix(move *Move) Move {
-	move.SavedCastle = pos.Castle
-	move.SavedEnpassant = pos.EnpassantSquare
-	return *move
-}
-
 // DoMove performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
@@ -242,13 +234,15 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 	}
 
 	for p := pMin; p <= pMax; p++ {
-		moves = append(moves, pos.fix(&Move{
-			MoveType: moveType,
-			From:     from,
-			To:       to,
-			Capture:  capt,
-			Target:   ColorFigure(pos.SideToMove, p),
-		}))
+		moves = append(moves, Move{
+			MoveType:       moveType,
+			From:           from,
+			To:             to,
+			Capture:        capt,
+			Target:         ColorFigure(pos.SideToMove, p),
+			SavedCastle:    pos.Castle,
+			SavedEnpassant: pos.EnpassantSquare,
+		})
 	}
 	return moves
 }
@@ -341,23 +335,15 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves []Move) []Move {
 	return moves
 }
 
-func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, violent bool, moves []Move) []Move {
-	if violent {
-		// Capture enemy pieces.
-		att &= pos.ByColor[pos.SideToMove.Opposite()]
-	} else {
-		// Generate all moves, except capturing own pieces.
-		att &= ^pos.ByColor[pos.SideToMove]
-	}
-
-	for bb := att; bb != 0; {
-		to := bb.Pop()
+func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves []Move) []Move {
+	for att != 0 {
+		to := att.Pop()
 		moves = append(moves, Move{
-			MoveType:       Normal,
 			From:           from,
 			To:             to,
 			Capture:        pos.Get(to),
 			Target:         pi,
+			MoveType:       Normal,
 			SavedCastle:    pos.Castle,
 			SavedEnpassant: pos.EnpassantSquare,
 		})
@@ -365,34 +351,46 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, viole
 	return moves
 }
 
+func (pos *Position) violentMask(violent bool) Bitboard {
+	if violent {
+		// Capture enemy pieces.
+		return pos.ByColor[pos.SideToMove.Opposite()]
+	}
+	// Generate all moves, except capturing own pieces.
+	return ^pos.ByColor[pos.SideToMove]
+}
+
 func (pos *Position) genKnightMoves(violent bool, moves []Move) []Move {
+	mask := pos.violentMask(violent)
 	pi := ColorFigure(pos.SideToMove, Knight)
 	for bb := pos.ByPiece(pos.SideToMove, Knight); bb != 0; {
 		from := bb.Pop()
-		att := BbKnightAttack[from]
-		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
+		att := BbKnightAttack[from] & mask
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genBishopMoves(fig Figure, violent bool, moves []Move) []Move {
+	mask := pos.violentMask(violent)
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := BishopMagic[from].Attack(ref)
-		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
+		att := BishopMagic[from].Attack(ref) & mask
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
 
 func (pos *Position) genRookMoves(fig Figure, violent bool, moves []Move) []Move {
+	mask := pos.violentMask(violent)
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := RookMagic[from].Attack(ref)
-		moves = pos.genBitboardMoves(pi, from, att, violent, moves)
+		att := RookMagic[from].Attack(ref) & mask
+		moves = pos.genBitboardMoves(pi, from, att, moves)
 	}
 	return moves
 }
@@ -405,10 +403,11 @@ func (pos *Position) genKingMoves(moves []Move) []Move {
 }
 
 func (pos *Position) genKingMovesNear(violent bool, moves []Move) []Move {
+	mask := pos.violentMask(violent)
 	pi := ColorFigure(pos.SideToMove, King)
 	from := pos.ByPiece(pos.SideToMove, King).AsSquare()
-	att := BbKingAttack[from]
-	moves = pos.genBitboardMoves(pi, from, att, violent, moves)
+	att := BbKingAttack[from] & mask
+	moves = pos.genBitboardMoves(pi, from, att, moves)
 	return moves
 }
 
@@ -435,12 +434,14 @@ func (pos *Position) genKingCastles(moves []Move) []Move {
 			goto EndCastleOO
 		}
 
-		moves = append(moves, pos.fix(&Move{
-			MoveType: Castling,
-			From:     r4,
-			To:       r6,
-			Target:   ColorFigure(pos.SideToMove, King),
-		}))
+		moves = append(moves, Move{
+			MoveType:       Castling,
+			From:           r4,
+			To:             r6,
+			Target:         ColorFigure(pos.SideToMove, King),
+			SavedCastle:    pos.Castle,
+			SavedEnpassant: pos.EnpassantSquare,
+		})
 	}
 EndCastleOO:
 
@@ -461,12 +462,14 @@ EndCastleOO:
 			goto EndCastleOOO
 		}
 
-		moves = append(moves, pos.fix(&Move{
-			MoveType: Castling,
-			From:     r4,
-			To:       r2,
-			Target:   ColorFigure(pos.SideToMove, King),
-		}))
+		moves = append(moves, Move{
+			MoveType:       Castling,
+			From:           r4,
+			To:             r2,
+			Target:         ColorFigure(pos.SideToMove, King),
+			SavedCastle:    pos.Castle,
+			SavedEnpassant: pos.EnpassantSquare,
+		})
 	}
 EndCastleOOO:
 

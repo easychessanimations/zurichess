@@ -213,11 +213,13 @@ func (pos *Position) UCIToMove(s string) Move {
 		promo = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
 	}
 
-	return pos.fix(&Move{
-		MoveType: moveType,
-		From:     from,
-		To:       to,
-		Capture:  capt,
-		Target:   promo,
-	})
+	return Move{
+		MoveType:       moveType,
+		From:           from,
+		To:             to,
+		Capture:        capt,
+		Target:         promo,
+		SavedCastle:    pos.Castle,
+		SavedEnpassant: pos.EnpassantSquare,
+	}
 }
