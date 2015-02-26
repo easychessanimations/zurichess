@@ -1,4 +1,4 @@
+*.epd
 *.pgn
 *.pgn~
-*-bench.txt
-zc-*
+zurichess-*
