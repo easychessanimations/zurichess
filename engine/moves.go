@@ -168,7 +168,8 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	}
 
 	// Loop through all moves and find out one that matches.
-	moves := pos.GenerateFigureMoves(piece.Figure(), nil)
+	var moves []Move
+	pos.GenerateFigureMoves(piece.Figure(), &moves)
 	for _, pm := range moves {
 		if pm.MoveType != move.MoveType || pm.Capture != move.Capture {
 			continue

@@ -53,7 +53,9 @@ func (te *testEngine) Piece(sq Square, expected Piece) {
 
 // Filter pawn moves not starting at sq.
 func (te *testEngine) Pawn(sq Square, expected []string) {
-	actual, end := te.Pos.GenerateFigureMoves(Pawn, nil), 0
+	end := 0
+	var actual []Move
+	te.Pos.GenerateFigureMoves(Pawn, &actual)
 	for i := range actual {
 		if actual[i].From == sq {
 			actual[end] = actual[i]
@@ -64,28 +66,34 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 }
 
 func (te *testEngine) Knight(expected []string) {
-	actual := te.Pos.genKnightMoves(false, nil)
+	var actual []Move
+	te.Pos.genKnightMoves(false, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Bishop(expected []string) {
-	actual := te.Pos.genBishopMoves(Bishop, false, nil)
+	var actual []Move
+	te.Pos.genBishopMoves(Bishop, false, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Rook(expected []string) {
-	actual := te.Pos.genRookMoves(Rook, false, nil)
+	var actual []Move
+	te.Pos.genRookMoves(Rook, false, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Queen(expected []string) {
-	actual := te.Pos.genBishopMoves(Queen, false, nil)
-	actual = te.Pos.genRookMoves(Queen, false, actual)
+	var actual []Move
+	te.Pos.genBishopMoves(Queen, false, &actual)
+	te.Pos.genRookMoves(Queen, false, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) King(expected []string) {
-	actual := te.Pos.genKingMoves(nil)
+	var actual []Move
+	te.Pos.genKingMovesNear(false, &actual)
+	te.Pos.genKingCastles(&actual)
 	testMoves(te.T, actual, expected)
 }
 
@@ -180,8 +188,8 @@ func testCastleHelper(t *testing.T, pos *Position, data []CastleTestData) {
 		if d.Castle != 255 {
 			pos.Castle = d.Castle
 		}
-		moves := pos.genKingMoves(nil)
-		testMoves(t, moves, d.expected)
+		te := &testEngine{T: t, Pos: pos}
+		te.King(d.expected)
 	}
 }
 
@@ -376,50 +384,56 @@ func TestgenQueenMoves(t *testing.T) {
 }
 
 func TestgenPawnAdvanceMoves(t *testing.T) {
+	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.SideToMove = White
-	moves := pos.genPawnAdvanceMoves(false, nil)
+	pos.genPawnAdvanceMoves(false, &moves)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
 	pos.SideToMove = Black
-	moves = pos.genPawnAdvanceMoves(false, nil)
+	pos.genPawnAdvanceMoves(false, &moves)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
 
 func TestgenPawnDoubleAdvanceMoves(t *testing.T) {
+	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.SideToMove = White
-	moves := pos.genPawnDoubleAdvanceMoves(nil)
+	pos.genPawnDoubleAdvanceMoves(&moves)
 	testMoves(t, moves, []string{"d2d4", "e2e4"})
 
 	pos.SideToMove = Black
-	moves = pos.genPawnDoubleAdvanceMoves(nil)
+	pos.genPawnDoubleAdvanceMoves(&moves)
 	testMoves(t, moves, []string{"d7d5", "f7f5"})
 }
 
 func TestGenPawnAttackMoves1(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
+	var moves []Move
 	pos.SideToMove = White
-	moves := pos.genPawnAttackMoves(false, nil)
+	pos.genPawnAttackMoves(false, &moves)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
+	moves = moves[:0]
 	pos.SideToMove = Black
-	moves = pos.genPawnAttackMoves(false, nil)
+	pos.genPawnAttackMoves(false, &moves)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
 
 func TestGenPawnAttackMoves2(t *testing.T) {
 	pos, _ := PositionFromFEN(FENKiwipete)
 
+	var moves []Move
 	pos.SideToMove = White
-	moves := pos.genPawnAttackMoves(false, nil)
+	pos.genPawnAttackMoves(false, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
+	moves = moves[:0]
 	pos.SideToMove = Black
-	moves = pos.genPawnAttackMoves(false, nil)
+	pos.genPawnAttackMoves(false, &moves)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
 
@@ -593,10 +607,10 @@ func TestIsAttackedByKing(t *testing.T) {
 }
 
 func TestPanicPosition(t *testing.T) {
+	var moves []Move
 	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
 	pos, _ := PositionFromFEN(fen)
-
-	moves := pos.GenerateMoves(nil)
+	pos.GenerateMoves(&moves)
 	for _, m := range moves {
 		pos.DoMove(m)
 		pos.UndoMove(m)

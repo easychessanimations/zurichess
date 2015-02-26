@@ -2,18 +2,8 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"time"
-)
-
-var _ = log.Println
-var _ = fmt.Println
-
-var (
-	ErrorCheckMate = errors.New("current position is checkmate")
-	ErrorStaleMate = errors.New("current position is stalemate")
 )
 
 const (
@@ -58,22 +48,21 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    Stats
 
-	moves   []Move    // moves stack
-	killer  [][2]Move // killer moves
-	pvTable pvTable   // principal variation table
-
-	pieces       [ColorArraySize][FigureArraySize]int
+	maxPly       int16 // max ply currently searching at.
 	scoreMidGame int
 	scoreEndGame int
-	maxPly       int16 // max ply currently searching at.
+
+	stack   moveStack
+	killer  [][2]Move                            // killer moves
+	pvTable pvTable                              // principal variation table
+	pieces  [ColorArraySize][FigureArraySize]int // number of pieces
 }
 
 // NewEngine creates a new engine to search for pos.
 // If pos is nil then the start position is used.
-func NewEngine(pos *Position, opt Options) *Engine {
+func NewEngine(pos *Position, options Options) *Engine {
 	eng := &Engine{
-		Options: opt,
-		moves:   make([]Move, 0, 1024),
+		Options: options,
 		pvTable: newPvTable(),
 	}
 	eng.SetPosition(pos)
@@ -219,14 +208,6 @@ func (eng *Engine) EndPosition() (int16, bool) {
 	return 0, false
 }
 
-// popMove pops last move from eng.moves.
-func (eng *Engine) popMove() Move {
-	last := len(eng.moves) - 1
-	move := eng.moves[last]
-	eng.moves = eng.moves[:last]
-	return move
-}
-
 // retrieveHash gets from GlobalHashTable the current position.
 func (eng *Engine) retrieveHash() (HashEntry, bool) {
 	entry, ok := GlobalHashTable.Get(eng.Position)
@@ -269,13 +250,10 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 		localα = score
 	}
 
-	bestMove := Move{}
-	start := len(eng.moves)
-	eng.moves = eng.Position.GenerateViolentMoves(eng.moves)
-	sortMoves(eng.moves[start:])
+	eng.stack.Stack(eng.Position.GenerateViolentMoves, mvvlva)
 
-	for start < len(eng.moves) {
-		move := eng.popMove()
+	var move, bestMove Move
+	for eng.stack.PopMove(&move) {
 		eng.DoMove(move)
 		if eng.Position.IsChecked(color) {
 			eng.UndoMove(move)
@@ -284,7 +262,7 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 		score := -eng.quiescence(-β, -localα, ply+1)
 		if score >= β {
 			eng.UndoMove(move)
-			eng.moves = eng.moves[:start]
+			eng.stack.PopAll()
 			return score
 		}
 		if score > localα {
@@ -318,25 +296,23 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 }
 
 // generateMoves generates and orders moves.
-// Returns length of eng.moves before the function was called.
-func (eng *Engine) generateMoves(ply int16, entry *HashEntry) (start int) {
-	start = len(eng.moves)
-	eng.moves = eng.Position.GenerateMoves(eng.moves)
-	for i := range eng.moves[start:] {
-		// Awards bonus for hash and killer moves.
-		// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
-		m := &eng.moves[start+i]
-		if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
-			m.Data += moveBonus[hashMove]
-		}
-		for _, k := range eng.killer[ply] {
-			if m.Target == k.Target && m.From == k.From && m.To == k.To {
-				m.Data += moveBonus[killerMove]
+func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
+	eng.stack.Stack(
+		eng.Position.GenerateMoves,
+		func(m Move) int16 {
+			// Awards bonus for hash and killer moves.
+			// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
+			o := mvvlva(m)
+			if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
+				o += HashMoveBonus
 			}
-		}
-	}
-	sortMoves(eng.moves[start:])
-	return start
+			for _, k := range eng.killer[ply] {
+				if m.Target == k.Target && m.From == k.From && m.To == k.To {
+					o += KillerMoveBonus
+				}
+			}
+			return o
+		})
 }
 
 // negamax implements negamax framework.
@@ -404,9 +380,10 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 
 	localAlpha := alpha
 	bestMove, bestScore := Move{}, -InfinityScore
-	start := eng.generateMoves(ply, &entry)
-	for start < len(eng.moves) {
-		move := eng.popMove()
+	eng.generateMoves(ply, &entry)
+
+	var move Move
+	for eng.stack.PopMove(&move) {
 		score := eng.tryMove(localAlpha, beta, ply, depth, move)
 		if score >= beta { // Fail high.
 			if move.Capture == NoPiece {
@@ -414,7 +391,7 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 				eng.killer[ply][1] = eng.killer[ply][0]
 				eng.killer[ply][0] = move
 			}
-			eng.moves = eng.moves[:start]
+			eng.stack.PopAll()
 			eng.updateHash(alpha, beta, ply, score, &move)
 			return score
 		}
@@ -514,7 +491,7 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	}
 
 	if !eng.Options.AnalyseMode {
-		eng.printInfo(score)
+		// eng.printInfo(score)
 	}
 	return moves
 }

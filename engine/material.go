@@ -18,16 +18,6 @@ var (
 	BishopPairBonus int = 40
 	KnightPawnBonus int = 6
 	RookPawnPenalty int = 12
-
-	// See sorterByMvvLva. These bonuses are multiplied by 32.
-	moveBonus = [...]int8{32, 16}
-)
-
-const (
-	// Bonus indexes in moveBonus array.
-
-	hashMove   = iota
-	killerMove = iota
 )
 
 // Material evaluates a position from static point of view,
