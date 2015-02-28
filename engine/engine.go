@@ -182,9 +182,9 @@ func (eng *Engine) Score() int16 {
 	return int16(score)
 }
 
-// EndPosition determines whether current position is an end game.
+// endPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
-func (eng *Engine) EndPosition() (int16, bool) {
+func (eng *Engine) endPosition() (int16, bool) {
 	if eng.pieces[White][King] == 0 {
 		return -MateScore, true
 	}
@@ -335,9 +335,9 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 // minimizing nodes already have a better alternative.
 //
 // At ply 0 negamax sets eng.root.
-func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
+func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 	sideToMove := eng.Position.SideToMove
-	if score, done := eng.EndPosition(); done {
+	if score, done := eng.endPosition(); done {
 		return int16(colorWeight[sideToMove]) * score
 	}
 
@@ -348,15 +348,15 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 			// Simply return if the score is exact.
 			return entry.Score
 		}
-		if entry.Kind == FailedLow && entry.Score <= alpha {
+		if entry.Kind == FailedLow && entry.Score <= α {
 			// Previously the move failed low so the actual score
-			// is at most entry.Score. If that's lower than alpha
+			// is at most entry.Score. If that's lower than α
 			// this will also fail low.
 			return entry.Score
 		}
-		if entry.Kind == FailedHigh && entry.Score >= beta {
+		if entry.Kind == FailedHigh && entry.Score >= β {
 			// Previously the move failed high so the actual score
-			// is at least entry.Score. If that's higher than beta
+			// is at least entry.Score. If that's higher than β
 			// this will also fail high.
 			return entry.Score
 		}
@@ -370,35 +370,35 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 
 	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
-		score := eng.quiescence(alpha, beta, 0)
-		eng.updateHash(alpha, beta, ply, score, &Move{})
+		score := eng.quiescence(α, β, 0)
+		eng.updateHash(α, β, ply, score, &Move{})
 		return score
 	}
 	if len(eng.killer) <= int(ply) {
 		eng.killer = append(eng.killer, [2]Move{})
 	}
 
-	localAlpha := alpha
+	localα := α
 	bestMove, bestScore := Move{}, -InfinityScore
 	eng.generateMoves(ply, &entry)
 
 	var move Move
 	for eng.stack.PopMove(&move) {
-		score := eng.tryMove(localAlpha, beta, ply, depth, move)
-		if score >= beta { // Fail high.
+		score := eng.tryMove(localα, β, ply, depth, move)
+		if score >= β { // Fail high.
 			if move.Capture == NoPiece {
 				// Save quiet killer move.
 				eng.killer[ply][1] = eng.killer[ply][0]
 				eng.killer[ply][0] = move
 			}
 			eng.stack.PopAll()
-			eng.updateHash(alpha, beta, ply, score, &move)
+			eng.updateHash(α, β, ply, score, &move)
 			return score
 		}
 		if score > bestScore {
 			bestMove, bestScore = move, score
-			if score > localAlpha {
-				localAlpha = score
+			if score > localα {
+				localα = score
 			}
 		}
 	}
@@ -412,8 +412,8 @@ func (eng *Engine) negamax(alpha, beta, ply, depth int16) int16 {
 		}
 	}
 
-	eng.updateHash(alpha, beta, ply, bestScore, &bestMove)
-	if alpha < bestScore && bestScore < beta && bestMove.MoveType != NoMove {
+	eng.updateHash(α, β, ply, bestScore, &bestMove)
+	if α < bestScore && bestScore < β && bestMove.MoveType != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 
