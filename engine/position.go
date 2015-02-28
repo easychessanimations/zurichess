@@ -506,29 +506,29 @@ func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
 // GenerateMoves appends to moves all moves valid from pos.
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
 func (pos *Position) GenerateMoves(moves *[]Move) {
+	pos.genPawnDoubleAdvanceMoves(moves)
+	pos.genBishopMoves(Queen, false, moves)
+	pos.genRookMoves(Rook, false, moves)
 	pos.genPawnAttackMoves(false, moves)
 	pos.genKnightMoves(false, moves)
-	pos.genBishopMoves(Bishop, false, moves)
-	pos.genRookMoves(Rook, false, moves)
-	pos.genBishopMoves(Queen, false, moves)
-	pos.genRookMoves(Queen, false, moves)
-	pos.genPawnAdvanceMoves(false, moves)
 	pos.genKingMovesNear(false, moves)
+	pos.genPawnAdvanceMoves(false, moves)
 	pos.genKingCastles(moves)
-	pos.genPawnDoubleAdvanceMoves(moves)
+	pos.genBishopMoves(Bishop, false, moves)
+	pos.genRookMoves(Queen, false, moves)
 }
 
 // GenerateViolentMoves append to moves all violent moves valid from pos.
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
 func (pos *Position) GenerateViolentMoves(moves *[]Move) {
-	pos.genPawnAdvanceMoves(true, moves)
-	pos.genPawnAttackMoves(true, moves)
-	pos.genKnightMoves(true, moves)
 	pos.genBishopMoves(Bishop, true, moves)
 	pos.genBishopMoves(Queen, true, moves)
-	pos.genRookMoves(Rook, true, moves)
-	pos.genRookMoves(Queen, true, moves)
 	pos.genKingMovesNear(true, moves)
+	pos.genKnightMoves(true, moves)
+	pos.genPawnAdvanceMoves(true, moves)
+	pos.genPawnAttackMoves(true, moves)
+	pos.genRookMoves(Queen, true, moves)
+	pos.genRookMoves(Rook, true, moves)
 }
 
 // GenerateFigureMoves generate moves for a given figure.
