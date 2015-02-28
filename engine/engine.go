@@ -52,8 +52,11 @@ type Engine struct {
 	scoreMidGame int
 	scoreEndGame int
 
+	// killer stores a few killer moves per ply.
+	// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
+	killer [][2]Move
+
 	stack   moveStack
-	killer  [][2]Move                            // killer moves
 	pvTable pvTable                              // principal variation table
 	pieces  [ColorArraySize][FigureArraySize]int // number of pieces
 }
@@ -220,11 +223,11 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 }
 
 // updateHash updates GlobalHashTable with current position.
-func (eng *Engine) updateHash(alpha, beta, ply, score int16, move *Move) {
+func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 	kind := Exact
-	if score <= alpha {
+	if score <= α {
 		kind = FailedLow
-	} else if score >= beta {
+	} else if score >= β {
 		kind = FailedHigh
 	}
 
@@ -295,20 +298,32 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	return score
 }
 
+// saveKiller saves a killer move.
+func (eng *Engine) saveKiller(ply int16, move Move) {
+	for len(eng.killer) <= int(ply) {
+		eng.killer = append(eng.killer, [2]Move{})
+	}
+	if move.Capture == NoPiece { // saves only quiet moves.
+		eng.killer[ply][1] = eng.killer[ply][0]
+		eng.killer[ply][0] = move
+	}
+}
+
 // generateMoves generates and orders moves.
 func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 	eng.stack.Stack(
 		eng.Position.GenerateMoves,
 		func(m Move) int16 {
 			// Awards bonus for hash and killer moves.
-			// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
 			o := mvvlva(m)
 			if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
 				o += HashMoveBonus
 			}
-			for _, k := range eng.killer[ply] {
-				if m.Target == k.Target && m.From == k.From && m.To == k.To {
-					o += KillerMoveBonus
+			if len(eng.killer) > int(ply) {
+				for _, k := range eng.killer[ply] {
+					if m.Target == k.Target && m.From == k.From && m.To == k.To {
+						o += KillerMoveBonus
+					}
 				}
 			}
 			return o
@@ -374,9 +389,6 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 		eng.updateHash(α, β, ply, score, &Move{})
 		return score
 	}
-	if len(eng.killer) <= int(ply) {
-		eng.killer = append(eng.killer, [2]Move{})
-	}
 
 	localα := α
 	bestMove, bestScore := Move{}, -InfinityScore
@@ -386,11 +398,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 	for eng.stack.PopMove(&move) {
 		score := eng.tryMove(localα, β, ply, depth, move)
 		if score >= β { // Fail high.
-			if move.Capture == NoPiece {
-				// Save quiet killer move.
-				eng.killer[ply][1] = eng.killer[ply][0]
-				eng.killer[ply][0] = move
-			}
+			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
 			eng.updateHash(α, β, ply, score, &move)
 			return score
@@ -410,6 +418,8 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 		} else {
 			bestScore = 0
 		}
+	} else {
+		eng.saveKiller(ply, bestMove)
 	}
 
 	eng.updateHash(α, β, ply, bestScore, &bestMove)
