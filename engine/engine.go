@@ -329,18 +329,17 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 		eng.Position.GenerateMoves,
 		func(m Move) int16 {
 			// Awards bonus for hash and killer moves.
-			o := mvvlva(m)
 			if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
-				o += HashMoveBonus
+				return HashMoveBonus
 			}
 			if len(eng.killer) > int(ply) {
 				for _, k := range eng.killer[ply] {
 					if m.Target == k.Target && m.From == k.From && m.To == k.To {
-						o += KillerMoveBonus
+						return KillerMoveBonus
 					}
 				}
 			}
-			return o
+			return mvvlva(m)
 		})
 }
 

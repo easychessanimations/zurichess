@@ -21,9 +21,9 @@ var (
 	}
 
 	// Give bonus to move found in the hash table.
-	HashMoveBonus int16 = 1024
+	HashMoveBonus int16 = 2048
 	// Give bonus to killer move.
-	KillerMoveBonus int16 = 512
+	KillerMoveBonus int16 = 1024
 )
 
 // SetMvvLva sets the MVV/LVA table.
