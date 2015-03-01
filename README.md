@@ -61,7 +61,11 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## History
 
-### zurichess - appenzeller (in development)
+### zurichess - basel (in development)
+
+* Speed up move ordering considerable.
+
+### zurichess - appenzeller (stable)
 
 This release's theme is improving search.
 
@@ -77,7 +81,7 @@ This release's theme is improving search.
 * Extended search when current position is in check.
 * Improved time-control. In particular zurichess uses more time when there are fewer pieces on the board.
 
-### zurichess - aargau (stable)
+### zurichess - aargau
 
 This is the first public release. ELO is about 1727 according to CCRL40/4.
 
