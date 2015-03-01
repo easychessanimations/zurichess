@@ -94,12 +94,13 @@ func (eng *Engine) put(col Color, fig Figure, delta int) {
 
 // adjust updates score after making a move.
 // delta is -1 if the move is taken back, 1 otherwise.
-// Position.SideToMove must have not been updated already.
-// TODO: enpassant.
-func (eng *Engine) adjust(move Move, delta int) {
-	color := eng.Position.SideToMove
+// mg and eg are move's midgame and endgame scores adjust accordingly
+// whether the move is made or taken back.
+func (eng *Engine) adjust(move Move, delta, mg, eg int) {
+	eng.scoreMidGame += mg
+	eng.scoreEndGame += eg
 	if move.MoveType == Promotion {
-		eng.put(color, Pawn, -delta)
+		eng.put(move.Target.Color(), Pawn, -delta)
 		eng.put(move.Target.Color(), move.Target.Figure(), delta)
 	}
 	if move.Capture != NoPiece {
@@ -109,18 +110,16 @@ func (eng *Engine) adjust(move Move, delta int) {
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
-	eng.scoreMidGame += MidGameMaterial.EvaluateMove(move)
-	eng.scoreEndGame += EndGameMaterial.EvaluateMove(move)
-	eng.adjust(move, 1)
+	mg, eg := eng.evaluateMove(move)
+	eng.adjust(move, +1, +mg, +eg)
 	eng.Position.DoMove(move)
 }
 
 // UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
-	eng.adjust(move, -1)
-	eng.scoreMidGame -= MidGameMaterial.EvaluateMove(move)
-	eng.scoreEndGame -= EndGameMaterial.EvaluateMove(move)
+	mg, eg := eng.evaluateMove(move)
+	eng.adjust(move, -1, -mg, -eg)
 }
 
 // countMaterial updates score for current position.
@@ -257,14 +256,19 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 
 	var move, bestMove Move
 	for eng.stack.PopMove(&move) {
-		eng.DoMove(move)
+		eng.Position.DoMove(move)
 		if eng.Position.IsChecked(color) {
-			eng.UndoMove(move)
+			eng.Position.UndoMove(move)
 			continue
 		}
+
+		mg, eg := eng.evaluateMove(move)
+		eng.adjust(move, +1, +mg, +eg)
 		score := -eng.quiescence(-β, -localα, ply+1)
+		eng.adjust(move, -1, -mg, -eg)
+		eng.Position.UndoMove(move)
+
 		if score >= β {
-			eng.UndoMove(move)
 			eng.stack.PopAll()
 			return score
 		}
@@ -272,7 +276,6 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 			localα = score
 			bestMove = move
 		}
-		eng.UndoMove(move)
 	}
 
 	if α < localα && localα < β && bestMove.MoveType != NoMove {
@@ -281,20 +284,31 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	return localα
 }
 
+// evaluateMove returns mid game and eng game score of the move.
+// scores returned to not depend on the current position.
+func (eng *Engine) evaluateMove(move Move) (int, int) {
+	return MidGameMaterial.EvaluateMove(move), EndGameMaterial.EvaluateMove(move)
+}
+
 func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
-	color := eng.Position.SideToMove
-	eng.DoMove(move)
-	if eng.Position.IsChecked(color) {
-		eng.UndoMove(move)
+	side := eng.Position.SideToMove
+	eng.Position.DoMove(move)
+	if eng.Position.IsChecked(side) {
+		eng.Position.UndoMove(move)
 		return -InfinityScore
 	}
+
+	mg, eg := eng.evaluateMove(move)
+	eng.adjust(move, +1, +mg, +eg)
 	score := -eng.negamax(-β, -α, ply+1, depth-depthMultiplier)
+	eng.adjust(move, -1, -mg, -eg)
+	eng.Position.UndoMove(move)
+
 	if score > KnownWinScore {
 		// If the position is a win the score is decreased
-		// slightly to the search takes the shortest path.
+		// slightly so the search takes the shortest path.
 		score--
 	}
-	eng.UndoMove(move)
 	return score
 }
 
