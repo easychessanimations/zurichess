@@ -18,6 +18,9 @@ var (
 	BishopPairBonus int = 40
 	KnightPawnBonus int = 6
 	RookPawnPenalty int = 12
+
+	PawnChainBonus    int = 4
+	DoublePawnPenalty int = 8
 )
 
 // Material evaluates a position from static point of view,

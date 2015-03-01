@@ -139,6 +139,23 @@ func (eng *Engine) countMaterial() {
 	}
 }
 
+// pawns computes the pawn structure score of side.
+// pawns awards chains and penalizes double pawns.
+func (eng *Engine) pawns(side Color) int {
+	pawns := eng.Position.ByPiece(side, Pawn)
+	forward := pawns
+	if side == White {
+		forward >>= 8
+	} else {
+		forward <<= 8
+	}
+
+	cs := (pawns & ((BbPawnLeftAttack & forward) >> 1)).Popcnt()
+	cs += (pawns & ((BbPawnRightAttack & forward) << 1)).Popcnt()
+	ds := (pawns & forward).Popcnt()
+	return cs*PawnChainBonus - ds*DoublePawnPenalty
+}
+
 // phase returns current phase and total phase.
 //
 // phase is determined by the number of pieces left in the game where
@@ -181,6 +198,8 @@ func (eng *Engine) Score() int16 {
 		score += adjust * colorWeight[col] * (numPawns - 5)
 	}
 
+	score += eng.pawns(White)
+	score -= eng.pawns(Black)
 	return int16(score)
 }
 
