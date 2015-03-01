@@ -16,9 +16,8 @@ var (
 	// overflows during computation of the position's score.
 	// See http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm.
 	BishopPairBonus int = 40
-	KnightPawnBonus int = 6
-	RookPawnPenalty int = 12
 
+        // Bonuses for pawn structure.
 	PawnChainBonus    int = 8
 	DoublePawnPenalty int = 13
 )
@@ -96,7 +95,7 @@ var (
 	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{
 		FigureBonus: [FigureArraySize]int{
-			0, 100, 315, 325, 475, 975, 10000,
+			0, 100, 335, 325, 440, 975, 10000,
 		},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 			{ // NoFigure
@@ -166,7 +165,7 @@ var (
 	// EndGameMaterial defines the material values for end game.
 	EndGameMaterial = Material{
 		FigureBonus: [FigureArraySize]int{
-			0, 115, 345, 355, 530, 1000, 10000,
+			0, 115, 315, 355, 590, 1000, 10000,
 		},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 

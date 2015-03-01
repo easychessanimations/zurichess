@@ -190,14 +190,6 @@ func (eng *Engine) Score() int16 {
 		score -= BishopPairBonus
 	}
 
-	// Give bonuses based on number of pawns.
-	for col := ColorMinValue; col <= ColorMaxValue; col++ {
-		numPawns := eng.pieces[col][Pawn]
-		adjust := KnightPawnBonus * eng.pieces[col][Knight]
-		adjust -= RookPawnPenalty * eng.pieces[col][Rook]
-		score += adjust * colorWeight[col] * (numPawns - 5)
-	}
-
 	score += eng.pawns(White)
 	score -= eng.pawns(Black)
 	return int16(score)
