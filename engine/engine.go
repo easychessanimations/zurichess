@@ -328,7 +328,7 @@ func (eng *Engine) saveKiller(ply int16, move Move) {
 	for len(eng.killer) <= int(ply) {
 		eng.killer = append(eng.killer, [2]Move{})
 	}
-	if move.Capture == NoPiece { // saves only quiet moves.
+	if move.Capture == NoPiece && move != eng.killer[ply][0] { // saves only quiet moves.
 		eng.killer[ply][1] = eng.killer[ply][0]
 		eng.killer[ply][0] = move
 	}
