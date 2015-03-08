@@ -112,7 +112,7 @@ const (
 
 var (
 	colorWeight  = [ColorArraySize]int{0, 1, -1}
-	colorMask    = [ColorArraySize]Square{0, 0, 63} // colorMask[color] ^ square rotates the board.
+	colorMask    = [ColorArraySize]Square{0, 0x00, 0x38} // colorMask[color] ^ square rotates the board.
 	kingHomeRank = [ColorArraySize]int{0, 0, 7}
 )
 
