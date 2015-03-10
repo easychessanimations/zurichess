@@ -165,7 +165,7 @@ func (pos *Position) DoMove(move Move) {
 	}
 
 	// Update castling rights based on the source&target squares.
-	pos.SetCastlingAbility(pos.Castle & ^lostCastleRights[move.From] & ^lostCastleRights[move.To])
+	pos.SetCastlingAbility(pos.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
 
 	// Move rook on castling.
 	if move.MoveType == Castling {

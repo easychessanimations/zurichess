@@ -89,10 +89,10 @@ func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
 func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
 	lock, key0, key1 := split(pos.Zobrist, ht.mask)
-	if ht.table[key0].Kind != NoKind && ht.table[key0].lock == lock {
+	if ht.table[key0].lock == lock && ht.table[key0].Kind != NoKind {
 		return ht.table[key0], true
 	}
-	if ht.table[key1].Kind != NoKind && ht.table[key1].lock == lock {
+	if ht.table[key1].lock == lock && ht.table[key1].Kind != NoKind {
 		return ht.table[key1], true
 	}
 	return HashEntry{}, false

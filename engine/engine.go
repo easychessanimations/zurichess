@@ -344,10 +344,13 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 				return HashMoveBonus
 			}
 			if len(eng.killer) > int(ply) {
-				for _, k := range eng.killer[ply] {
-					if m.Target == k.Target && m.From == k.From && m.To == k.To {
-						return KillerMoveBonus
-					}
+				k0 := &eng.killer[ply][0]
+				if m.Target == k0.Target && m.From == k0.From && m.To == k0.To {
+					return KillerMoveBonus
+				}
+				k1 := &eng.killer[ply][1]
+				if m.Target == k1.Target && m.From == k1.From && m.To == k1.To {
+					return KillerMoveBonus
 				}
 			}
 			return mvvlva(m)
