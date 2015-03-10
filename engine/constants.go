@@ -96,15 +96,13 @@ const (
 )
 
 const (
-	BbEmpty           Bitboard = 0x0000000000000000
-	BbFull            Bitboard = 0xffffffffffffffff
-	BbBorder          Bitboard = 0xff818181818181ff
-	BbPawnLeftAttack  Bitboard = 0x00fefefefefefe00
-	BbPawnRightAttack Bitboard = 0x007f7f7f7f7f7f00
-	BbPawnStartRank   Bitboard = 0x00ff00000000ff00
-	BbPawnDoubleRank  Bitboard = 0x000000ffff000000
-	BbBlackSquares    Bitboard = 0xaa55aa552a55aa55
-	BbWhiteSquares    Bitboard = 0xd5aa55aad5aa55aa
+	BbEmpty          Bitboard = 0x0000000000000000
+	BbFull           Bitboard = 0xffffffffffffffff
+	BbBorder         Bitboard = 0xff818181818181ff
+	BbPawnStartRank  Bitboard = 0x00ff00000000ff00
+	BbPawnDoubleRank Bitboard = 0x000000ffff000000
+	BbBlackSquares   Bitboard = 0xaa55aa552a55aa55
+	BbWhiteSquares   Bitboard = 0xd5aa55aad5aa55aa
 )
 
 var (

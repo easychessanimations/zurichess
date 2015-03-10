@@ -297,19 +297,19 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 		enemy |= pos.EnpassantSquare.Bitboard()
 	}
 
-	var forward Square
+	forward := 0
 	if pos.SideToMove == White {
 		enemy >>= 8
-		forward = RankFile(+1, 0)
+		forward = +1
 	} else {
 		enemy <<= 8
-		forward = RankFile(-1, 0)
+		forward = -1
 	}
 
 	// Left
 	bb := pos.ByPiece(pos.SideToMove, Pawn)
-	att := forward.Relative(0, -1)
-	for bbl := bb & BbPawnLeftAttack & (enemy << 1); bbl > 0; {
+	att := RankFile(forward, -1)
+	for bbl := bb & ((enemy & ^FileBb(7)) << 1); bbl > 0; {
 		from := bbl.Pop()
 		to := from + att
 		capt := pos.pawnCapture(to)
@@ -317,8 +317,8 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 	}
 
 	// Right
-	att = forward.Relative(0, +1)
-	for bbr := bb & BbPawnRightAttack & (enemy >> 1); bbr > 0; {
+	att = RankFile(forward, +1)
+	for bbr := bb & ((enemy & ^FileBb(0)) >> 1); bbr > 0; {
 		from := bbr.Pop()
 		to := from + att
 		capt := pos.pawnCapture(to)
@@ -453,21 +453,20 @@ EndCastleOO:
 EndCastleOOO:
 }
 
-// IsAttackedBy returns true if sq is under attacked by co.
-func (pos *Position) IsAttackedBy(sq Square, co Color) bool {
-	enemy := pos.ByColor[co]
+// IsAttackedBy returns true if sq is under attacked by side.
+func (pos *Position) IsAttackedBy(sq Square, side Color) bool {
+	enemy := pos.ByColor[side]
 	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
-		bb := sq.Bitboard()
-		if co == White { // WhitePawn
-			bb >>= 8
-		} else { // BlackPawn
-			bb <<= 8
+		pawns := pos.ByPiece(side, Pawn)
+		if side == White {
+			pawns <<= 8
+		} else {
+			pawns >>= 8
 		}
+		left := pawns & ^FileBb(7) << 1
+		right := pawns & ^FileBb(0) >> 1
 
-		pawns := pos.ByPiece(co, Pawn)
-		pawnsLeft := (BbPawnLeftAttack & pawns) >> 1
-		pawnsRight := (BbPawnRightAttack & pawns) << 1
-		if att := bb & (pawnsLeft | pawnsRight); att != 0 {
+		if att := sq.Bitboard() & (left | right); att != 0 {
 			return true
 		}
 	}

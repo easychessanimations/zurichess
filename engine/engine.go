@@ -150,8 +150,8 @@ func (eng *Engine) pawns(side Color) int {
 		forward <<= 8
 	}
 
-	cs := (pawns & ((BbPawnLeftAttack & forward) >> 1)).Popcnt()
-	cs += (pawns & ((BbPawnRightAttack & forward) << 1)).Popcnt()
+	cs := (pawns & ((forward &^ FileBb(7)) << 1)).Popcnt()
+	cs += (pawns & ((forward &^ FileBb(0)) >> 1)).Popcnt()
 	ds := (pawns & forward).Popcnt()
 	return cs*PawnChainBonus - ds*DoublePawnPenalty
 }

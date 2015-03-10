@@ -157,7 +157,7 @@ func TestgenRookMoves(t *testing.T) {
 	te.Rook([]string{"b2b1", "b2b3", "b2b4", "b2b5", "b2b6", "b2a2", "b2c2", "b2d2", "b2e2"})
 }
 
-func TestgenKingMoves(t *testing.T) {
+func TestKingMoves1(t *testing.T) {
 	// King is alone.
 	pos := &Position{SideToMove: White}
 	te := &testEngine{T: t, Pos: pos}
@@ -170,6 +170,17 @@ func TestgenKingMoves(t *testing.T) {
 	pos.Put(SquareB3, BlackPawn)
 	pos.Put(SquareB2, WhiteQueen)
 	te.King([]string{"a2b3", "a2b1", "a2a1"})
+}
+
+func TestKingMoves2(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	te := &testEngine{T: t, Pos: pos}
+	te.Move("f2f4")
+	te.Move("h7h5")
+	te.Move("e1f2")
+	te.Move("h5h4")
+
+	te.King([]string{"f2e1", "f2e3", "f2f3", "f2g3"})
 }
 
 type CastleTestData struct {
