@@ -17,7 +17,7 @@ var (
 	// See http://home.comcast.net/~danheisman/Articles/evaluation_of_material_imbalance.htm.
 	BishopPairBonus int = 40
 
-        // Bonuses for pawn structure.
+	// Bonuses for pawn structure.
 	PawnChainBonus    int = 8
 	DoublePawnPenalty int = 13
 )

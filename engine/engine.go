@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	depthMultiplier     = 4
-	checkDepthExtension = 2
+	DepthMultiplier     = 4
+	CheckDepthExtension = 3
 )
 
 // Options keeps engine's options.
@@ -311,7 +311,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 
 	mg, eg := eng.evaluateMove(move)
 	eng.adjust(move, +1, +mg, +eg)
-	score := -eng.negamax(-β, -α, ply+1, depth-depthMultiplier)
+	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier)
 	eng.adjust(move, -1, -mg, -eg)
 	eng.Position.UndoMove(move)
 
@@ -404,7 +404,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 	if eng.Position.IsChecked(sideToMove) {
 		// Extend search when the side to move is in check.
 		// https://chessprogramming.wikispaces.com/Check+Extensions
-		depth += checkDepthExtension
+		depth += CheckDepthExtension
 	}
 
 	if depth <= 0 {
@@ -482,7 +482,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	α, β := γ-δ, γ+δ
 
 	for {
-		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*depthMultiplier)
+		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier)
 		if int(score) <= α {
 			α = inf(α - δ)
 			δ += δ / 2
