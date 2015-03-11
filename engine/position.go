@@ -103,28 +103,19 @@ func (pos *Position) IsEmpty(sq Square) bool {
 	return (pos.ByColor[White]|pos.ByColor[Black])>>sq&1 == 0
 }
 
-// GetColor returns the piece color at sq.
-func (pos *Position) GetColor(sq Square) Color {
-	return White*Color(pos.ByColor[White]>>sq&1) +
-		Black*Color(pos.ByColor[Black]>>sq&1)
-}
-
-// GetFigure returns the figure at sq.
-func (pos *Position) GetFigure(sq Square) Figure {
-	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-		if pos.ByFigure[fig]&sq.Bitboard() != 0 {
-			return fig
-		}
-	}
-	return NoFigure
-}
-
 // Get returns the piece at sq.
 func (pos *Position) Get(sq Square) Piece {
-	if col := pos.GetColor(sq); col != NoColor {
-		return ColorFigure(col, pos.GetFigure(sq))
+	col := White*Color(pos.ByColor[White]>>sq&1) +
+		Black*Color(pos.ByColor[Black]>>sq&1)
+	if col == NoColor {
+		return NoPiece
 	}
-	return NoPiece
+	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
+		if pos.ByFigure[fig]&sq.Bitboard() != 0 {
+			return ColorFigure(col, fig)
+		}
+	}
+	panic("unreachable")
 }
 
 // IsChecked returns true if side's king is checked.
