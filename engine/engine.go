@@ -57,8 +57,7 @@ type Engine struct {
 	killer [][2]Move
 
 	stack   moveStack
-	pvTable pvTable                              // principal variation table
-	pieces  [ColorArraySize][FigureArraySize]int // number of pieces
+	pvTable pvTable // principal variation table
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -83,15 +82,6 @@ func (eng *Engine) SetPosition(pos *Position) {
 	eng.countMaterial()
 }
 
-// put adjusts score after putting piece on sq.
-// delta is -1 if the piece is taken (including undo), 1 otherwise.
-func (eng *Engine) put(col Color, fig Figure, delta int) {
-	eng.pieces[NoColor][NoFigure] += delta
-	eng.pieces[col][NoFigure] += delta
-	eng.pieces[NoColor][fig] += delta
-	eng.pieces[col][fig] += delta
-}
-
 // adjust updates score after making a move.
 // delta is -1 if the move is taken back, 1 otherwise.
 // mg and eg are move's midgame and endgame scores adjust accordingly
@@ -99,13 +89,6 @@ func (eng *Engine) put(col Color, fig Figure, delta int) {
 func (eng *Engine) adjust(move Move, delta, mg, eg int) {
 	eng.scoreMidGame += mg
 	eng.scoreEndGame += eg
-	if move.MoveType == Promotion {
-		eng.put(move.Target.Color(), Pawn, -delta)
-		eng.put(move.Target.Color(), move.Target.Figure(), delta)
-	}
-	if move.Capture != NoPiece {
-		eng.put(move.Capture.Color(), move.Capture.Figure(), -delta)
-	}
 }
 
 // DoMove executes a move.
@@ -126,17 +109,6 @@ func (eng *Engine) UndoMove(move Move) {
 func (eng *Engine) countMaterial() {
 	eng.scoreMidGame = MidGameMaterial.EvaluatePosition(eng.Position)
 	eng.scoreEndGame = EndGameMaterial.EvaluatePosition(eng.Position)
-
-	for col := NoColor; col <= ColorMaxValue; col++ {
-		for fig := NoFigure; fig <= FigureMaxValue; fig++ {
-			eng.pieces[col][fig] = 0
-		}
-	}
-	for col := ColorMinValue; col <= ColorMaxValue; col++ {
-		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-			eng.put(col, fig, eng.Position.ByPiece(col, fig).Popcnt())
-		}
-	}
 }
 
 // pawns computes the pawn structure score of side.
@@ -164,11 +136,11 @@ func (eng *Engine) pawns(side Color) int {
 func (eng *Engine) phase() (int, int) {
 	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*4
 	currPhase := totalPhase
-	currPhase -= eng.pieces[NoColor][Pawn] * 0
-	currPhase -= eng.pieces[NoColor][Knight] * 1
-	currPhase -= eng.pieces[NoColor][Bishop] * 1
-	currPhase -= eng.pieces[NoColor][Rook] * 2
-	currPhase -= eng.pieces[NoColor][Queen] * 4
+	currPhase -= int(eng.Position.NumPieces[NoColor][Pawn]) * 0
+	currPhase -= int(eng.Position.NumPieces[NoColor][Knight]) * 1
+	currPhase -= int(eng.Position.NumPieces[NoColor][Bishop]) * 1
+	currPhase -= int(eng.Position.NumPieces[NoColor][Rook]) * 2
+	currPhase -= int(eng.Position.NumPieces[NoColor][Queen]) * 4
 	currPhase = (currPhase*256 + totalPhase/2) / totalPhase
 	return currPhase, 256
 }
@@ -183,10 +155,10 @@ func (eng *Engine) Score() int16 {
 	score := (eng.scoreMidGame*(totalPhase-currPhase) + eng.scoreEndGame*currPhase) / totalPhase
 
 	// Give bonus for connected bishops.
-	if eng.pieces[White][Bishop] >= 2 {
+	if eng.Position.NumPieces[White][Bishop] >= 2 {
 		score += BishopPairBonus
 	}
-	if eng.pieces[Black][Bishop] >= 2 {
+	if eng.Position.NumPieces[Black][Bishop] >= 2 {
 		score -= BishopPairBonus
 	}
 
@@ -198,26 +170,22 @@ func (eng *Engine) Score() int16 {
 // endPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) endPosition() (int16, bool) {
-	if eng.pieces[White][King] == 0 {
+	if eng.Position.NumPieces[White][King] == 0 {
 		return -MateScore, true
 	}
-	if eng.pieces[Black][King] == 0 {
+	if eng.Position.NumPieces[Black][King] == 0 {
 		return +MateScore, true
 	}
-
 	// K vs K is draw.
-	if eng.pieces[White][NoPiece]+eng.pieces[Black][NoPiece] == 2 {
+	if eng.Position.NumPieces[NoColor][NoPiece] == 2 {
 		return 0, true
 	}
-
 	// KN vs K and KB vs K are draws
-	if eng.pieces[White][NoPiece]+eng.pieces[Black][NoPiece] == 3 {
-		if eng.pieces[White][Knight]+eng.pieces[White][Bishop]+
-			eng.pieces[Black][Knight]+eng.pieces[Black][Bishop] == 1 {
+	if eng.Position.NumPieces[NoColor][NoPiece] == 3 {
+		if eng.Position.NumPieces[NoColor][Knight]+eng.Position.NumPieces[NoColor][Bishop] == 1 {
 			return 0, true
 		}
 	}
-
 	return 0, false
 }
 

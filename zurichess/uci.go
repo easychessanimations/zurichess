@@ -125,7 +125,7 @@ func (uci *UCI) position(args []string) error {
 
 func (uci *UCI) go_(args []string) {
 	tc := &engine.OnClockTimeControl{
-		NumPieces: uci.Engine.Position.NumPieces(),
+		NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure]),
 	}
 
 	for i := 0; i < len(args); i++ {

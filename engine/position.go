@@ -23,12 +23,13 @@ func init() {
 
 // Position encodes the chess board.
 type Position struct {
-	ByFigure        [FigureArraySize]Bitboard // bitboards of square occupancy by figure.
-	ByColor         [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
-	SideToMove      Color                     // which side is to move. SideToMove is pdated by DoMove and UndoMove.
-	Castle          Castle                    // remaining castling rights.
-	EnpassantSquare Square                    // enpassant square. If none, then SquareA1.
-	Zobrist         uint64                    // Zobrist hash of the position.
+	ByFigure        [FigureArraySize]Bitboard             // bitboards of square occupancy by figure.
+	ByColor         [ColorArraySize]Bitboard              // bitboards of square occupancy by color.
+	NumPieces       [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
+	SideToMove      Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
+	Castle          Castle                                // remaining castling rights.
+	EnpassantSquare Square                                // enpassant square. If none, then SquareA1.
+	Zobrist         uint64                                // Zobrist hash of the position.
 }
 
 // Verify check the validity of the position.
@@ -75,27 +76,38 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 	return pos.ByColor[col] & pos.ByFigure[fig]
 }
 
-// NumPieces returns the number of pieces on the board.
-func (pos *Position) NumPieces() int {
-	return (pos.ByColor[White] | pos.ByColor[Black]).Popcnt()
-}
-
 // Put puts a piece on the board.
-// Does not validate input.
+// Does nothing if pi is NoPiece. Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
-	pos.Zobrist ^= zobristPiece[pi][sq]
-	bb := sq.Bitboard()
-	pos.ByColor[pi.Color()] |= bb
-	pos.ByFigure[pi.Figure()] |= bb
+	if pi != NoPiece {
+		pos.Zobrist ^= zobristPiece[pi][sq]
+		col, fig := pi.Color(), pi.Figure()
+		bb := sq.Bitboard()
+
+		pos.ByColor[col] |= bb
+		pos.ByFigure[fig] |= bb
+		pos.NumPieces[NoColor][NoFigure]++
+		pos.NumPieces[NoColor][fig]++
+		pos.NumPieces[col][NoFigure]++
+		pos.NumPieces[col][fig]++
+	}
 }
 
 // Remove removes a piece from the table.
-// Does not validate input.
+// Does nothing if pi is NoPiece. Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
-	pos.Zobrist ^= zobristPiece[pi][sq]
-	bb := ^sq.Bitboard()
-	pos.ByColor[pi.Color()] &= bb
-	pos.ByFigure[pi.Figure()] &= bb
+	if pi != NoPiece {
+		pos.Zobrist ^= zobristPiece[pi][sq]
+		col, fig := pi.Color(), pi.Figure()
+		bb := ^sq.Bitboard()
+
+		pos.ByColor[pi.Color()] &= bb
+		pos.ByFigure[pi.Figure()] &= bb
+		pos.NumPieces[NoColor][NoFigure]--
+		pos.NumPieces[NoColor][fig]--
+		pos.NumPieces[col][NoFigure]--
+		pos.NumPieces[col][fig]--
+	}
 }
 
 // IsEmpty returns true if there is no piece at sq.
