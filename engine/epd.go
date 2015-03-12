@@ -83,11 +83,11 @@ func formatPiecePlacement(pos *Position) string {
 func (e *EPD) String() string {
 	s := formatPiecePlacement(e.Position)
 	s += " " + colorToSymbol[e.Position.SideToMove]
-	s += " " + e.Position.Castle.String()
-	if e.Position.EnpassantSquare == SquareA1 {
+	s += " " + e.Position.CastlingAbility().String()
+	if e.Position.EnpassantSquare() == SquareA1 {
 		s += " -"
 	} else {
-		s += " " + e.Position.EnpassantSquare.String()
+		s += " " + e.Position.EnpassantSquare().String()
 	}
 
 	for _, bm := range e.BestMove {

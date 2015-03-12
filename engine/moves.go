@@ -39,10 +39,14 @@ var (
 //   x (capture) presence or correctness is ignored.
 //   + (check) and # (checkmate) is ignored.
 //   e.p. (enpassant) is ignored
+//
+// TODO: verify that the returned move is legal.
 func (pos *Position) SANToMove(s string) (Move, error) {
-	piece := NoPiece
-	move := Move{MoveType: Normal}
-	r, f := -1, -1
+	moveType := Normal
+	rank, file := -1, -1 // from
+	to := SquareA1
+	capture := NoPiece
+	target := NoPiece
 
 	// s[b:e] is the part that still needs to be parsed.
 	b, e := 0, len(s)
@@ -55,52 +59,39 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	}
 
 	if s[b:e] == "o-o" || s[b:e] == "O-O" { // king side castling
+		moveType = Castling
 		if pos.SideToMove == White {
-			move = Move{
-				MoveType: Castling,
-				From:     SquareE1,
-				To:       SquareG1,
-				Target:   WhiteKing,
-			}
+			rank, file = SquareE1.Rank(), SquareE1.File()
+			to = SquareG1
+			target = WhiteKing
 		} else {
-			move = Move{
-				MoveType: Castling,
-				From:     SquareE8,
-				To:       SquareG8,
-				Target:   BlackKing,
-			}
+			rank, file = SquareE8.Rank(), SquareE8.File()
+			to = SquareG8
+			target = BlackKing
 		}
-		piece = move.Target
 	} else if s[b:e] == "o-o-o" || s[b:e] == "O-O-O" { // queen side castling
+		moveType = Castling
 		if pos.SideToMove == White {
-			move = Move{
-				MoveType: Castling,
-				From:     SquareE1,
-				To:       SquareC1,
-				Target:   WhiteKing,
-			}
+			rank, file = SquareE1.Rank(), SquareE1.File()
+			to = SquareC1
+			target = WhiteKing
 		} else {
-			move = Move{
-				MoveType: Castling,
-				From:     SquareE8,
-				To:       SquareC8,
-				Target:   BlackKing,
-			}
+			rank, file = SquareE8.Rank(), SquareE8.File()
+			to = SquareC8
+			target = BlackKing
 		}
-		piece = move.Target
 	} else { // all other moves
 		// Get the piece.
 		if ('a' <= s[b] && s[b] <= 'h') || s[b] == 'x' {
-			piece = ColorFigure(pos.SideToMove, Pawn)
+			target = ColorFigure(pos.SideToMove, Pawn)
 		} else {
 			if fig := symbolToFigure[rune(s[b])]; fig == NoFigure {
 				return Move{}, errorUnknownFigure
 			} else {
-				piece = ColorFigure(pos.SideToMove, fig)
+				target = ColorFigure(pos.SideToMove, fig)
 			}
 			b++
 		}
-		move.Target = piece
 
 		// Skip e.p. when enpassant.
 		if e-4 > b && s[e-4:e] == "e.p." {
@@ -113,14 +104,14 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		}
 		if !('1' <= s[e-1] && s[e-1] <= '8') {
 			// Not a rank, but a promotion.
-			if piece.Figure() != Pawn {
+			if target.Figure() != Pawn {
 				return Move{}, errorBadPromotion
 			}
 			if fig := symbolToFigure[rune(s[e-1])]; fig == NoFigure {
 				return Move{}, errorUnknownFigure
 			} else {
-				move.MoveType = Promotion
-				move.Target = ColorFigure(pos.SideToMove, fig)
+				moveType = Promotion
+				target = ColorFigure(pos.SideToMove, fig)
 			}
 			e--
 			if e-1 >= b && s[e-1] == '=' {
@@ -134,15 +125,15 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 			return Move{}, errorWrongLength
 		}
 		var err error
-		move.To, err = SquareFromString(s[e-2 : e])
+		to, err = SquareFromString(s[e-2 : e])
 		if err != nil {
 			return Move{}, err
 		}
-		if move.To != SquareA1 && move.To == pos.EnpassantSquare {
-			move.MoveType = Enpassant
-			move.Capture = ColorFigure(pos.SideToMove.Opposite(), Pawn)
+		if pos.IsEnpassantSquare(to) {
+			moveType = Enpassant
+			capture = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 		} else {
-			move.Capture = pos.Get(move.To)
+			capture = pos.Get(to)
 		}
 		e -= 2
 
@@ -158,9 +149,9 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		for ; b < e; b++ {
 			switch {
 			case 'a' <= s[b] && s[b] <= 'h':
-				f = int(s[b] - 'a')
+				file = int(s[b] - 'a')
 			case '1' <= s[b] && s[b] <= '8':
-				r = int(s[b] - '1')
+				rank = int(s[b] - '1')
 			default:
 				return Move{}, errorBadDisambiguation
 			}
@@ -169,18 +160,22 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 	// Loop through all moves and find out one that matches.
 	var moves []Move
-	pos.GenerateFigureMoves(piece.Figure(), &moves)
+	if moveType == Promotion {
+		pos.GenerateFigureMoves(Pawn, &moves)
+	} else {
+		pos.GenerateFigureMoves(target.Figure(), &moves)
+	}
 	for _, pm := range moves {
-		if pm.MoveType != move.MoveType || pm.Capture != move.Capture {
+		if pm.MoveType != moveType || pm.Capture() != capture {
 			continue
 		}
-		if pm.To != move.To || pm.Target != move.Target {
+		if pm.To != to || pm.Target() != target {
 			continue
 		}
-		if r != -1 && pm.From.Rank() != r {
+		if rank != -1 && pm.From.Rank() != rank {
 			continue
 		}
-		if f != -1 && pm.From.File() != f {
+		if file != -1 && pm.From.File() != file {
 			continue
 		}
 		return pm, nil
@@ -196,10 +191,10 @@ func (pos *Position) UCIToMove(s string) Move {
 
 	moveType := Normal
 	capt := pos.Get(to)
-	promo := pos.Get(from)
+	target := pos.Get(from)
 
 	pi := pos.Get(from)
-	if pi.Figure() == Pawn && pos.EnpassantSquare != SquareA1 && to == pos.EnpassantSquare {
+	if pi.Figure() == Pawn && pos.IsEnpassantSquare(to) {
 		moveType = Enpassant
 		capt = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
@@ -211,16 +206,8 @@ func (pos *Position) UCIToMove(s string) Move {
 	}
 	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
 		moveType = Promotion
-		promo = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
+		target = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
 	}
 
-	return Move{
-		MoveType:       moveType,
-		From:           from,
-		To:             to,
-		Capture:        capt,
-		Target:         promo,
-		SavedCastle:    pos.Castle,
-		SavedEnpassant: pos.EnpassantSquare,
-	}
+	return MakeMove(moveType, from, to, capt, target)
 }

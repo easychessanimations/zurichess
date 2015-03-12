@@ -176,7 +176,7 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 		}
 
 		if depth == 1 { // count only leaf nodes
-			if move.Capture != engine.NoPiece {
+			if move.Capture() != engine.NoPiece {
 				r.captures++
 			}
 			if move.MoveType == engine.Enpassant {

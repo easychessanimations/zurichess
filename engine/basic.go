@@ -133,17 +133,17 @@ type Piece uint8
 
 // ColorFigure returns a piece with col and fig.
 func ColorFigure(col Color, fig Figure) Piece {
-	return Piece(fig<<2) + Piece(col)
+	return Piece(fig<<1) + Piece(col>>1)
 }
 
 // Color returns piece's color.
 func (pi Piece) Color() Color {
-	return Color(pi & 3)
+	return Color(21844 >> pi & 3)
 }
 
 // Figure returns piece's figure.
 func (pi Piece) Figure() Figure {
-	return Figure(pi >> 2)
+	return Figure(pi) >> 1
 }
 
 // An 8x8 bitboard.
@@ -205,35 +205,52 @@ const (
 
 // Move stores a position dependent move.
 type Move struct {
-	From, To       Square // source and destination squares
-	Capture        Piece  // which piece is captured
-	Target         Piece  // the piece on To, after the move
-	MoveType       MoveType
-	Data           int8   // some data, unrelated to move or position
-	SavedEnpassant Square // old enpassant square
-	SavedCastle    Castle // old castle rights
+	From, To Square // source and destination squares
+	MoveType MoveType
+	pieces   uint8 // packs captured piece and target piece
+}
+
+func MakeMove(moveType MoveType, from, to Square, capture, target Piece) Move {
+	return Move{
+		From:     from,
+		To:       to,
+		MoveType: moveType,
+		pieces:   uint8(capture<<4) + uint8(target),
+	}
 }
 
 // SideToMove returns which player is moving.
 func (m *Move) SideToMove() Color {
-	return Color(m.Target & 3)
+	// Same as m.Piece().Color().
+	return Color(m.pieces&1 + 1)
 }
 
 // CaptureSquare returns the captured piece square.
 // If no piece is captured, the result is undefined.
 func (m *Move) CaptureSquare() Square {
-	if m.MoveType == Enpassant {
-		return m.From&0x38 + m.To&0x7
+	if m.MoveType != Enpassant {
+		return m.To
 	}
-	return m.To
+	return m.From&0x38 + m.To&0x7
+}
+
+// Capture returns the captured pieces.
+func (m *Move) Capture() Piece {
+	return Piece(m.pieces >> 4)
+}
+
+// Target returns the piece on the to square after the move is executed.
+func (m *Move) Target() Piece {
+	return Piece(m.pieces & 0xf)
 }
 
 // Piece returns the piece moved.
 func (m *Move) Piece() Piece {
 	if m.MoveType != Promotion {
-		return m.Target
+		return Piece(m.pieces & 0xf)
 	}
-	return Piece(Pawn<<2) + m.Target&3
+	// Same as ColorFigure(m.Piece().Color(), Pawn)
+	return Piece(Pawn<<1) + Piece(m.pieces&1)
 }
 
 // Promotion returns the promoted piece if any.
@@ -241,13 +258,13 @@ func (m *Move) Promotion() Piece {
 	if m.MoveType != Promotion {
 		return NoPiece
 	}
-	return m.Target
+	return Piece(m.pieces & 0xf)
 }
 
 // IsViolent returns true if the move can change the position's score
 // significantly.
 func (m *Move) IsViolent() bool {
-	return m.Capture != NoPiece || m.MoveType == Promotion
+	return m.MoveType == Promotion || m.Capture() != NoPiece
 }
 
 // UCI converts a move to UCI format.
@@ -261,7 +278,7 @@ func (m *Move) UCI() string {
 // http://en.wikipedia.org/wiki/Algebraic_notation_%28chess%29#Long_algebraic_notation
 func (m *Move) LAN() string {
 	r := figureToSymbol[m.Piece().Figure()] + m.From.String()
-	if m.Capture != NoPiece {
+	if m.Capture() != NoPiece {
 		r += "-"
 	} else {
 		r += "x"
@@ -328,7 +345,7 @@ func CastlingRook(kingEnd Square) (Piece, Square, Square) {
 	// if kingEnd == C1 == b010, then rookEnd == D1 == b011
 	// if kingEnd == G1 == b110, then rookEnd == F1 == b101
 	// So bit 3 will invert bit 2. bit 1 is always set.
-	piece := Piece(Rook<<2) + 1 + Piece(kingEnd>>5)
+	piece := Piece(Rook<<1) + Piece(kingEnd>>5)
 	rookStart := kingEnd&^3 | (kingEnd & 4 >> 1) | (kingEnd & 4 >> 2)
 	rookEnd := kingEnd ^ (kingEnd & 4 >> 1) | 1
 	return piece, rookStart, rookEnd

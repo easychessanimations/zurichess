@@ -212,7 +212,7 @@ func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 		Score:  score,
 		Depth:  eng.maxPly - ply,
 		Kind:   kind,
-		Target: move.Target,
+		Target: move.Piece(),
 		From:   move.From,
 		To:     move.To,
 	})
@@ -295,7 +295,7 @@ func (eng *Engine) saveKiller(ply int16, move Move) {
 	for len(eng.killer) <= int(ply) {
 		eng.killer = append(eng.killer, [2]Move{})
 	}
-	if move.Capture == NoPiece && move != eng.killer[ply][0] { // saves only quiet moves.
+	if move.Capture() == NoPiece && move != eng.killer[ply][0] { // saves only quiet moves.
 		eng.killer[ply][1] = eng.killer[ply][0]
 		eng.killer[ply][0] = move
 	}
@@ -307,16 +307,11 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 		eng.Position.GenerateMoves,
 		func(m Move) int16 {
 			// Awards bonus for hash and killer moves.
-			if m.Target == entry.Target && m.From == entry.From && m.To == entry.To {
+			if m.From == entry.From && m.To == entry.To && m.Target() == entry.Target {
 				return HashMoveBonus
 			}
 			if len(eng.killer) > int(ply) {
-				k0 := &eng.killer[ply][0]
-				if m.Target == k0.Target && m.From == k0.From && m.To == k0.To {
-					return KillerMoveBonus
-				}
-				k1 := &eng.killer[ply][1]
-				if m.Target == k1.Target && m.From == k1.From && m.To == k1.To {
+				if m == eng.killer[ply][0] || m == eng.killer[ply][1] {
 					return KillerMoveBonus
 				}
 			}

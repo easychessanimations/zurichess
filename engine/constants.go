@@ -73,26 +73,24 @@ const (
 
 // Piece constants must stay in sync with ColorFigure
 const (
-	NoPiece        = Piece(0)
-	PieceArraySize = Piece(FigureArraySize << 2)
-)
-
-const (
-	WhitePawn Piece = Piece(iota+Pawn)<<2 + Piece(White)
+	NoPiece Piece = iota
+	_
+	WhitePawn
+	BlackPawn
 	WhiteKnight
-	WhiteBishop
-	WhiteRook
-	WhiteQueen
-	WhiteKing
-)
-
-const (
-	BlackPawn Piece = Piece(iota+Pawn)<<2 + Piece(Black)
 	BlackKnight
+	WhiteBishop
 	BlackBishop
+	WhiteRook
 	BlackRook
+	WhiteQueen
 	BlackQueen
+	WhiteKing
 	BlackKing
+
+	PieceArraySize = int(iota)
+	PieceMinValue  = WhitePawn
+	PieceMaxValue  = BlackKing
 )
 
 const (

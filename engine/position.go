@@ -9,7 +9,7 @@ var (
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
 	// Maps pieces to symbols. ? means invalid.
-	pieceToSymbol = ".????Pp??Nn??Bb??Rr??Qq??Kk?"
+	pieceToSymbol = ".?PpNnBbRrQqKk"
 )
 
 func init() {
@@ -21,15 +21,65 @@ func init() {
 	lostCastleRights[SquareH8] = BlackOO
 }
 
+type state struct {
+	Castle          Castle // remaining castling rights.
+	EnpassantSquare Square // enpassant square. If none, then SquareA1.
+}
+
 // Position encodes the chess board.
 type Position struct {
-	ByFigure        [FigureArraySize]Bitboard             // bitboards of square occupancy by figure.
-	ByColor         [ColorArraySize]Bitboard              // bitboards of square occupancy by color.
-	NumPieces       [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
-	SideToMove      Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
-	Castle          Castle                                // remaining castling rights.
-	EnpassantSquare Square                                // enpassant square. If none, then SquareA1.
-	Zobrist         uint64                                // Zobrist hash of the position.
+	ByFigure   [FigureArraySize]Bitboard             // bitboards of square occupancy by figure.
+	ByColor    [ColorArraySize]Bitboard              // bitboards of square occupancy by color.
+	NumPieces  [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
+	SideToMove Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
+	Zobrist    uint64
+
+	ply    int     // curent ply
+	states []state // state that is saved at each ply
+}
+
+// NewPosition returns a new position.
+func NewPosition() *Position {
+	return &Position{
+		states: make([]state, 1),
+	}
+}
+
+// curr returns state at current ply.
+func (pos *Position) curr() *state {
+	return &pos.states[pos.ply]
+}
+
+// prev returns state at previous ply.
+func (pos *Position) prev() *state {
+	return &pos.states[pos.ply-1]
+}
+
+// popState pops one ply.
+func (pos *Position) popState() {
+	pos.states = pos.states[:pos.ply]
+	pos.ply--
+}
+
+// pushState adds one ply.
+func (pos *Position) pushState() {
+	pos.states = append(pos.states, pos.states[pos.ply])
+	pos.ply++
+}
+
+// IsEnpassantSquare returns truee if sq is the enpassant square
+func (pos *Position) IsEnpassantSquare(sq Square) bool {
+	return sq != SquareA1 && sq == pos.EnpassantSquare()
+}
+
+// EnpassantSquare returns the enpassant square.
+func (pos *Position) EnpassantSquare() Square {
+	return pos.curr().EnpassantSquare
+}
+
+// CastlingAbility returns kings' castling ability.
+func (pos *Position) CastlingAbility() Castle {
+	return pos.curr().Castle
 }
 
 // Verify check the validity of the position.
@@ -52,9 +102,9 @@ func (pos *Position) Verify() error {
 
 // SetCastlingAbility sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
-	pos.Zobrist ^= zobristCastle[pos.Castle]
-	pos.Castle = castle
-	pos.Zobrist ^= zobristCastle[pos.Castle]
+	pos.Zobrist ^= zobristCastle[pos.curr().Castle]
+	pos.curr().Castle = castle
+	pos.Zobrist ^= zobristCastle[pos.curr().Castle]
 }
 
 // SetSideToMove sets the side to move, correctly updating the Zobrist key.
@@ -66,9 +116,9 @@ func (pos *Position) SetSideToMove(col Color) {
 
 // SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
-	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare]
-	pos.EnpassantSquare = sq
-	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare]
+	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
+	pos.curr().EnpassantSquare = sq
+	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
 }
 
 // ByPiece is a shortcut for ByColor[col]&ByFigure[fig].
@@ -142,7 +192,7 @@ func (pos *Position) PrettyPrint() {
 		line := ""
 		for f := 0; f < 8; f++ {
 			sq := RankFile(r, f)
-			if sq == pos.EnpassantSquare {
+			if pos.IsEnpassantSquare(sq) {
 				line += ","
 			} else {
 				line += string(pieceToSymbol[pos.Get(sq)])
@@ -162,13 +212,9 @@ func (pos *Position) PrettyPrint() {
 // DoMove performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
-	if move.SideToMove() != pos.SideToMove {
-		panic(fmt.Errorf("bad move %v: expected %v piece at %v, got %v",
-			move, pos.SideToMove, move.From, move.Piece()))
-	}
-
 	// Update castling rights based on the source&target squares.
-	pos.SetCastlingAbility(pos.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+	pos.pushState()
+	pos.SetCastlingAbility(pos.curr().Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -189,21 +235,23 @@ func (pos *Position) DoMove(move Move) {
 
 	// Update the pieces the chess board.
 	pos.Remove(move.From, pi)
-	pos.Remove(move.CaptureSquare(), move.Capture)
-	pos.Put(move.To, move.Target)
+	pos.Remove(move.CaptureSquare(), move.Capture())
+	pos.Put(move.To, move.Target())
 	pos.SetSideToMove(pos.SideToMove.Opposite())
 }
 
 // UndoMove takes back a move.
 // Expects the move to be valid.
 func (pos *Position) UndoMove(move Move) {
+	pos.SetCastlingAbility(pos.prev().Castle)
+	pos.SetEnpassantSquare(pos.prev().EnpassantSquare)
 	pos.SetSideToMove(pos.SideToMove.Opposite())
 
 	// Modify the chess board.
 	pi := move.Piece()
 	pos.Put(move.From, pi)
-	pos.Remove(move.To, move.Target)
-	pos.Put(move.CaptureSquare(), move.Capture)
+	pos.Remove(move.To, move.Target())
+	pos.Put(move.CaptureSquare(), move.Capture())
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -212,8 +260,7 @@ func (pos *Position) UndoMove(move Move) {
 		pos.Remove(end, rook)
 	}
 
-	pos.SetCastlingAbility(move.SavedCastle)
-	pos.SetEnpassantSquare(move.SavedEnpassant)
+	pos.popState()
 }
 
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool, moves *[]Move) {
@@ -232,20 +279,11 @@ func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool
 			pMin, pMax = Knight, Queen
 		}
 	}
-	if moveType == Normal && pos.EnpassantSquare != SquareA1 && pos.EnpassantSquare == to {
+	if moveType == Normal && pos.IsEnpassantSquare(to) {
 		moveType = Enpassant
 	}
-
 	for p := pMin; p <= pMax; p++ {
-		*moves = append(*moves, Move{
-			MoveType:       moveType,
-			From:           from,
-			To:             to,
-			Capture:        capt,
-			Target:         ColorFigure(pos.SideToMove, p),
-			SavedCastle:    pos.Castle,
-			SavedEnpassant: pos.EnpassantSquare,
-		})
+		*moves = append(*moves, MakeMove(moveType, from, to, capt, ColorFigure(pos.SideToMove, p)))
 	}
 }
 
@@ -288,7 +326,7 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves *[]Move) {
 }
 
 func (pos *Position) pawnCapture(to Square) Piece {
-	if pos.EnpassantSquare != SquareA1 && to == pos.EnpassantSquare {
+	if pos.IsEnpassantSquare(to) {
 		return ColorFigure(pos.SideToMove.Opposite(), Pawn)
 	}
 	return pos.Get(to)
@@ -296,8 +334,8 @@ func (pos *Position) pawnCapture(to Square) Piece {
 
 func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 	enemy := pos.ByColor[pos.SideToMove.Opposite()]
-	if pos.EnpassantSquare != SquareA1 {
-		enemy |= pos.EnpassantSquare.Bitboard()
+	if pos.EnpassantSquare() != SquareA1 {
+		enemy |= pos.EnpassantSquare().Bitboard()
 	}
 
 	forward := 0
@@ -332,15 +370,7 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves *[]Move) {
 	for att != 0 {
 		to := att.Pop()
-		*moves = append(*moves, Move{
-			From:           from,
-			To:             to,
-			Capture:        pos.Get(to),
-			Target:         pi,
-			MoveType:       Normal,
-			SavedCastle:    pos.Castle,
-			SavedEnpassant: pos.EnpassantSquare,
-		})
+		*moves = append(*moves, MakeMove(Normal, from, to, pos.Get(to), pi))
 	}
 }
 
@@ -401,7 +431,7 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 	}
 
 	// Castle king side.
-	if pos.Castle&oo != 0 {
+	if pos.curr().Castle&oo != 0 {
 		r5 := RankFile(rank, 5)
 		r6 := RankFile(rank, 6)
 		if !pos.IsEmpty(r5) || !pos.IsEmpty(r6) {
@@ -416,19 +446,12 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 			goto EndCastleOO
 		}
 
-		*moves = append(*moves, Move{
-			MoveType:       Castling,
-			From:           r4,
-			To:             r6,
-			Target:         ColorFigure(pos.SideToMove, King),
-			SavedCastle:    pos.Castle,
-			SavedEnpassant: pos.EnpassantSquare,
-		})
+		*moves = append(*moves, MakeMove(Castling, r4, r6, NoPiece, ColorFigure(pos.SideToMove, King)))
 	}
 EndCastleOO:
 
 	// Castle queen side.
-	if pos.Castle&ooo != 0 {
+	if pos.curr().Castle&ooo != 0 {
 		r3 := RankFile(rank, 3)
 		r2 := RankFile(rank, 2)
 		r1 := RankFile(rank, 1)
@@ -444,14 +467,7 @@ EndCastleOO:
 			goto EndCastleOOO
 		}
 
-		*moves = append(*moves, Move{
-			MoveType:       Castling,
-			From:           r4,
-			To:             r2,
-			Target:         ColorFigure(pos.SideToMove, King),
-			SavedCastle:    pos.Castle,
-			SavedEnpassant: pos.EnpassantSquare,
-		})
+		*moves = append(*moves, MakeMove(Castling, r4, r2, NoPiece, ColorFigure(pos.SideToMove, King)))
 	}
 EndCastleOOO:
 }

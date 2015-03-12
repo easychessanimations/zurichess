@@ -23,18 +23,18 @@ func testFENHelper(t *testing.T, expected *Position, fen string) {
 		t.Errorf("expected to move %v, got %v",
 			expected.SideToMove, actual.SideToMove)
 	}
-	if expected.Castle != actual.Castle {
-		t.Errorf("expected Castle rights %v, got %v",
-			expected.Castle, actual.Castle)
+	if expected.CastlingAbility() != actual.CastlingAbility() {
+		t.Errorf("expected CastlingAbility rights %v, got %v",
+			expected.CastlingAbility(), actual.CastlingAbility())
 	}
-	if expected.EnpassantSquare != actual.EnpassantSquare {
-		t.Errorf("expected enpassant square %v, got %v",
-			expected.EnpassantSquare, actual.EnpassantSquare)
+	if expected.EnpassantSquare() != actual.EnpassantSquare() {
+		t.Errorf("expected EnpassantSquare square %v, got %v",
+			expected.EnpassantSquare(), actual.EnpassantSquare())
 	}
 }
 
 func TestFENStartPosition(t *testing.T) {
-	expected := &Position{}
+	expected := NewPosition()
 	expected.Put(SquareA1, WhiteRook)
 	expected.Put(SquareB1, WhiteKnight)
 	expected.Put(SquareC1, WhiteBishop)
@@ -58,13 +58,13 @@ func TestFENStartPosition(t *testing.T) {
 		expected.Put(RankFile(6, f), BlackPawn)
 	}
 
-	expected.SideToMove = White
-	expected.Castle = AnyCastle
+	expected.SetSideToMove(White)
+	expected.SetCastlingAbility(AnyCastle)
 	testFENHelper(t, expected, FENStartPos)
 }
 
 func TestFENKiwipete(t *testing.T) {
-	expected := &Position{}
+	expected := NewPosition()
 	expected.Put(SquareA1, WhiteRook)
 	expected.Put(SquareC3, WhiteKnight)
 	expected.Put(SquareD2, WhiteBishop)
@@ -101,8 +101,8 @@ func TestFENKiwipete(t *testing.T) {
 	expected.Put(SquareG6, BlackPawn)
 	expected.Put(SquareH3, BlackPawn)
 
-	expected.SideToMove = White
-	expected.Castle = AnyCastle
+	expected.SetSideToMove(White)
+	expected.SetCastlingAbility(AnyCastle)
 	testFENHelper(t, expected, FENKiwipete)
 }
 
@@ -122,18 +122,8 @@ func TestEPDParser(t *testing.T) {
 
 	// Verify bm.
 	expectedBestMove := []Move{
-		{
-			MoveType: Normal,
-			Target:   WhiteQueen,
-			From:     SquareD1,
-			To:       SquareD2,
-		},
-		{
-			MoveType: Normal,
-			Target:   WhiteQueen,
-			From:     SquareD1,
-			To:       SquareE1,
-		},
+		MakeMove(Normal, SquareD1, SquareD2, NoPiece, WhiteQueen),
+		MakeMove(Normal, SquareD1, SquareE1, NoPiece, WhiteQueen),
 	}
 	if len(expectedBestMove) != len(epd.BestMove) {
 		t.Fatalf("expected 2 best moves, got %d", len(epd.BestMove))

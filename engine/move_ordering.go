@@ -35,7 +35,7 @@ func SetMvvLva(str string) error {
 // https://chessprogramming.wikispaces.com/MVV-LVA
 func mvvlva(m Move) int16 {
 	a := int(m.Piece().Figure())
-	v := int(m.Capture.Figure())
+	v := int(m.Capture().Figure())
 	p := int(m.Promotion().Figure())
 	return int16(mvvlvaTable[a*FigureArraySize+v] + mvvlvaTable[p])
 }

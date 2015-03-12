@@ -58,9 +58,9 @@ func TestRankFile(t *testing.T) {
 	}
 }
 
-func checkPiece(t *testing.T, pi Piece, co Color, pt Figure) {
-	if pi.Color() != co || pi.Figure() != pt {
-		t.Errorf("expected %v %v, got %v %v", co, pt, pi.Color(), pi.Figure())
+func checkPiece(t *testing.T, pi Piece, co Color, fig Figure) {
+	if pi.Color() != co || pi.Figure() != fig {
+		t.Errorf("for %v expected %v %v, got %v %v", pi, co, fig, pi.Color(), pi.Figure())
 	}
 }
 
@@ -68,13 +68,15 @@ func checkPiece(t *testing.T, pi Piece, co Color, pt Figure) {
 func TestPiece1(t *testing.T) {
 	checkPiece(t, NoPiece, NoColor, NoFigure)
 	for co := ColorMinValue; co < ColorMaxValue; co++ {
-		for pt := FigureMinValue; pt <= FigureMaxValue; pt++ {
-			checkPiece(t, ColorFigure(co, pt), co, pt)
+		for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
+			checkPiece(t, ColorFigure(co, fig), co, fig)
 		}
 	}
 }
 
 func TestPiece2(t *testing.T) {
+	checkPiece(t, WhitePawn, White, Pawn)
+	checkPiece(t, WhiteKnight, White, Knight)
 	checkPiece(t, WhiteRook, White, Rook)
 	checkPiece(t, WhiteKing, White, King)
 	checkPiece(t, BlackPawn, Black, Pawn)

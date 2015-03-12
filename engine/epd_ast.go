@@ -172,8 +172,7 @@ func handleOperationNode(epd *EPD, n *operationNode) error {
 }
 
 func parsePiecePlacement(str string) (*Position, error) {
-	pos := &Position{}
-
+	pos := NewPosition()
 	ranks := strings.Split(str, "/")
 	if len(ranks) != 8 {
 		return nil, fmt.Errorf("expected 8 ranks, got %d", len(ranks))

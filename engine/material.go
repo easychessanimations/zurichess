@@ -79,8 +79,8 @@ func (m *Material) EvaluateMove(move Move) int {
 		score += m.PieceSquareTable[fig][move.To^mask]
 	}
 
-	if move.Capture != NoPiece {
-		fig := move.Capture.Figure()
+	if move.Capture() != NoPiece {
+		fig := move.Capture().Figure()
 		score += m.FigureBonus[fig]
 		score += m.PieceSquareTable[fig][move.CaptureSquare()^otherMask]
 	}

@@ -20,7 +20,7 @@ type testEngine struct {
 
 func (te *testEngine) Move(m string) {
 	move := te.Pos.UCIToMove(m)
-	if te.Pos.SideToMove == move.Capture.Color() {
+	if te.Pos.SideToMove == move.Capture().Color() {
 		te.T.Errorf("%v cannot capture its own color (move %v)",
 			te.Pos.SideToMove, move)
 	}
@@ -46,8 +46,7 @@ func (te *testEngine) Attacked(sq Square, co Color, is bool) {
 
 func (te *testEngine) Piece(sq Square, expected Piece) {
 	if te.Pos.Get(sq) != expected {
-		te.T.Errorf("expected %v at %v, got %v",
-			expected, sq, te.Pos.Get(sq))
+		te.T.Errorf("expected %v at %v, got %v", expected, sq, te.Pos.Get(sq))
 	}
 }
 
@@ -121,7 +120,7 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 }
 
 func TestPutGetRemove(t *testing.T) {
-	pos := &Position{}
+	pos := NewPosition()
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Piece(SquareA3, NoPiece)
@@ -137,8 +136,9 @@ func TestPutGetRemove(t *testing.T) {
 	te.Piece(SquareH7, NoPiece)
 }
 
-func TestgenKnightMoves(t *testing.T) {
-	pos := &Position{SideToMove: White}
+func TestKnightMoves(t *testing.T) {
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	pos.Put(SquareB2, WhiteKnight)
 	pos.Put(SquareF4, WhiteKnight)
 	pos.Put(SquareC4, WhitePawn)
@@ -147,8 +147,9 @@ func TestgenKnightMoves(t *testing.T) {
 	te.Knight([]string{"b2d1", "b2d3", "b2a4", "f4d3", "f4d5", "f4e6", "f4g6", "f4h5", "f4h3", "f4g2", "f4e2"})
 }
 
-func TestgenRookMoves(t *testing.T) {
-	pos := &Position{SideToMove: White}
+func TestRookMoves(t *testing.T) {
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	pos.Put(SquareB2, WhiteRook)
 	pos.Put(SquareF2, WhiteKing)
 	pos.Put(SquareB6, BlackKing)
@@ -159,7 +160,8 @@ func TestgenRookMoves(t *testing.T) {
 
 func TestKingMoves1(t *testing.T) {
 	// King is alone.
-	pos := &Position{SideToMove: White}
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	te := &testEngine{T: t, Pos: pos}
 
 	pos.Put(SquareA2, WhiteKing)
@@ -197,7 +199,7 @@ func testCastleHelper(t *testing.T, pos *Position, data []CastleTestData) {
 
 	for _, d := range data {
 		if d.Castle != 255 {
-			pos.Castle = d.Castle
+			pos.SetCastlingAbility(d.Castle)
 		}
 		te := &testEngine{T: t, Pos: pos}
 		te.King(d.expected)
@@ -301,7 +303,7 @@ func TestCastleMovesPieces(t *testing.T) {
 
 func TestCastleRightsAreUpdated(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.Castle = WhiteOOO
+	pos.SetCastlingAbility(WhiteOOO)
 	te := &testEngine{T: t, Pos: pos}
 
 	good := []CastleTestData{
@@ -363,7 +365,8 @@ func TestCannotCastleAfterRookCapture(t *testing.T) {
 }
 
 func TestgenBishopMoves(t *testing.T) {
-	pos := &Position{SideToMove: White}
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -379,7 +382,8 @@ func TestgenBishopMoves(t *testing.T) {
 }
 
 func TestgenQueenMoves(t *testing.T) {
-	pos := &Position{SideToMove: White}
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	pos.Put(SquareB1, BlackRook)
 	pos.Put(SquareD1, WhiteQueen)
 	pos.Put(SquareE1, WhiteKing)
@@ -446,6 +450,51 @@ func TestGenPawnAttackMoves2(t *testing.T) {
 	pos.SideToMove = Black
 	pos.genPawnAttackMoves(false, &moves)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
+}
+
+func TestGenPawnEnpassant(t *testing.T) {
+	pos := NewPosition()
+	pos.SetSideToMove(White)
+	pos.Put(SquareH1, WhiteKing)
+	pos.Put(SquareH8, BlackKing)
+
+	pos.Put(SquareA3, WhitePawn)
+	pos.Put(SquareA4, BlackPawn)
+	pos.Put(SquareB2, WhitePawn)
+	pos.Put(SquareC3, WhitePawn)
+	pos.Put(SquareC4, BlackPawn)
+
+	move := pos.UCIToMove("b2b4")
+
+	pos.DoMove(move)
+	if SquareB3 != pos.EnpassantSquare() {
+		t.Fatalf("expected enpassant square %v, got %v",
+			SquareB3, pos.EnpassantSquare())
+	}
+
+	var moves []Move
+	pos.GenerateFigureMoves(Pawn, &moves)
+	if 2 != len(moves) {
+		t.Fatalf("expected 2 moves, got %d", len(moves))
+	}
+
+	for _, m := range moves {
+		if Enpassant != m.MoveType {
+			t.Fatalf("expected move typ %v, got %v", Enpassant, m.MoveType)
+		}
+		if SquareB3 != m.To {
+			t.Fatalf("expected to at %v, got at %v", SquareB3, m.To)
+		}
+		if SquareB4 != m.CaptureSquare() {
+			t.Fatalf("expected capture at %v, got at %v", SquareB4, m.CaptureSquare())
+		}
+	}
+
+	pos.UndoMove(move)
+	if SquareA1 != pos.EnpassantSquare() {
+		t.Fatalf("expected enpassant square %v, got %v",
+			SquareA1, pos.EnpassantSquare())
+	}
 }
 
 func TestPawnAttacks(t *testing.T) {
@@ -563,7 +612,7 @@ func TestPawnTakesEnpassant(t *testing.T) {
 
 	// Makes sure that black pawn at A2/B2 doesn't take Enpassant.
 	pos.SideToMove = Black
-	pos.EnpassantSquare = SquareA1
+	pos.SetEnpassantSquare(SquareA1)
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
 	pos.Put(SquareB2, BlackPawn)
@@ -602,7 +651,8 @@ func TestIsAttackedByBishop(t *testing.T) {
 }
 
 func TestIsAttackedByKing(t *testing.T) {
-	pos := &Position{SideToMove: White}
+	pos := NewPosition()
+	pos.SetSideToMove(White)
 	te := &testEngine{T: t, Pos: pos}
 
 	pos.Put(SquareE1, WhiteKing)
