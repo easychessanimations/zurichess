@@ -83,10 +83,9 @@ func (eng *Engine) SetPosition(pos *Position) {
 }
 
 // adjust updates score after making a move.
-// delta is -1 if the move is taken back, 1 otherwise.
 // mg and eg are move's midgame and endgame scores adjust accordingly
 // whether the move is made or taken back.
-func (eng *Engine) adjust(move Move, delta, mg, eg int) {
+func (eng *Engine) adjust(move Move, mg, eg int) {
 	eng.scoreMidGame += mg
 	eng.scoreEndGame += eg
 }
@@ -94,7 +93,7 @@ func (eng *Engine) adjust(move Move, delta, mg, eg int) {
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
 	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, +1, +mg, +eg)
+	eng.adjust(move, +mg, +eg)
 	eng.Position.DoMove(move)
 }
 
@@ -102,7 +101,7 @@ func (eng *Engine) DoMove(move Move) {
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
 	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, -1, -mg, -eg)
+	eng.adjust(move, -mg, -eg)
 }
 
 // countMaterial updates score for current position.
@@ -242,9 +241,9 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 		}
 
 		mg, eg := eng.evaluateMove(move)
-		eng.adjust(move, +1, +mg, +eg)
+		eng.adjust(move, +mg, +eg)
 		score := -eng.quiescence(-β, -localα, ply+1)
-		eng.adjust(move, -1, -mg, -eg)
+		eng.adjust(move, -mg, -eg)
 		eng.Position.UndoMove(move)
 
 		if score >= β {
@@ -278,9 +277,9 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	}
 
 	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, +1, +mg, +eg)
+	eng.adjust(move, +mg, +eg)
 	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier)
-	eng.adjust(move, -1, -mg, -eg)
+	eng.adjust(move, -mg, -eg)
 	eng.Position.UndoMove(move)
 
 	if score > KnownWinScore {
