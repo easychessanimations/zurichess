@@ -48,14 +48,11 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    Stats
 
-	maxPly       int16 // max ply currently searching at.
-	scoreMidGame int
-	scoreEndGame int
-
 	// killer stores a few killer moves per ply.
 	// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
 	killer [][2]Move
 
+	maxPly  int16 // max ply currently searching at.
 	stack   moveStack
 	pvTable pvTable // principal variation table
 }
@@ -79,91 +76,22 @@ func (eng *Engine) SetPosition(pos *Position) {
 	} else {
 		eng.Position, _ = PositionFromFEN(FENStartPos)
 	}
-	eng.countMaterial()
-}
-
-// adjust updates score after making a move.
-// mg and eg are move's midgame and endgame scores adjust accordingly
-// whether the move is made or taken back.
-func (eng *Engine) adjust(move Move, mg, eg int) {
-	eng.scoreMidGame += mg
-	eng.scoreEndGame += eg
 }
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
-	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, +mg, +eg)
 	eng.Position.DoMove(move)
 }
 
 // UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
-	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, -mg, -eg)
-}
-
-// countMaterial updates score for current position.
-func (eng *Engine) countMaterial() {
-	eng.scoreMidGame = MidGameMaterial.EvaluatePosition(eng.Position)
-	eng.scoreEndGame = EndGameMaterial.EvaluatePosition(eng.Position)
-}
-
-// pawns computes the pawn structure score of side.
-// pawns awards chains and penalizes double pawns.
-func (eng *Engine) pawns(side Color) int {
-	pawns := eng.Position.ByPiece(side, Pawn)
-	forward := pawns
-	if side == White {
-		forward >>= 8
-	} else {
-		forward <<= 8
-	}
-
-	cs := (pawns & ((forward &^ FileBb(7)) << 1)).Popcnt()
-	cs += (pawns & ((forward &^ FileBb(0)) >> 1)).Popcnt()
-	ds := (pawns & forward).Popcnt()
-	return cs*PawnChainBonus - ds*DoublePawnPenalty
-}
-
-// phase returns current phase and total phase.
-//
-// phase is determined by the number of pieces left in the game where
-// pawn has score 0, knight and bishop 1, rook 2, queen 2.
-// See tapered eval: // https://chessprogramming.wikispaces.com/Tapered+Eval
-func (eng *Engine) phase() (int, int) {
-	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*4
-	currPhase := totalPhase
-	currPhase -= int(eng.Position.NumPieces[NoColor][Pawn]) * 0
-	currPhase -= int(eng.Position.NumPieces[NoColor][Knight]) * 1
-	currPhase -= int(eng.Position.NumPieces[NoColor][Bishop]) * 1
-	currPhase -= int(eng.Position.NumPieces[NoColor][Rook]) * 2
-	currPhase -= int(eng.Position.NumPieces[NoColor][Queen]) * 4
-	currPhase = (currPhase*256 + totalPhase/2) / totalPhase
-	return currPhase, 256
 }
 
 // Score evaluates current position from White's POV.
 func (eng *Engine) Score() int16 {
 	eng.Stats.Nodes++
-
-	// Piece score is something between MidGame and EndGame
-	// depending on the pieces on the table.
-	currPhase, totalPhase := eng.phase()
-	score := (eng.scoreMidGame*(totalPhase-currPhase) + eng.scoreEndGame*currPhase) / totalPhase
-
-	// Give bonus for connected bishops.
-	if eng.Position.NumPieces[White][Bishop] >= 2 {
-		score += BishopPairBonus
-	}
-	if eng.Position.NumPieces[Black][Bishop] >= 2 {
-		score -= BishopPairBonus
-	}
-
-	score += eng.pawns(White)
-	score -= eng.pawns(Black)
-	return int16(score)
+	return Evaluate(eng.Position)
 }
 
 // endPosition determines whether current position is an end game.
@@ -231,7 +159,6 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	}
 
 	eng.stack.Stack(eng.Position.GenerateViolentMoves, mvvlva)
-
 	var move, bestMove Move
 	for eng.stack.PopMove(&move) {
 		eng.Position.DoMove(move)
@@ -240,10 +167,7 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 			continue
 		}
 
-		mg, eg := eng.evaluateMove(move)
-		eng.adjust(move, +mg, +eg)
 		score := -eng.quiescence(-β, -localα, ply+1)
-		eng.adjust(move, -mg, -eg)
 		eng.Position.UndoMove(move)
 
 		if score >= β {
@@ -262,12 +186,6 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	return localα
 }
 
-// evaluateMove returns mid game and eng game score of the move.
-// scores returned to not depend on the current position.
-func (eng *Engine) evaluateMove(move Move) (int, int) {
-	return MidGameMaterial.EvaluateMove(move), EndGameMaterial.EvaluateMove(move)
-}
-
 func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	side := eng.Position.SideToMove
 	eng.Position.DoMove(move)
@@ -276,10 +194,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 		return -InfinityScore
 	}
 
-	mg, eg := eng.evaluateMove(move)
-	eng.adjust(move, +mg, +eg)
 	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier)
-	eng.adjust(move, -mg, -eg)
 	eng.Position.UndoMove(move)
 
 	if score > KnownWinScore {
@@ -381,8 +296,8 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 
 	localα := α
 	bestMove, bestScore := Move{}, -InfinityScore
-	eng.generateMoves(ply, &entry)
 
+	eng.generateMoves(ply, &entry)
 	var move Move
 	for eng.stack.PopMove(&move) {
 		score := eng.tryMove(localα, β, ply, depth, move)

@@ -218,6 +218,18 @@ func (uci *UCI) setoption(args []string) error {
 		} else {
 			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
 		}
+	case "PawnChainBonus":
+		if value, err := strconv.ParseInt(args[3], 10, 64); err != nil {
+			return err
+		} else {
+			engine.EndGameMaterial.PawnChainBonus = int(value)
+		}
+	case "DoublePawnPenalty":
+		if value, err := strconv.ParseInt(args[3], 10, 64); err != nil {
+			return err
+		} else {
+			engine.EndGameMaterial.DoublePawnPenalty = int(value)
+		}
 	case "MvvLva":
 		return engine.SetMvvLva(args[3])
 	case "FigureBonus.MidGame":
