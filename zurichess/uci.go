@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,6 +14,11 @@ import (
 
 var (
 	ErrQuit = fmt.Errorf("quit")
+
+	globals = map[string]interface{}{
+		"MidGameMaterial": &engine.MidGameMaterial,
+		"EndGameMaterial": &engine.EndGameMaterial,
+	}
 )
 
 type UCI struct {
@@ -53,6 +59,8 @@ func (uci *UCI) Execute(line string) error {
 		uci.stop(args)
 	case "setoption":
 		err = uci.setoption(args)
+	case "setvalue":
+		err = uci.setvalue(args)
 	case "quit":
 		err = ErrQuit
 	default:
@@ -69,8 +77,6 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name MvvLva type string\n")
-	fmt.Printf("option name FigureBonus.MidGame type string\n")
-	fmt.Printf("option name FigureBonus.EndGame type string\n")
 	fmt.Println("uciok")
 	return nil
 }
@@ -218,27 +224,96 @@ func (uci *UCI) setoption(args []string) error {
 		} else {
 			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
 		}
-	case "PawnChainBonus":
-		if value, err := strconv.ParseInt(args[3], 10, 64); err != nil {
-			return err
-		} else {
-			engine.EndGameMaterial.PawnChainBonus = int(value)
-		}
-	case "DoublePawnPenalty":
-		if value, err := strconv.ParseInt(args[3], 10, 64); err != nil {
-			return err
-		} else {
-			engine.EndGameMaterial.DoublePawnPenalty = int(value)
-		}
 	case "MvvLva":
 		return engine.SetMvvLva(args[3])
-	case "FigureBonus.MidGame":
-		return engine.SetMaterialValue(args[1], engine.MidGameMaterial.FigureBonus[:], args[3])
-	case "FigureBonus.EndGame":
-		return engine.SetMaterialValue(args[1], engine.EndGameMaterial.FigureBonus[:], args[3])
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
 
+	return nil
+}
+
+func setvalueHelper(v reflect.Value, fields string, n int) error {
+	switch v.Kind() {
+	case reflect.Int8:
+		fallthrough
+	case reflect.Int16:
+		fallthrough
+	case reflect.Int32:
+		fallthrough
+	case reflect.Int:
+		if fields != "" {
+			return fmt.Errorf("expected struct or slice")
+		}
+		if !v.CanSet() {
+			return fmt.Errorf("cannot set value")
+		}
+		v.SetInt(int64(n))
+	case reflect.Ptr:
+		return setvalueHelper(v.Elem(), fields, n)
+	case reflect.Struct:
+		split := strings.SplitN(fields, ".", 2)
+		if split[0] == "" {
+			return fmt.Errorf("missing field for type %s", v.Type().Name())
+		}
+		field := v.FieldByName(split[0])
+		if !field.IsValid() {
+			return fmt.Errorf("no such field %s for type %s", split[0], v.Type().Name())
+		}
+		if len(split) == 1 {
+			return setvalueHelper(field, "", n)
+		}
+		return setvalueHelper(field, split[1], n)
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		split := strings.SplitN(fields, ".", 2)
+		if split[0] == "" {
+			return fmt.Errorf("missing index for type %s", v.Type().Name())
+		}
+		index, err := strconv.Atoi(split[0])
+		if err != nil {
+			return err
+		}
+		if index >= v.Len() {
+			return fmt.Errorf("out of bounds")
+		}
+		return setvalueHelper(v.Index(index), split[1], n)
+	case reflect.Map:
+		split := strings.SplitN(fields, ".", 2)
+		if split[0] == "" {
+			return fmt.Errorf("missing index for type %s", v.Type().Name())
+		}
+		if len(split) == 1 {
+			return fmt.Errorf("expected more fields for type %s", v.Type().Name())
+		}
+		index := v.MapIndex(reflect.ValueOf(split[0]))
+		if !index.IsValid() {
+			return fmt.Errorf("no such map key %v", split[0])
+		}
+		return setvalueHelper(index, split[1], n)
+	case reflect.Interface:
+		return setvalueHelper(reflect.ValueOf(v.Interface()), fields, n)
+	default:
+		fmt.Println("unhandled v.Kind() ==", v.Kind())
+	}
+
+	return nil
+}
+
+// setvalue will fatal in case of error because otherwise
+// an error will make tunning useless.
+func (uci *UCI) setvalue(args []string) error {
+	if len(args) != 2 {
+		log.Fatalf("expected 2 arguments, got %d", len(args))
+	}
+	n, err := strconv.Atoi(args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = setvalueHelper(reflect.ValueOf(globals), args[0], n)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
