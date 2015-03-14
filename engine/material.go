@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	colMask = [3]Square{0x00, 0x00, 0x38}
+
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
 	// Scores returned directly are int16.
@@ -165,6 +167,8 @@ var (
 // Material evaluates a position from static point of view,
 // i.e. pieces and their position on the table.
 type Material struct {
+	pawnTable pawnTable
+
 	BishopPairBonus   int
 	PawnChainBonus    int
 	DoublePawnPenalty int
@@ -181,6 +185,7 @@ type Material struct {
 // pawns computes the pawn structure score of side.
 // pawns awards chains and penalizes double pawns.
 func (m *Material) pawnStructure(pos *Position, side Color) int {
+	// Award structure.
 	pawns := pos.ByPiece(side, Pawn)
 	forward := pawns
 	if side == White {
@@ -189,41 +194,73 @@ func (m *Material) pawnStructure(pos *Position, side Color) int {
 		forward <<= 8
 	}
 
-	cs := (pawns & ((forward &^ FileBb(7)) << 1)).Popcnt()
-	cs += (pawns & ((forward &^ FileBb(0)) >> 1)).Popcnt()
-	ds := (pawns & forward).Popcnt()
-	return cs*m.PawnChainBonus - ds*m.DoublePawnPenalty
+	var score int
+	score += m.FigureBonus[Pawn] * int(pos.NumPieces[side][Pawn])
+	score += m.PawnChainBonus * (pawns & ((forward &^ FileBb(7)) << 1)).Popcnt()
+	score += m.PawnChainBonus * (pawns & ((forward &^ FileBb(0)) >> 1)).Popcnt()
+	score -= m.DoublePawnPenalty * (pawns & forward).Popcnt()
+
+	// Award position.
+	mask := colMask[side]
+	psqt := m.PieceSquareTable[Pawn][:]
+	for bb := pawns; bb != 0; {
+		sq := bb.Pop()
+		score += psqt[sq^mask]
+	}
+
+	return score
 }
 
-// Evaluate returns positions score from white's POV.
-// The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
-func (m *Material) Evaluate(pos *Position) int {
+// evaluate position for side.
+//
+// Pawn features are evaluated part of pawnStructure.
+func (m *Material) evaluate(pos *Position, side Color) int {
 	score := 0
+	mask := colMask[side]
 
 	// Award pieces on the table.
 	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-		if pos.NumPieces[NoColor][fig] == 0 {
+		if fig == Pawn || pos.NumPieces[side][fig] == 0 {
+			// Pawns psqt are evaluated by pawnStructure.
 			continue
 		}
 
-		score += int(pos.NumPieces[White][fig]-pos.NumPieces[Black][fig]) * m.FigureBonus[fig]
 		psqt := m.PieceSquareTable[fig][:]
-		for bb := pos.ByPiece(White, fig); bb != 0; {
+		for bb := pos.ByPiece(side, fig); bb != 0; {
 			sq := bb.Pop()
-			score += psqt[sq^0x00]
-		}
-		for bb := pos.ByPiece(Black, fig); bb != 0; {
-			sq := bb.Pop()
-			score -= psqt[sq^0x38]
+			score += m.FigureBonus[fig]
+			score += psqt[sq^mask]
 		}
 	}
 
 	// Award connected bishops.
-	score += int(pos.NumPieces[White][Bishop]/2-pos.NumPieces[Black][Bishop]/2) * m.BishopPairBonus
+	score += int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
 
-	// Award pawn structure.
-	score += m.pawnStructure(pos, White)
-	score -= m.pawnStructure(pos, Black)
+	return score
+}
+
+// Evaluate returns positions score from white's POV.
+//
+// The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
+func (m *Material) Evaluate(pos *Position) int {
+	// Evaluate pieces position.
+	score := m.evaluate(pos, White)
+	score -= m.evaluate(pos, Black)
+
+	// Evaluate pawn structure.
+	whitePawns := pos.ByPiece(White, Pawn)
+	blackPawns := pos.ByPiece(Black, Pawn)
+	pawns, ok := m.pawnTable.get(whitePawns, blackPawns)
+	if !ok {
+		pawns = m.pawnStructure(pos, White) - m.pawnStructure(pos, Black)
+		m.pawnTable.put(whitePawns, blackPawns, pawns)
+	}
+	score += pawns
+
+	if int(-InfinityScore) > score || score > int(InfinityScore) {
+		panic(fmt.Sprintf("score %d should be between %d and %d",
+			score, -InfinityScore, +InfinityScore))
+	}
 
 	return score
 }
