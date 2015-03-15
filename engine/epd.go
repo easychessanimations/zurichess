@@ -7,6 +7,7 @@ type EPD struct {
 	Position *Position
 	Id       string
 	BestMove []Move
+	Comment  map[string]string
 }
 
 func parse(what int, line string) (*EPD, error) {
@@ -19,7 +20,9 @@ func parse(what int, line string) (*EPD, error) {
 	if yyParse(lex) != 0 {
 		return nil, lex.error
 	}
-	epd := &EPD{}
+	epd := &EPD{
+		Comment: make(map[string]string),
+	}
 	if err := handleEPDNode(epd, *lex.result); err != nil {
 		return nil, err
 	}
@@ -94,8 +97,10 @@ func (e *EPD) String() string {
 		s += " bm " + bm.LAN() + ";"
 	}
 	if e.Id != "" {
-		s += " id " + e.Id + ";"
+		s += " id \"" + e.Id + "\";"
 	}
-
+	for k, v := range e.Comment {
+		s += " " + k + " \"" + v + "\";"
+	}
 	return s
 }

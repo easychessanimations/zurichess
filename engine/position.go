@@ -34,6 +34,9 @@ type Position struct {
 	SideToMove Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
 	Zobrist    uint64
 
+	FullMoveNumber int
+	HalfMoveClock  int
+
 	ply    int     // curent ply
 	states []state // state that is saved at each ply
 }

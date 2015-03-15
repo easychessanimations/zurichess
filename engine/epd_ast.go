@@ -5,6 +5,7 @@ package engine
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -97,6 +98,18 @@ func newLeafError(n *tokenNode, err error) error {
 	return fmt.Errorf("at %d %s: %v", n.pos, n.str, err)
 }
 
+func trimQuotes(str string) string {
+	l := len(str)
+	switch {
+	case l < 2:
+		return str
+	case str[0] == '"' && str[l-1] == '"':
+		return str[1 : l-1]
+	default:
+		return str
+	}
+}
+
 func handleEPDNode(epd *EPD, n *epdNode) error {
 	if err := handlePositionNode(epd, n.position); err != nil {
 		return err
@@ -132,13 +145,11 @@ func handlePositionNode(epd *EPD, n *positionNode) error {
 
 // handleBestMove handles "id" operator.
 func handleId(epd *EPD, n *operationNode) error {
-	if n.arguments == nil {
-		return newLeafError(n.operator, fmt.Errorf("id is missing an argument"))
+	ptr := n.arguments
+	if ptr == nil || ptr.next != nil {
+		return newLeafError(ptr.param, fmt.Errorf("id expects exactly one argument"))
 	}
-	if n.arguments.next != nil {
-		return newLeafError(n.operator, fmt.Errorf("id has too many arguments"))
-	}
-	epd.Id = n.arguments.param.str
+	epd.Id = trimQuotes(ptr.param.str)
 	return nil
 }
 
@@ -154,10 +165,54 @@ func handleBestMove(epd *EPD, n *operationNode) error {
 	return nil
 }
 
+func handleFullMoveNumber(epd *EPD, n *operationNode) error {
+	ptr := n.arguments
+	if ptr == nil || ptr.next != nil {
+		return newLeafError(ptr.param, fmt.Errorf("fmvn expects exactly one argument"))
+	}
+
+	var err error
+	epd.Position.FullMoveNumber, err = strconv.Atoi(ptr.param.str)
+	return err
+}
+
+func handleHalfMoveClock(epd *EPD, n *operationNode) error {
+	ptr := n.arguments
+	if ptr == nil || ptr.next != nil {
+		return newLeafError(ptr.param, fmt.Errorf("hmvc expects exactly one argument"))
+	}
+
+	var err error
+	epd.Position.HalfMoveClock, err = strconv.Atoi(ptr.param.str)
+	return err
+}
+
+func handleComment(epd *EPD, n *operationNode) error {
+	ptr := n.arguments
+	if ptr == nil || ptr.next != nil {
+		return newLeafError(ptr.param, fmt.Errorf("c# expects exactly one argument"))
+	}
+
+	epd.Comment[n.operator.str] = trimQuotes(ptr.param.str)
+	return nil
+}
+
 // handleMap is a map from operator to a function handling the node.
 var handleMap = map[string]func(edp *EPD, n *operationNode) error{
-	"id": handleId,
-	"bm": handleBestMove,
+	"id":   handleId,
+	"bm":   handleBestMove,
+	"fmvn": handleFullMoveNumber,
+	"hmvc": handleHalfMoveClock,
+	"c0":   handleComment,
+	"c1":   handleComment,
+	"c2":   handleComment,
+	"c3":   handleComment,
+	"c4":   handleComment,
+	"c5":   handleComment,
+	"c6":   handleComment,
+	"c7":   handleComment,
+	"c8":   handleComment,
+	"c9":   handleComment,
 }
 
 func handleOperationNode(epd *EPD, n *operationNode) error {

@@ -78,11 +78,13 @@ operations
         {
                 $$ = &operationNode{
                        operator:  $3,
-                       arguments: $4,
+                       next:      $1,  // Build list in reverse order.
                 }
-                if $1 != nil {
-                        $1.next = $$
-                        $$ = $1
+
+                if $4 != nil {
+                        // The argument list is circular with the first element in $4.next,
+                        $$.arguments = $4.next
+                        $4.next = nil
                 }
         }
         ;
@@ -95,9 +97,14 @@ arguments
                 $$ = &argumentNode{
                         param: $3,
                 }
-                if $1 != nil {
+
+                if $1 == nil {
+                        // $$.next store a pointer to first argument
+                        $$.next = $$
+                } else {
+                        // Save first in $$.next, and fix the list.
+                        $$.next = $1.next
                         $1.next = $$
-                        $$ = $1
                 }
         }
         ;

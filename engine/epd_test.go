@@ -108,14 +108,14 @@ func TestFENKiwipete(t *testing.T) {
 
 func TestEPDParser(t *testing.T) {
 	// An EPD taken from http://www.stmintz.com/ccc/index.php?id=20631
-	line := "rnb2r1k/pp2p2p/2pp2p1/q2P1p2/8/1Pb2NP1/PB2PPBP/R2Q1RK1 w - - bm Qd2 Qe1; id \"BK.14\";"
+	line := "rnb2r1k/pp2p2p/2pp2p1/q2P1p2/8/1Pb2NP1/PB2PPBP/R2Q1RK1 w - - bm Qd2 Qe1; fmvn 123; hmvc 15; id \"BK.14\"; c9 \"draw\";"
 	epd, err := ParseEPD(line)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Verify id.
-	expecteId := "\"BK.14\""
+	expecteId := "BK.14"
 	if expecteId != epd.Id {
 		t.Fatalf("expected id %s, got %s", expecteId, epd.Id)
 	}
@@ -132,6 +132,16 @@ func TestEPDParser(t *testing.T) {
 		if bm != epd.BestMove[i] {
 			t.Errorf("#%d expected best move 0 %v, got %v", i, bm, epd.BestMove[i])
 		}
+	}
+
+	if 123 != epd.Position.FullMoveNumber {
+		t.Errorf("expected fullmove number %d, got %d", 123, epd.Position.FullMoveNumber)
+	}
+	if 15 != epd.Position.HalfMoveClock {
+		t.Errorf("expected halfmove clock %d, got %d", 15, epd.Position.FullMoveNumber)
+	}
+	if "draw" != epd.Comment["c9"] {
+		t.Errorf("execpted comment %s, got %s", "draw", epd.Comment["c9"])
 	}
 }
 

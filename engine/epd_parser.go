@@ -42,7 +42,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line epd_parser.y:105
+//line epd_parser.y:112
 const eof = 0
 
 // epdLexer is a tokenizer.
@@ -446,28 +446,35 @@ yydefault:
 		//line epd_parser.y:78
 		{
 			yyVAL.operation = &operationNode{
-				operator:  yyS[yypt-2].token,
-				arguments: yyS[yypt-1].argument,
+				operator: yyS[yypt-2].token,
+				next:     yyS[yypt-4].operation, // Build list in reverse order.
 			}
-			if yyS[yypt-4].operation != nil {
-				yyS[yypt-4].operation.next = yyVAL.operation
-				yyVAL.operation = yyS[yypt-4].operation
+
+			if yyS[yypt-1].argument != nil {
+				// The argument list is circular with the first element in $4.next,
+				yyVAL.operation.arguments = yyS[yypt-1].argument.next
+				yyS[yypt-1].argument.next = nil
 			}
 		}
 	case 8:
-		//line epd_parser.y:92
+		//line epd_parser.y:94
 		{
 			yyVAL.argument = nil
 		}
 	case 9:
-		//line epd_parser.y:94
+		//line epd_parser.y:96
 		{
 			yyVAL.argument = &argumentNode{
 				param: yyS[yypt-0].token,
 			}
-			if yyS[yypt-2].argument != nil {
+
+			if yyS[yypt-2].argument == nil {
+				// $$.next store a pointer to first argument
+				yyVAL.argument.next = yyVAL.argument
+			} else {
+				// Save first in $$.next, and fix the list.
+				yyVAL.argument.next = yyS[yypt-2].argument.next
 				yyS[yypt-2].argument.next = yyVAL.argument
-				yyVAL.argument = yyS[yypt-2].argument
 			}
 		}
 	}
