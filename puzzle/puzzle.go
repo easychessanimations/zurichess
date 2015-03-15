@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"bitbucket.org/brtzsnr/zurichess/engine"
+	"bitbucket.org/brtzsnr/zurichess/notation"
 )
 
 var (
@@ -101,7 +102,7 @@ func main() {
 		}
 
 		// Reads position from file.
-		epd, err := engine.ParseEPD(line)
+		epd, err := notation.ParseEPD(line)
 		if err != nil {
 			log.Println("error:", err)
 			log.Println("skipping", line)

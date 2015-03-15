@@ -3,13 +3,12 @@ package engine
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 var (
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
-	// Maps pieces to symbols. ? means invalid.
-	pieceToSymbol = ".?PpNnBbRrQqKk"
 )
 
 func init() {
@@ -46,6 +45,28 @@ func NewPosition() *Position {
 	return &Position{
 		states: make([]state, 1),
 	}
+}
+
+func PositionFromFEN(fen string) (*Position, error) {
+	f := strings.Fields(fen)
+	if 4 > len(f) { // ignore halfmove clock and fullmove number
+		return nil, fmt.Errorf("invalid FEN: expected %d, got %d fields", 6, len(f))
+	}
+
+	pos := NewPosition()
+	if err := ParsePiecePlacement(f[0], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseSideToMove(f[1], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseCastlingAbility(f[2], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseEnpassantSquare(f[3], pos); err != nil {
+		return nil, err
+	}
+	return pos, nil
 }
 
 // curr returns state at current ply.

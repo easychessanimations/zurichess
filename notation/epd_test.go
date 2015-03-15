@@ -1,7 +1,9 @@
-package engine
+package notation
 
 import (
 	"testing"
+
+	. "bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 func testFENHelper(t *testing.T, expected *Position, fen string) {

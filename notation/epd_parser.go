@@ -5,7 +5,7 @@
 // For EPD format see https://chessprogramming.wikispaces.com/Extended+Position+Description.
 // For FEN format see https://chessprogramming.wikispaces.com/Forsyth-Edwards+Notation.
 
-package engine
+package notation
 
 import __yyfmt__ "fmt"
 

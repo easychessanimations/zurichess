@@ -1,69 +1,13 @@
 // epd_ast.go interprests the ast tree parsed from an EPD line.
 // *Node structures correspond to grammar nodes in epd_parser.y.
 
-package engine
+package notation
 
 import (
 	"fmt"
 	"strconv"
-	"strings"
-)
 
-type castleInfo struct {
-	Castle Castle
-	Piece  [2]Piece
-	Square [2]Square
-}
-
-var (
-	symbolToCastleInfo = map[rune]castleInfo{
-		'K': castleInfo{
-			Castle: WhiteOO,
-			Piece:  [2]Piece{WhiteKing, WhiteRook},
-			Square: [2]Square{SquareE1, SquareH1},
-		},
-		'k': castleInfo{
-			Castle: BlackOO,
-			Piece:  [2]Piece{BlackKing, BlackRook},
-			Square: [2]Square{SquareE8, SquareH8},
-		},
-		'Q': castleInfo{
-			Castle: WhiteOOO,
-			Piece:  [2]Piece{WhiteKing, WhiteRook},
-			Square: [2]Square{SquareE1, SquareA1},
-		},
-		'q': castleInfo{
-			Castle: BlackOOO,
-			Piece:  [2]Piece{BlackKing, BlackRook},
-			Square: [2]Square{SquareE8, SquareA8},
-		},
-	}
-
-	symbolToColor = map[string]Color{
-		"w": White,
-		"b": Black,
-	}
-
-	colorToSymbol = map[Color]string{
-		White: "w",
-		Black: "b",
-	}
-
-	symbolToPiece = map[rune]Piece{
-		'p': BlackPawn,
-		'n': BlackKnight,
-		'b': BlackBishop,
-		'r': BlackRook,
-		'q': BlackQueen,
-		'k': BlackKing,
-
-		'P': WhitePawn,
-		'N': WhiteKnight,
-		'B': WhiteBishop,
-		'R': WhiteRook,
-		'Q': WhiteQueen,
-		'K': WhiteKing,
-	}
+	"bitbucket.org/brtzsnr/zurichess/engine"
 )
 
 type epdNode struct {
@@ -121,24 +65,20 @@ func handleEPDNode(epd *EPD, n *epdNode) error {
 }
 
 func handlePositionNode(epd *EPD, n *positionNode) error {
+	epd.Position = engine.NewPosition()
+
 	var err error
-	if epd.Position, err = parsePiecePlacement(n.piecePlacement.str); err != nil {
+	if err = engine.ParsePiecePlacement(n.piecePlacement.str, epd.Position); err != nil {
 		return newLeafError(n.piecePlacement, err)
 	}
-	if sideToMove, err := parseSideToMove(n.sideToMove.str); err != nil {
+	if err := engine.ParseSideToMove(n.sideToMove.str, epd.Position); err != nil {
 		return newLeafError(n.sideToMove, err)
-	} else {
-		epd.Position.SetSideToMove(sideToMove)
 	}
-	if castlingAbility, err := parseCastlingAbility(epd.Position, n.castlingAbility.str); err != nil {
+	if err := engine.ParseCastlingAbility(n.castlingAbility.str, epd.Position); err != nil {
 		return newLeafError(n.castlingAbility, err)
-	} else {
-		epd.Position.SetCastlingAbility(castlingAbility)
 	}
-	if enpassantSquare, err := parseEnpassantSquare(n.enpassantSquare.str); err != nil {
+	if err := engine.ParseEnpassantSquare(n.enpassantSquare.str, epd.Position); err != nil {
 		return newLeafError(n.enpassantSquare, err)
-	} else {
-		epd.Position.SetEnpassantSquare(enpassantSquare)
 	}
 	return nil
 }
@@ -224,71 +164,4 @@ func handleOperationNode(epd *EPD, n *operationNode) error {
 		}
 	}
 	return nil
-}
-
-func parsePiecePlacement(str string) (*Position, error) {
-	pos := NewPosition()
-	ranks := strings.Split(str, "/")
-	if len(ranks) != 8 {
-		return nil, fmt.Errorf("expected 8 ranks, got %d", len(ranks))
-	}
-	for r := range ranks {
-		f := 0
-		for _, p := range ranks[r] {
-			pi := symbolToPiece[p]
-			if pi == NoPiece {
-				if '1' <= p && p <= '8' {
-					f += int(p) - int('0') - 1
-				} else {
-					return nil, fmt.Errorf("expected rank or number, got %s", string(p))
-				}
-			}
-			if f >= 8 {
-				return nil, fmt.Errorf("rank %d too long (%d cells)", 8-r, f)
-			}
-			// 7-r because FEN describes the table from 8th rank.
-			pos.Put(RankFile(7-r, f), pi)
-			f++
-		}
-		if f < 8 {
-			return nil, fmt.Errorf("rank %d too short (%d cells)", r+1, f)
-		}
-	}
-
-	return pos, nil
-}
-
-func parseSideToMove(str string) (Color, error) {
-	if col, ok := symbolToColor[str]; ok {
-		return col, nil
-	}
-	return NoColor, fmt.Errorf("invalid color %s", str)
-}
-
-func parseCastlingAbility(pos *Position, str string) (Castle, error) {
-	if str == "-" {
-		return NoCastle, nil
-	}
-	ability := NoCastle
-	for _, p := range str {
-		info, ok := symbolToCastleInfo[p]
-		if !ok {
-			return NoCastle, fmt.Errorf("invalid castling ability %s", str)
-		}
-		ability |= info.Castle
-		for i := 0; i < 2; i++ {
-			if info.Piece[i] != pos.Get(info.Square[i]) {
-				return NoCastle, fmt.Errorf("expected %v at %v, got %v",
-					info.Piece[i], info.Square[i], pos.Get(info.Square[i]))
-			}
-		}
-	}
-	return ability, nil
-}
-
-func parseEnpassantSquare(str string) (Square, error) {
-	if str[:1] == "-" {
-		return SquareA1, nil
-	}
-	return SquareFromString(str)
 }
