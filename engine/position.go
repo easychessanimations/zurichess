@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -49,7 +50,7 @@ func NewPosition() *Position {
 
 func PositionFromFEN(fen string) (*Position, error) {
 	f := strings.Fields(fen)
-	if 4 > len(f) { // ignore halfmove clock and fullmove number
+	if 6 != len(f) {
 		return nil, fmt.Errorf("invalid FEN: expected %d, got %d fields", 6, len(f))
 	}
 
@@ -66,7 +67,26 @@ func PositionFromFEN(fen string) (*Position, error) {
 	if err := ParseEnpassantSquare(f[3], pos); err != nil {
 		return nil, err
 	}
+	var err error
+	if pos.HalfMoveClock, err = strconv.Atoi(f[4]); err != nil {
+		return nil, err
+	}
+	if pos.FullMoveNumber, err = strconv.Atoi(f[5]); err != nil {
+		return nil, err
+	}
 	return pos, nil
+}
+
+// String returns position in FEN format.
+// For table format use PrettyPrint.
+func (pos *Position) String() string {
+	s := FormatPiecePlacement(pos)
+	s += " " + FormatSideToMove(pos)
+	s += " " + FormatCastlingAbility(pos)
+	s += " " + FormatEnpassantSquare(pos)
+	s += " " + strconv.Itoa(pos.HalfMoveClock)
+	s += " " + strconv.Itoa(pos.FullMoveNumber)
+	return s
 }
 
 // curr returns state at current ply.
