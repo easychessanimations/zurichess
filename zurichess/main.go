@@ -51,6 +51,8 @@ func main() {
 			if err != ErrQuit {
 				log.Println("for line:", string(line))
 				log.Println("error:", err)
+			} else {
+				break
 			}
 		}
 	}

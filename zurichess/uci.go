@@ -130,47 +130,55 @@ func (uci *UCI) position(args []string) error {
 }
 
 func (uci *UCI) go_(args []string) {
-	tc := &engine.OnClockTimeControl{
-		NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure]),
-	}
+	var tc engine.TimeControl
+	fdtc := &engine.FixedDepthTimeControl{}
+	octc := &engine.OnClockTimeControl{NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure])}
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "infinite":
 			i++
-			tc.Time = 1000000 * time.Hour
+			octc.Time = 1000000 * time.Hour
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
-				tc.Time = time.Duration(t) * time.Millisecond
+				octc.Time = time.Duration(t) * time.Millisecond
 			}
 		case "winc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
-				tc.Inc = time.Duration(t) * time.Millisecond
+				octc.Inc = time.Duration(t) * time.Millisecond
 			}
 		case "btime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
-				tc.Time = time.Duration(t) * time.Millisecond
+				octc.Time = time.Duration(t) * time.Millisecond
 			}
 		case "binc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
-				tc.Inc = time.Duration(t) * time.Millisecond
+				octc.Inc = time.Duration(t) * time.Millisecond
 			}
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			tc.MovesToGo = t
+			octc.MovesToGo = t
+			tc = octc
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			tc.Time, tc.Inc, tc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
+			octc.Time, octc.Inc, octc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
+			tc = octc
+		case "depth":
+			i++
+			d, _ := strconv.Atoi(args[i])
+			fdtc.MinDepth = 0
+			fdtc.MaxDepth = d
+			tc = fdtc
 		}
 	}
 
@@ -183,7 +191,7 @@ func (uci *UCI) go_(args []string) {
 		default:
 		}
 
-		tc.Stop = uci.Stop
+		octc.Stop = uci.Stop
 		tc.Start()
 
 		moves := uci.Engine.Play(tc)
@@ -191,7 +199,11 @@ func (uci *UCI) go_(args []string) {
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
 			engine.GlobalHashTable.Size(), hit, miss,
 			float32(hit)/float32(hit+miss)*100)
-		fmt.Printf("bestmove %v\n", moves[0].UCI())
+		if len(moves) == 0 {
+			fmt.Printf("bestmove %v\n", "(none)")
+		} else {
+			fmt.Printf("bestmove %v\n", moves[0].UCI())
+		}
 	}()
 }
 
@@ -277,6 +289,9 @@ func setvalueHelper(v reflect.Value, fields string, n int) error {
 		}
 		if index >= v.Len() {
 			return fmt.Errorf("out of bounds")
+		}
+		if len(split) == 1 {
+			return setvalueHelper(v.Index(index), "", n)
 		}
 		return setvalueHelper(v.Index(index), split[1], n)
 	case reflect.Map:

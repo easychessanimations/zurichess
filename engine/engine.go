@@ -405,7 +405,7 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	}
 
 	if !eng.Options.AnalyseMode {
-		// eng.printInfo(score)
+		eng.printInfo(score)
 	}
 	return moves
 }
