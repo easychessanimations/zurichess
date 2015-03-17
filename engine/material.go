@@ -184,28 +184,27 @@ type Material struct {
 
 // pawns computes the pawn structure score of side.
 // pawns awards chains and penalizes double pawns.
-func (m *Material) pawnStructure(pos *Position, side Color) int {
-	// Award structure.
+func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 	pawns := pos.ByPiece(side, Pawn)
-	forward := pawns
-	if side == White {
-		forward >>= 8
-	} else {
-		forward <<= 8
-	}
-
-	var score int
-	score += m.FigureBonus[Pawn] * int(pos.NumPieces[side][Pawn])
-	score += m.PawnChainBonus * (pawns & ((forward &^ FileBb(7)) << 1)).Popcnt()
-	score += m.PawnChainBonus * (pawns & ((forward &^ FileBb(0)) >> 1)).Popcnt()
-	score -= m.DoublePawnPenalty * (pawns & forward).Popcnt()
-
-	// Award position.
 	mask := colMask[side]
 	psqt := m.PieceSquareTable[Pawn][:]
+
 	for bb := pawns; bb != 0; {
 		sq := bb.Pop()
+		fwd := sq.Bitboard().Forward(side)
+
+		score += m.FigureBonus[Pawn]
 		score += psqt[sq^mask]
+
+		if (fwd&^FileBb(7)<<1)&pawns != 0 {
+			score += m.PawnChainBonus
+		}
+		if (fwd&^FileBb(0)>>1)&pawns != 0 {
+			score += m.PawnChainBonus
+		}
+		if fwd&pawns != 0 {
+			score -= m.DoublePawnPenalty
+		}
 	}
 
 	return score

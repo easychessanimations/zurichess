@@ -160,6 +160,18 @@ func FileBb(file int) Bitboard {
 	return fileA << uint(file)
 }
 
+// AdjacentFilesBb returns a bitboard with all bits set on adjacent files.
+func AdjacentFilesBb(file int) Bitboard {
+	var bb Bitboard
+	if file > 0 {
+		bb |= FileBb(file - 1)
+	}
+	if file < 7 {
+		bb |= FileBb(file + 1)
+	}
+	return bb
+}
+
 // As square returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
@@ -171,6 +183,18 @@ func (bb Bitboard) AsSquare() Square {
 // Returns empty board for empty board.
 func (bb Bitboard) LSB() Bitboard {
 	return bb & (-bb)
+}
+
+// Forward shifts the bitboard forward one rank.
+func (bb Bitboard) Forward(col Color) Bitboard {
+	switch col {
+	case White:
+		return bb << 8
+	case Black:
+		return bb >> 8
+	default:
+		return bb
+	}
 }
 
 // Popcnt counts number of squares set in bb.
