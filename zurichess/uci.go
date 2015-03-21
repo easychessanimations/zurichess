@@ -28,7 +28,7 @@ type UCI struct {
 }
 
 func NewUCI() *UCI {
-	options := engine.Options{AnalyseMode: false}
+	options := engine.Options{AnalyseMode: true}
 	return &UCI{
 		Engine: engine.NewEngine(nil, options),
 		Stop:   make(chan struct{}, 1),
@@ -139,30 +139,35 @@ func (uci *UCI) go_(args []string) {
 		case "infinite":
 			i++
 			octc.Time = 1000000 * time.Hour
+			tc = octc
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
 				octc.Time = time.Duration(t) * time.Millisecond
 			}
+			tc = octc
 		case "winc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
 				octc.Inc = time.Duration(t) * time.Millisecond
 			}
+			tc = octc
 		case "btime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
 				octc.Time = time.Duration(t) * time.Millisecond
 			}
+			tc = octc
 		case "binc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
 				octc.Inc = time.Duration(t) * time.Millisecond
 			}
+			tc = octc
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
