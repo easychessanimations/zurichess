@@ -1,7 +1,7 @@
 package engine
 
 const (
-	pvTableSizeShift = 12
+	pvTableSizeShift = 13
 	pvTableSize      = 1 << pvTableSizeShift
 	pvTableMask      = pvTableSize - 1
 )
