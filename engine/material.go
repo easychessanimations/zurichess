@@ -25,6 +25,7 @@ var (
 		BishopPairBonus:   40,
 		PawnChainBonus:    8,
 		DoublePawnPenalty: 13,
+		RookMobility:      3,
 		FigureBonus:       [FigureArraySize]int{0, 100, 335, 325, 440, 975, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 			{ // NoFigure
@@ -96,6 +97,7 @@ var (
 		BishopPairBonus:   40,
 		PawnChainBonus:    8,
 		DoublePawnPenalty: 13,
+		RookMobility:      5,
 		FigureBonus:       [FigureArraySize]int{0, 115, 315, 355, 590, 1000, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 			{ // NoFigure
@@ -172,6 +174,7 @@ type Material struct {
 	BishopPairBonus   int
 	PawnChainBonus    int
 	DoublePawnPenalty int
+	RookMobility      int
 
 	// FigureBonus stores how much each piece is worth.
 	FigureBonus [FigureArraySize]int
@@ -234,6 +237,14 @@ func (m *Material) evaluate(pos *Position, side Color) int {
 
 	// Award connected bishops.
 	score += int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
+
+	// Award rook mobility.
+	all := pos.ByFigure[White] | pos.ByFigure[Black]
+	for bb := pos.ByPiece(side, Rook) | pos.ByPiece(side, Queen); bb != 0; {
+		sq := bb.Pop()
+		rook := RookMagic[sq].Attack(all) &^ pos.ByColor[side]
+		score += rook.Popcnt() * m.RookMobility
+	}
 
 	return score
 }
