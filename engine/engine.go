@@ -394,6 +394,7 @@ func (eng *Engine) printInfo(score int16) {
 func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	score := int16(0)
 	eng.Stats = Stats{Start: time.Now()}
+	eng.killer = eng.killer[:0]
 
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
 		eng.maxPly = int16(maxPly)
