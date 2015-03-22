@@ -36,13 +36,13 @@ func NewUCI() *UCI {
 }
 
 func (uci *UCI) Execute(line string) error {
+	uci.Ready.Wait()
 	cmd := strings.Fields(line)
 	if len(cmd) == 0 {
 		return nil
 	}
 
 	fun, args := cmd[0], cmd[1:]
-
 	var err error
 	switch fun {
 	case "uci":
