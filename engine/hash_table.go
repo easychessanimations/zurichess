@@ -23,8 +23,6 @@ const (
 
 // HashEntry is a value in the transposition table.
 type HashEntry struct {
-	Score  int16    // score of the position
-	Depth  int16    // remaining search depth
 	Kind   HashKind // type of hash
 	Target Piece    // from favorite move
 	From   Square   // from favorite move
@@ -33,6 +31,9 @@ type HashEntry struct {
 	// lock is used to handle hashing conflicts.
 	// Normally, lock is derived from the position's Zobrist key.
 	lock uint32
+
+	Score int16 // score of the position
+	Depth int16 // remaining search depth
 }
 
 // HashTable is a transposition table.
@@ -71,14 +72,13 @@ func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
 // Put puts a new entry in the database.
 func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 	lock, key0, key1 := split(pos.Zobrist, ht.mask)
-	if ht.table[key0].Kind == NoKind ||
-		ht.table[key0].lock == lock ||
-		entry.Depth <= ht.table[key0].Depth+1 {
+	entry.lock = lock
+
+	e0 := &ht.table[key0]
+	if e0.Kind == NoKind || e0.lock == lock || e0.Depth+1 >= entry.Depth {
 		ht.table[key0] = entry
-		ht.table[key0].lock = lock
 	} else {
 		ht.table[key1] = entry
-		ht.table[key1].lock = lock
 	}
 }
 
@@ -89,10 +89,10 @@ func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
 func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
 	lock, key0, key1 := split(pos.Zobrist, ht.mask)
-	if ht.table[key0].lock == lock && ht.table[key0].Kind != NoKind {
+	if ht.table[key0].Kind != NoKind && ht.table[key0].lock == lock {
 		return ht.table[key0], true
 	}
-	if ht.table[key1].lock == lock && ht.table[key1].Kind != NoKind {
+	if ht.table[key1].Kind != NoKind && ht.table[key1].lock == lock {
 		return ht.table[key1], true
 	}
 	return HashEntry{}, false
