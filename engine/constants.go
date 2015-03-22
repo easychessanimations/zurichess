@@ -71,28 +71,6 @@ const (
 	SquareMaxValue  = SquareH8
 )
 
-// Piece constants must stay in sync with ColorFigure
-const (
-	NoPiece Piece = iota
-	_
-	WhitePawn
-	BlackPawn
-	WhiteKnight
-	BlackKnight
-	WhiteBishop
-	BlackBishop
-	WhiteRook
-	BlackRook
-	WhiteQueen
-	BlackQueen
-	WhiteKing
-	BlackKing
-
-	PieceArraySize = int(iota)
-	PieceMinValue  = WhitePawn
-	PieceMaxValue  = BlackKing
-)
-
 const (
 	BbEmpty          Bitboard = 0x0000000000000000
 	BbFull           Bitboard = 0xffffffffffffffff

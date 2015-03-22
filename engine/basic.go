@@ -130,6 +130,28 @@ func (c Color) KingHomeRank() int {
 // Piece is a figure owned by one side.
 type Piece uint8
 
+// Piece constants must stay in sync with ColorFigure
+const (
+	NoPiece Piece = iota
+	_
+	WhitePawn
+	BlackPawn
+	WhiteKnight
+	BlackKnight
+	WhiteBishop
+	BlackBishop
+	WhiteRook
+	BlackRook
+	WhiteQueen
+	BlackQueen
+	WhiteKing
+	BlackKing
+
+	PieceArraySize = int(iota)
+	PieceMinValue  = WhitePawn
+	PieceMaxValue  = BlackKing
+)
+
 // ColorFigure returns a piece with col and fig.
 func ColorFigure(col Color, fig Figure) Piece {
 	return Piece(fig<<1) + Piece(col>>1)
