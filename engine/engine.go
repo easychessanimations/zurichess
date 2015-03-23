@@ -28,12 +28,12 @@ type Stats struct {
 
 // Nodes returns nodes per second.
 func (s *Stats) NPS(now time.Time) uint64 {
-	elapsed := uint64(time.Now().Sub(s.Start) + 1)
+	elapsed := uint64(now.Sub(s.Start) + 1)
 	return s.Nodes * uint64(time.Second) / elapsed
 }
 
 func (s *Stats) Time(now time.Time) uint64 {
-	elapsed := uint64(time.Now().Sub(s.Start) + 1)
+	elapsed := uint64(now.Sub(s.Start) + 1)
 	return elapsed / uint64(time.Millisecond)
 }
 
@@ -375,14 +375,14 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	}
 }
 
-func (eng *Engine) printInfo(score int16) {
+func (eng *Engine) printInfo(score int16, moves []Move) {
 	now := time.Now()
 	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
 		eng.maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
 
 	fmt.Printf("pv")
-	for _, move := range eng.pvTable.Get(eng.Position) {
-		fmt.Printf(" %v", move.UCI())
+	for _, m := range moves {
+		fmt.Printf(" %v", m.UCI())
 	}
 	fmt.Printf("\n")
 }
@@ -401,12 +401,12 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 		score = eng.alphaBeta(score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
-			eng.printInfo(score)
+			eng.printInfo(score, moves)
 		}
 	}
 
 	if !eng.Options.AnalyseMode {
-		eng.printInfo(score)
+		eng.printInfo(score, moves)
 	}
 	return moves
 }
