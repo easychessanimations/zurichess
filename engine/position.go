@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 )
 
 var (
@@ -49,11 +48,32 @@ func NewPosition() *Position {
 }
 
 func PositionFromFEN(fen string) (*Position, error) {
-	f := strings.Fields(fen)
-	if 6 != len(f) {
-		return nil, fmt.Errorf("invalid FEN: expected %d, got %d fields", 6, len(f))
+	// Split fen into 6 fields.
+	// Same as string.Fields() but creates much less garbage.
+	f, p := [6]string{}, 0
+	for i := 0; i < len(fen); {
+		// Find the start and end of the token.
+		for ; i < len(fen) && fen[i] == ' '; i++ {
+		}
+		start := i
+		for ; i < len(fen) && fen[i] != ' '; i++ {
+		}
+		limit := i
+
+		if start == limit {
+			continue
+		}
+		if p >= len(f) {
+			return nil, fmt.Errorf("fen has too many fields")
+		}
+		f[p] = fen[start:limit]
+		p++
+	}
+	if p < len(f) {
+		return nil, fmt.Errorf("fen has too few fields")
 	}
 
+	// Parse each field.
 	pos := NewPosition()
 	if err := ParsePiecePlacement(f[0], pos); err != nil {
 		return nil, err

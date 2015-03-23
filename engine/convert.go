@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-	"strings"
 )
 
 type castleInfo struct {
@@ -60,31 +59,39 @@ var (
 
 // ParsePiecePlacement parse pieces from str (FEN like) into pos.
 func ParsePiecePlacement(str string, pos *Position) error {
-	ranks := strings.Split(str, "/")
-	if len(ranks) != 8 {
-		return fmt.Errorf("expected 8 ranks, got %d", len(ranks))
+	r, f := 0, 0
+	for _, p := range str {
+		if p == '/' {
+			if r == 7 {
+				return fmt.Errorf("expected 8 ranks")
+			}
+			if f != 8 {
+				return fmt.Errorf("expected 8 squares per rank, got %d", f)
+			}
+			r, f = r+1, 0
+			continue
+		}
+
+		if '1' <= p && p <= '8' {
+			f += int(p) - int('0')
+			continue
+		}
+		pi := symbolToPiece[p]
+		if pi == NoPiece {
+			return fmt.Errorf("expected rank or number, got %s", string(p))
+		}
+		if f >= 8 {
+			return fmt.Errorf("rank %d too long (%d cells)", 8-r, f)
+		}
+
+		// 7-r because FEN describes the table from 8th rank.
+		pos.Put(RankFile(7-r, f), pi)
+		f++
+
 	}
-	for r := range ranks {
-		f := 0
-		for _, p := range ranks[r] {
-			pi := symbolToPiece[p]
-			if pi == NoPiece {
-				if '1' <= p && p <= '8' {
-					f += int(p) - int('0') - 1
-				} else {
-					return fmt.Errorf("expected rank or number, got %s", string(p))
-				}
-			}
-			if f >= 8 {
-				return fmt.Errorf("rank %d too long (%d cells)", 8-r, f)
-			}
-			// 7-r because FEN describes the table from 8th rank.
-			pos.Put(RankFile(7-r, f), pi)
-			f++
-		}
-		if f < 8 {
-			return fmt.Errorf("rank %d too short (%d cells)", r+1, f)
-		}
+
+	if f < 8 {
+		return fmt.Errorf("rank %d too short (%d cells)", r+1, f)
 	}
 	return nil
 }
