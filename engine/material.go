@@ -13,9 +13,10 @@ var (
 	// overflows during computation of the position's score.
 	// Scores returned directly are int16.
 
-	KnownWinScore int16 = 20000
-	MateScore     int16 = 30000
-	InfinityScore int16 = 32000
+	KnownWinScore  int16 = 25000
+	KnownLossScore int16 = -KnownWinScore
+	MateScore      int16 = 30000
+	InfinityScore  int16 = 32000
 
 	// The original values for PieceSquareTable were suggested by Tomasz Michniewski as an extremely basic
 	// evaluation here: https://chessprogramming.wikispaces.com/Simplified+evaluation+function

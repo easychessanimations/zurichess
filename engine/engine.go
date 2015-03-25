@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	DepthMultiplier     = 4
-	CheckDepthExtension = 3
+	DepthMultiplier     = 8
+	CheckDepthExtension = 6
 )
 
 // Options keeps engine's options.
@@ -197,10 +197,14 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier)
 	eng.Position.UndoMove(move)
 
+	// If the position is known win/loss then the score is
+	// increased/decreased slightly so the search takes
+	// the shortest/longest path.
 	if score > KnownWinScore {
-		// If the position is a win the score is decreased
-		// slightly so the search takes the shortest path.
 		score--
+	}
+	if score < KnownLossScore {
+		score++
 	}
 	return score
 }
@@ -281,7 +285,8 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 		}
 	}
 
-	if eng.Position.IsChecked(sideToMove) {
+	sideIsChecked := eng.Position.IsChecked(sideToMove)
+	if sideIsChecked {
 		// Extend search when the side to move is in check.
 		// https://chessprogramming.wikispaces.com/Check+Extensions
 		depth += CheckDepthExtension
