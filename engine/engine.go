@@ -148,8 +148,12 @@ func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 
 // quiescence searches a quite move.
 func (eng *Engine) quiescence(α, β, ply int16) int16 {
-	color := eng.Position.SideToMove
-	score := int16(colorWeight[color]) * eng.Score()
+	side := eng.Position.SideToMove
+	if score, done := eng.endPosition(); done {
+		return int16(colorWeight[side]) * score
+	}
+
+	score := int16(colorWeight[side]) * eng.Score()
 	if score >= β {
 		return score
 	}
@@ -162,11 +166,6 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	var move, bestMove Move
 	for eng.stack.PopMove(&move) {
 		eng.Position.DoMove(move)
-		if eng.Position.IsChecked(color) {
-			eng.Position.UndoMove(move)
-			continue
-		}
-
 		score := -eng.quiescence(-β, -localα, ply+1)
 		eng.Position.UndoMove(move)
 
