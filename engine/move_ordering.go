@@ -21,7 +21,7 @@ var (
 	}
 
 	// Give bonus to move found in the hash table.
-	HashMoveBonus int16 = 2048
+	HashMoveBonus int16 = 4096
 	// Give bonus to killer move.
 	KillerMoveBonus int16 = 1024
 )
