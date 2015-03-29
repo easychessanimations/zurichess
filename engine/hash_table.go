@@ -71,7 +71,7 @@ func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
 
 // Put puts a new entry in the database.
 func (ht *HashTable) Put(pos *Position, entry HashEntry) {
-	lock, key0, key1 := split(pos.Zobrist, ht.mask)
+	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	entry.lock = lock
 
 	e0 := &ht.table[key0]
@@ -88,7 +88,7 @@ func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 // from a different table. However, these errors are not common because
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
 func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
-	lock, key0, key1 := split(pos.Zobrist, ht.mask)
+	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	if ht.table[key0].Kind != NoKind && ht.table[key0].lock == lock {
 		return ht.table[key0], true
 	}

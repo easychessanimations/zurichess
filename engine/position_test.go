@@ -698,3 +698,50 @@ func TestNumPiece(t *testing.T) {
 		}
 	}
 }
+
+func TestIsThreeFoldRepetition(t *testing.T) {
+	pos, _ := PositionFromFEN(testBoard1)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("b1c3")
+	te.Move("b8c6")
+	te.Move("c3b1")
+	te.Move("c6b8")
+	if pos.IsThreeFoldRepetition() { // Knights.
+		t.Errorf("three fold repetition not expected")
+	}
+
+	te.Move("b1c3")
+	te.Move("b8c6")
+	te.Move("c3b1")
+	te.Move("c6b8")
+	if !pos.IsThreeFoldRepetition() { // Knights, knights.
+		t.Errorf("three fold repetition expected")
+	}
+
+	te.Undo()
+	te.Undo()
+	te.Undo()
+	te.Undo()
+	te.Move("d2d4")
+	te.Move("d7d5")
+	if pos.IsThreeFoldRepetition() { // Knights, pawns.
+		t.Errorf("three fold repetition not expected")
+	}
+
+	te.Move("b1c3")
+	te.Move("b8c6")
+	te.Move("c3b1")
+	te.Move("c6b8")
+	if pos.IsThreeFoldRepetition() { // Knights, pawns, knights.
+		t.Errorf("three fold repetition not expected")
+	}
+
+	te.Move("b1c3")
+	te.Move("b8c6")
+	te.Move("c3b1")
+	te.Move("c6b8")
+	if !pos.IsThreeFoldRepetition() { // Knights, pawns, knights, knights.
+		t.Errorf("three fold repetition expected")
+	}
+}

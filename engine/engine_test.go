@@ -48,29 +48,6 @@ func TestScore(t *testing.T) {
 	}
 }
 
-// Test zobrist is the same if we start with the position or move.
-func TestZobrist(t *testing.T) {
-	for _, game := range games {
-		pos, _ := PositionFromFEN(FENStartPos)
-		dynamic := NewEngine(pos, Options{})
-		static := NewEngine(nil, Options{})
-
-		moves := strings.Fields(game)
-		for _, move := range moves {
-			m := pos.UCIToMove(move)
-			dynamic.DoMove(m)
-			static.SetPosition(pos)
-
-			t.Log("move", m, "piece", m.Piece(), "capture", m.Capture())
-			if dynamic.Position.Zobrist != static.Position.Zobrist {
-				t.Logf("expected static zobrist hash %v, got dynamic zobrist hash %v",
-					static.Position.Zobrist, dynamic.Position.Zobrist)
-				t.FailNow()
-			}
-		}
-	}
-}
-
 func TestMateIn1(t *testing.T) {
 	game := []struct {
 		move []string

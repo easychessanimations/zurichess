@@ -40,18 +40,18 @@ func newPvTable() pvTable {
 
 // Put inserts a new entry.
 func (pv *pvTable) Put(pos *Position, move Move) {
-	// Based on pos.Zobrist two entries are looked up.
+	// Based on pos.Zobrist() two entries are looked up.
 	// If any of the two entries in the table matches
 	// current position, then that one is replaced.
 	// Otherwise, the older is replaced.
 
-	entry1 := &pv.table[uint32(pos.Zobrist)&pvTableMask]
-	entry2 := &pv.table[uint32(pos.Zobrist>>32)&pvTableMask]
+	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
+	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
 
 	var entry *pvEntry
-	if entry1.Lock == pos.Zobrist {
+	if entry1.Lock == pos.Zobrist() {
 		entry = entry1
-	} else if entry2.Lock == pos.Zobrist {
+	} else if entry2.Lock == pos.Zobrist() {
 		entry = entry2
 	} else if entry1.Birth <= entry2.Birth {
 		entry = entry1
@@ -61,21 +61,21 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 
 	pv.timer++
 	*entry = pvEntry{
-		Lock:  pos.Zobrist,
+		Lock:  pos.Zobrist(),
 		Move:  move,
 		Birth: pv.timer,
 	}
 }
 
 func (pv *pvTable) get(pos *Position) *pvEntry {
-	entry1 := &pv.table[uint32(pos.Zobrist)&pvTableMask]
-	entry2 := &pv.table[uint32(pos.Zobrist>>32)&pvTableMask]
+	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
+	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
 
 	var entry *pvEntry
-	if entry1.Lock == pos.Zobrist {
+	if entry1.Lock == pos.Zobrist() {
 		entry = entry1
 	}
-	if entry2.Lock == pos.Zobrist {
+	if entry2.Lock == pos.Zobrist() {
 		entry = entry2
 	}
 	if entry == nil {
@@ -92,8 +92,8 @@ func (pv *pvTable) Get(pos *Position) []Move {
 
 	// Extract the moves by following the position.
 	entry := pv.get(pos)
-	for entry != nil && entry.Move.MoveType != NoMove && !seen[pos.Zobrist] {
-		seen[pos.Zobrist] = true
+	for entry != nil && entry.Move.MoveType != NoMove && !seen[pos.Zobrist()] {
+		seen[pos.Zobrist()] = true
 		moves = append(moves, entry.Move)
 		pos.DoMove(entry.Move)
 		entry = pv.get(pos)

@@ -119,6 +119,10 @@ func (eng *Engine) endPosition() (int16, bool) {
 			return 0, true
 		}
 	}
+	// Repetition is a draw.
+	if eng.Position.IsThreeFoldRepetition() {
+		return 0, true
+	}
 	return 0, false
 }
 

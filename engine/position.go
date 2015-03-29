@@ -23,6 +23,8 @@ func init() {
 type state struct {
 	Castle          Castle // remaining castling rights.
 	EnpassantSquare Square // enpassant square. If none, then SquareA1.
+	IrreversiblePly int    // highest square in which an irreversible move (cannot be part of repetition) made
+	Zobrist         uint64
 }
 
 // Position encodes the chess board.
@@ -31,20 +33,20 @@ type Position struct {
 	ByColor    [ColorArraySize]Bitboard              // bitboards of square occupancy by color.
 	NumPieces  [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
 	SideToMove Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
-	Zobrist    uint64
 
 	FullMoveNumber int
 	HalfMoveClock  int
+	Ply            int // current Ply
 
-	ply    int     // curent ply
-	states []state // state that is saved at each ply
+	states []state // a state for each Ply
+	curr   *state  // current state
 }
 
 // NewPosition returns a new position.
 func NewPosition() *Position {
-	return &Position{
-		states: make([]state, 1),
-	}
+	pos := &Position{states: make([]state, 1)}
+	pos.curr = &pos.states[pos.Ply]
+	return pos
 }
 
 func PositionFromFEN(fen string) (*Position, error) {
@@ -109,26 +111,23 @@ func (pos *Position) String() string {
 	return s
 }
 
-// curr returns state at current ply.
-func (pos *Position) curr() *state {
-	return &pos.states[pos.ply]
-}
-
-// prev returns state at previous ply.
+// prev returns state at previous Ply.
 func (pos *Position) prev() *state {
-	return &pos.states[pos.ply-1]
+	return &pos.states[pos.Ply-1]
 }
 
-// popState pops one ply.
+// popState pops one Ply.
 func (pos *Position) popState() {
-	pos.states = pos.states[:pos.ply]
-	pos.ply--
+	pos.states = pos.states[:pos.Ply]
+	pos.Ply--
+	pos.curr = &pos.states[pos.Ply]
 }
 
-// pushState adds one ply.
+// pushState adds one Ply.
 func (pos *Position) pushState() {
-	pos.states = append(pos.states, pos.states[pos.ply])
-	pos.ply++
+	pos.states = append(pos.states, pos.states[pos.Ply])
+	pos.Ply++
+	pos.curr = &pos.states[pos.Ply]
 }
 
 // IsEnpassantSquare returns truee if sq is the enpassant square
@@ -138,12 +137,17 @@ func (pos *Position) IsEnpassantSquare(sq Square) bool {
 
 // EnpassantSquare returns the enpassant square.
 func (pos *Position) EnpassantSquare() Square {
-	return pos.curr().EnpassantSquare
+	return pos.curr.EnpassantSquare
 }
 
 // CastlingAbility returns kings' castling ability.
 func (pos *Position) CastlingAbility() Castle {
-	return pos.curr().Castle
+	return pos.curr.Castle
+}
+
+// Zobrist returns the zobrist key of the position.
+func (pos *Position) Zobrist() uint64 {
+	return pos.curr.Zobrist
 }
 
 // Verify check the validity of the position.
@@ -166,23 +170,23 @@ func (pos *Position) Verify() error {
 
 // SetCastlingAbility sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
-	pos.Zobrist ^= zobristCastle[pos.curr().Castle]
-	pos.curr().Castle = castle
-	pos.Zobrist ^= zobristCastle[pos.curr().Castle]
+	pos.curr.Zobrist ^= zobristCastle[pos.curr.Castle]
+	pos.curr.Castle = castle
+	pos.curr.Zobrist ^= zobristCastle[pos.curr.Castle]
 }
 
 // SetSideToMove sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetSideToMove(col Color) {
-	pos.Zobrist ^= zobristColor[pos.SideToMove]
+	pos.curr.Zobrist ^= zobristColor[pos.SideToMove]
 	pos.SideToMove = col
-	pos.Zobrist ^= zobristColor[pos.SideToMove]
+	pos.curr.Zobrist ^= zobristColor[pos.SideToMove]
 }
 
 // SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
-	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
-	pos.curr().EnpassantSquare = sq
-	pos.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
+	pos.curr.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
+	pos.curr.EnpassantSquare = sq
+	pos.curr.Zobrist ^= zobristEnpassant[pos.EnpassantSquare()]
 }
 
 // ByPiece is a shortcut for ByColor[col]&ByFigure[fig].
@@ -194,7 +198,7 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 // Does nothing if pi is NoPiece. Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
 	if pi != NoPiece {
-		pos.Zobrist ^= zobristPiece[pi][sq]
+		pos.curr.Zobrist ^= zobristPiece[pi][sq]
 		col, fig := pi.Color(), pi.Figure()
 		bb := sq.Bitboard()
 
@@ -211,7 +215,7 @@ func (pos *Position) Put(sq Square, pi Piece) {
 // Does nothing if pi is NoPiece. Does not validate input.
 func (pos *Position) Remove(sq Square, pi Piece) {
 	if pi != NoPiece {
-		pos.Zobrist ^= zobristPiece[pi][sq]
+		pos.curr.Zobrist ^= zobristPiece[pi][sq]
 		col, fig := pi.Color(), pi.Figure()
 		bb := ^sq.Bitboard()
 
@@ -242,6 +246,23 @@ func (pos *Position) Get(sq Square) Piece {
 		}
 	}
 	panic("unreachable")
+}
+
+// IsThreeFoldRepetition returns whether current position was seen three times already.
+func (pos *Position) IsThreeFoldRepetition() bool {
+	if pos.Ply-pos.curr.IrreversiblePly < 4 {
+		return false
+	}
+
+	c, z := 0, pos.Zobrist()
+	for i := pos.Ply; i >= pos.curr.IrreversiblePly; i -= 2 {
+		if pos.states[i].Zobrist == z {
+			if c++; c == 3 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // IsChecked returns true if side's king is checked.
@@ -276,9 +297,15 @@ func (pos *Position) PrettyPrint() {
 // DoMove performs a move of known piece.
 // Expects the move to be valid.
 func (pos *Position) DoMove(move Move) {
-	// Update castling rights based on the source&target squares.
 	pos.pushState()
-	pos.SetCastlingAbility(pos.curr().Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+
+	// Update castling rights.
+	pos.SetCastlingAbility(pos.curr.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+
+	// Update IrreversiblePly.
+	if move.Capture() != NoPiece || move.Piece().Figure() == Pawn {
+		pos.curr.IrreversiblePly = pos.Ply
+	}
 
 	// Move rook on castling.
 	if move.MoveType == Castling {
@@ -495,7 +522,7 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 	}
 
 	// Castle king side.
-	if pos.curr().Castle&oo != 0 {
+	if pos.curr.Castle&oo != 0 {
 		r5 := RankFile(rank, 5)
 		r6 := RankFile(rank, 6)
 		if !pos.IsEmpty(r5) || !pos.IsEmpty(r6) {
@@ -515,7 +542,7 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 EndCastleOO:
 
 	// Castle queen side.
-	if pos.curr().Castle&ooo != 0 {
+	if pos.curr.Castle&ooo != 0 {
 		r3 := RankFile(rank, 3)
 		r2 := RankFile(rank, 2)
 		r1 := RankFile(rank, 1)
