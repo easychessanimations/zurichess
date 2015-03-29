@@ -23,63 +23,26 @@ var (
 	//
 	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{
-		BishopPairBonus:   40,
-		PawnChainBonus:    8,
 		DoublePawnPenalty: 13,
-		RookMobility:      3,
-		FigureBonus:       [FigureArraySize]int{0, 100, 335, 325, 440, 975, 10000},
+		BishopPairBonus:   20,
+		Mobility:          [FigureArraySize]int{0, 0, 2, 5, 6, 1, -12},
+		FigureBonus:       [FigureArraySize]int{0, 17, 332, 308, 385, 941, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
-			{ // NoFigure
-			},
+			{}, // NoFigure
 			{ // Pawn
 				0, 0, 0, 0, 0, 0, 0, 0,
-				5, 10, 10, -20, -20, 10, 10, 5,
-				5, -5, -10, 0, 0, -10, -5, 5,
-				0, 0, 0, 20, 20, 0, 0, 0,
-				5, 5, 10, 25, 25, 10, 5, 5,
-				10, 10, 20, 30, 30, 20, 10, 10,
-				50, 50, 50, 50, 50, 50, 50, 50,
+				36, 52, 47, 41, 41, 47, 52, 36,
+				39, 53, 46, 54, 54, 46, 53, 39,
+				30, 38, 48, 60, 60, 48, 38, 30,
+				27, 29, 42, 57, 57, 42, 29, 27,
+				51, 80, 41, 82, 82, 41, 80, 51,
+				102, 104, 94, 111, 111, 94, 104, 102,
 				0, 0, 0, 0, 0, 0, 0, 0,
 			},
-			{ // Knight
-				-50, -40, -30, -30, -30, -30, -40, -50,
-				-40, -20, 0, 0, 0, 0, -20, -40,
-				-30, 0, 10, 15, 15, 10, 0, -30,
-				-30, 5, 15, 20, 20, 15, 5, -30,
-				-30, 0, 15, 20, 20, 15, 0, -30,
-				-30, 5, 10, 15, 15, 10, 5, -30,
-				-40, -20, 0, 5, 5, 0, -20, -40,
-				-50, -40, -30, -30, -30, -30, -40, -50,
-			},
-			{ // Bishop
-				-20, -10, -10, -10, -10, -10, -10, -20,
-				-10, 5, 0, 0, 0, 0, 5, -10,
-				-10, 10, 10, 10, 10, 10, 10, -10,
-				-10, 0, 10, 10, 10, 10, 0, -10,
-				-10, 5, 5, 10, 10, 5, 5, -10,
-				-10, 0, 5, 10, 10, 5, 0, -10,
-				-10, 0, 0, 0, 0, 0, 0, -10,
-				-20, -10, -10, -10, -10, -10, -10, -20,
-			},
-			{ // Rook
-				0, 0, 0, 5, 5, 0, 0, 0,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				5, 10, 10, 10, 10, 10, 10, 5,
-				0, 0, 0, 0, 0, 0, 0, 0,
-			},
-			{ // Queen
-				-20, -10, -10, -5, -5, -10, -10, -20,
-				-10, 0, 5, 0, 0, 0, 0, -10,
-				-10, 5, 5, 5, 5, 5, 0, -10,
-				0, 0, 5, 5, 5, 5, 0, -5,
-				-5, 0, 5, 5, 5, 5, 0, -5,
-				-10, 0, 5, 5, 5, 5, 0, -10,
-				-10, 0, 0, 0, 0, 0, 0, -10,
-				-20, -10, -10, -5, -5, -10, -10, -20},
+			{}, // Knight
+			{}, // Bishop
+			{}, // Rook
+			{}, // Queen
 			{ // King
 				20, 30, 10, 0, 0, 10, 30, 20,
 				20, 20, 0, 0, 0, 0, 20, 20,
@@ -95,64 +58,26 @@ var (
 
 	// EndGameMaterial defines the material values for end game.
 	EndGameMaterial = Material{
-		BishopPairBonus:   40,
-		PawnChainBonus:    8,
-		DoublePawnPenalty: 13,
-		RookMobility:      5,
-		FigureBonus:       [FigureArraySize]int{0, 115, 315, 355, 590, 1000, 10000},
+		DoublePawnPenalty: 49,
+		BishopPairBonus:   60,
+		Mobility:          [FigureArraySize]int{0, 0, 13, 9, 6, 13, 4},
+		FigureBonus:       [FigureArraySize]int{0, 147, 304, 346, 617, 1060, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
-			{ // NoFigure
-			},
+			{}, // NoFigure
 			{ // Pawn
 				0, 0, 0, 0, 0, 0, 0, 0,
-				-17, 0, 12, 30, 30, 12, 0, -17,
-				-5, -3, -7, -16, -16, -7, -3, -5,
-				0, -12, -3, -7, -7, -3, -12, 0,
-				12, 47, 12, 0, 0, 12, 47, 12,
-				94, 94, 95, -14, -14, 95, 94, 94,
-				50, 50, 50, 50, 50, 50, 50, 50,
+				22, 17, 2, -22, -22, 2, 17, 22,
+				13, 17, -3, -4, -4, -3, 17, 13,
+				23, 21, -13, -4, -4, -13, 21, 23,
+				48, 47, 14, 8, 8, 14, 47, 48,
+				122, 101, 92, 101, 101, 92, 101, 122,
+				124, 108, 119, 100, 100, 119, 108, 124,
 				0, 0, 0, 0, 0, 0, 0, 0,
 			},
-			{ // Knight
-				-50, -40, -30, -30, -30, -30, -40, -50,
-				-40, -20, 0, 0, 0, 0, -20, -40,
-				-30, 0, 10, 15, 15, 10, 0, -30,
-				-30, 5, 15, 20, 20, 15, 5, -30,
-				-30, 0, 15, 20, 20, 15, 0, -30,
-				-30, 5, 10, 15, 15, 10, 5, -30,
-				-40, -20, 0, 5, 5, 0, -20, -40,
-				-50, -40, -30, -30, -30, -30, -40, -50,
-			},
-			{ // Bishop
-				-20, -10, -10, -10, -10, -10, -10, -20,
-				-10, 5, 0, 0, 0, 0, 5, -10,
-				-10, 10, 10, 10, 10, 10, 10, -10,
-				-10, 0, 10, 10, 10, 10, 0, -10,
-				-10, 5, 5, 10, 10, 5, 5, -10,
-				-10, 0, 5, 10, 10, 5, 0, -10,
-				-10, 0, 0, 0, 0, 0, 0, -10,
-				-20, -10, -10, -10, -10, -10, -10, -20,
-			},
-			{ // Rook
-				0, 0, 0, 5, 5, 0, 0, 0,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				-5, 0, 0, 0, 0, 0, 0, -5,
-				5, 10, 10, 10, 10, 10, 10, 5,
-				0, 0, 0, 0, 0, 0, 0, 0,
-			},
-			{ // Queen
-				-20, -10, -10, -5, -5, -10, -10, -20,
-				-10, 0, 5, 0, 0, 0, 0, -10,
-				-10, 5, 5, 5, 5, 5, 0, -10,
-				0, 0, 5, 5, 5, 5, 0, -5,
-				-5, 0, 5, 5, 5, 5, 0, -5,
-				-10, 0, 5, 5, 5, 5, 0, -10,
-				-10, 0, 0, 0, 0, 0, 0, -10,
-				-20, -10, -10, -5, -5, -10, -10, -20,
-			},
+			{}, // Knight
+			{}, // Bishop
+			{}, // Rook
+			{}, // Queen
 			{ // King
 				-50, -30, -30, -30, -30, -30, -30, -50,
 				-30, -30, 0, 0, 0, 0, -30, -30,
@@ -172,10 +97,9 @@ var (
 type Material struct {
 	pawnTable pawnTable
 
-	BishopPairBonus   int
-	PawnChainBonus    int
 	DoublePawnPenalty int
-	RookMobility      int
+	BishopPairBonus   int
+	Mobility          [FigureArraySize]int
 
 	// FigureBonus stores how much each piece is worth.
 	FigureBonus [FigureArraySize]int
@@ -195,17 +119,8 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 
 	for bb := pawns; bb != 0; {
 		sq := bb.Pop()
+		score += m.FigureBonus[Pawn] + psqt[sq^mask]
 		fwd := sq.Bitboard().Forward(side)
-
-		score += m.FigureBonus[Pawn]
-		score += psqt[sq^mask]
-
-		if (fwd&^FileBb(7)<<1)&pawns != 0 {
-			score += m.PawnChainBonus
-		}
-		if (fwd&^FileBb(0)>>1)&pawns != 0 {
-			score += m.PawnChainBonus
-		}
 		if fwd&pawns != 0 {
 			score -= m.DoublePawnPenalty
 		}
@@ -218,33 +133,42 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 //
 // Pawn features are evaluated part of pawnStructure.
 func (m *Material) evaluate(pos *Position, side Color) int {
-	score := 0
-	mask := colMask[side]
-
-	// Award pieces on the table.
-	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-		if fig == Pawn || pos.NumPieces[side][fig] == 0 {
-			// Pawns psqt are evaluated by pawnStructure.
-			continue
-		}
-
-		psqt := m.PieceSquareTable[fig][:]
-		for bb := pos.ByPiece(side, fig); bb != 0; {
-			sq := bb.Pop()
-			score += m.FigureBonus[fig]
-			score += psqt[sq^mask]
-		}
-	}
+	// Opposite pawns, one square forward.
+	pawns := pos.ByPiece(side.Opposite(), Pawn).Forward(side.Opposite())
+	// Squares occupied by current player and those attacked by opposite pawns.
+	mask := pos.ByColor[side] | (pawns & ^FileBb(7) << 1) | (pawns & ^FileBb(0) >> 1)
+	// All occupied squares.
+	all := pos.ByFigure[White] | pos.ByFigure[Black]
 
 	// Award connected bishops.
-	score += int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
+	score := int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
 
-	// Award rook mobility.
-	all := pos.ByFigure[White] | pos.ByFigure[Black]
-	for bb := pos.ByPiece(side, Rook) | pos.ByPiece(side, Queen); bb != 0; {
+	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
-		rook := RookMagic[sq].Attack(all) &^ pos.ByColor[side]
-		score += rook.Popcnt() * m.RookMobility
+		knight := BbKnightAttack[sq] &^ mask
+		score += m.FigureBonus[Knight] + knight.Popcnt()*m.Mobility[Knight]
+	}
+	for bb := pos.ByPiece(side, Bishop); bb != 0; {
+		sq := bb.Pop()
+		bishop := BishopMagic[sq].Attack(all) &^ mask
+		score += m.FigureBonus[Bishop] + bishop.Popcnt()*m.Mobility[Bishop]
+	}
+	for bb := pos.ByPiece(side, Rook); bb != 0; {
+		sq := bb.Pop()
+		rook := RookMagic[sq].Attack(all) &^ mask
+		score += m.FigureBonus[Rook] + rook.Popcnt()*m.Mobility[Rook]
+	}
+	for bb := pos.ByPiece(side, Queen); bb != 0; {
+		sq := bb.Pop()
+		rook := RookMagic[sq].Attack(all) &^ mask
+		bishop := BishopMagic[sq].Attack(all) &^ mask
+		score += m.FigureBonus[Queen] + (rook|bishop).Popcnt()*m.Mobility[Queen]
+	}
+	for bb := pos.ByPiece(side, King); bb != 0; {
+		sq := bb.Pop()
+		king := BbKingAttack[sq] &^ mask
+		score += m.FigureBonus[King] + king.Popcnt()*m.Mobility[King]
+		score += m.PieceSquareTable[King][sq^colMask[side]]
 	}
 
 	return score
