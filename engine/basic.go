@@ -111,7 +111,6 @@ const (
 )
 
 var (
-	colorWeight  = [ColorArraySize]int{0, 1, -1}
 	kingHomeRank = [ColorArraySize]int{0, 0, 7}
 )
 

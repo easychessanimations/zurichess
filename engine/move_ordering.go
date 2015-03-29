@@ -8,6 +8,8 @@ var (
 	//
 	// In zurichess the MVV/LVA formula is not used,
 	// but the values are optimized and stored in this array.
+	// Capturing the king should have a very high value
+	// to prevent searching positions with other side in check.
 	//
 	// mvvlvaTable[attacker * FigureSize + victim]
 	mvvlvaTable = [FigureArraySize * FigureArraySize]int{

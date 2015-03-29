@@ -11,6 +11,12 @@ const (
 	CheckDepthExtension = 6
 )
 
+var (
+	// scoreMultiplier is used to compute the score from side
+	// to move POV from given the score from white POV.
+	scoreMultiplier = [ColorArraySize]int16{0, 1, -1}
+)
+
 // Options keeps engine's options.
 type Options struct {
 	AnalyseMode bool // true to display info strings
@@ -91,17 +97,17 @@ func (eng *Engine) UndoMove(move Move) {
 // Score evaluates current position from White's POV.
 func (eng *Engine) Score() int16 {
 	eng.Stats.Nodes++
-	return Evaluate(eng.Position)
+	return scoreMultiplier[eng.Position.SideToMove] * Evaluate(eng.Position)
 }
 
 // endPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) endPosition() (int16, bool) {
 	if eng.Position.NumPieces[White][King] == 0 {
-		return -MateScore, true
+		return scoreMultiplier[eng.Position.SideToMove] * -MateScore, true
 	}
 	if eng.Position.NumPieces[Black][King] == 0 {
-		return +MateScore, true
+		return scoreMultiplier[eng.Position.SideToMove] * +MateScore, true
 	}
 	// K vs K is draw.
 	if eng.Position.NumPieces[NoColor][NoPiece] == 2 {
@@ -146,14 +152,12 @@ func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 	})
 }
 
-// quiescence searches a quite move.
+// quiescence evaluates the position after solving all captures.
 func (eng *Engine) quiescence(α, β, ply int16) int16 {
-	side := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
-		return int16(colorWeight[side]) * score
+		return score
 	}
-
-	score := int16(colorWeight[side]) * eng.Score()
+	score := eng.Score()
 	if score >= β {
 		return score
 	}
@@ -260,7 +264,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 	sideToMove := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
-		return int16(colorWeight[sideToMove]) * score
+		return score
 	}
 
 	// Check the transposition table.
