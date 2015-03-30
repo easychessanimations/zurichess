@@ -95,7 +95,7 @@ func (tc *OnClockTimeControl) NextDepth() int {
 	default:
 	}
 
-	if tc.currDepth < 64 && time.Now().Before(tc.timeLimit) {
+	if tc.currDepth < 64 && (tc.currDepth < 1 || time.Now().Before(tc.timeLimit)) {
 		tc.currDepth++
 		return tc.currDepth
 	}
