@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	DepthMultiplier     = 8
-	CheckDepthExtension = 6
+	DepthMultiplier        = 8
+	CheckDepthExtension    = 6
+	NullMoveDepthLimit     = DepthMultiplier
+	NullMoveDepthReduction = 3 * DepthMultiplier
 )
 
 var (
@@ -201,7 +203,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 		return -InfinityScore
 	}
 
-	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier)
+	score := -eng.negamax(-β, -α, ply+1, depth, move.MoveType != NoMove)
 	eng.Position.UndoMove(move)
 
 	// If the position is known win/loss then the score is
@@ -265,7 +267,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 // minimizing nodes already have a better alternative.
 //
 // At ply 0 negamax sets eng.root.
-func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
+func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16 {
 	sideToMove := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
 		return score
@@ -306,13 +308,24 @@ func (eng *Engine) negamax(α, β, ply, depth int16) int16 {
 		return score
 	}
 
+	// Do a null move.
+	// https://chessprogramming.wikispaces.com/Null+Move+Pruning
+	if nullMoveAllowed && // no two consective null moves
+		depth > NullMoveDepthLimit && // not very close to leafs
+		eng.Position.NumPieces[sideToMove][Pawn]+1 < eng.Position.NumPieces[sideToMove][NoPiece] { // at least one minor/major piece.
+		// eng.tryMove makes sure that side does not remain in check.
+		if score := eng.tryMove(β-1, β, ply, depth-NullMoveDepthReduction, Move{}); score >= β {
+			return score
+		}
+	}
+
 	localα := α
 	bestMove, bestScore := Move{}, -InfinityScore
 
 	eng.generateMoves(ply, &entry)
 	var move Move
 	for eng.stack.PopMove(&move) {
-		score := eng.tryMove(localα, β, ply, depth, move)
+		score := eng.tryMove(localα, β, ply, depth-DepthMultiplier, move)
 		if score >= β { // Fail high.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
@@ -374,7 +387,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	α, β := γ-δ, γ+δ
 
 	for {
-		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier)
+		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier, true)
 		if int(score) <= α {
 			α = inf(α - δ)
 			δ += δ / 2
@@ -418,7 +431,7 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	}
 
 	if !eng.Options.AnalyseMode {
-		eng.printInfo(score, moves)
+		// eng.printInfo(score, moves)
 	}
 	return moves
 }
