@@ -99,10 +99,6 @@ type hashEntry struct {
 	depth    int
 }
 
-const (
-	hashSize = 1 << 24
-)
-
 var (
 	startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	kiwipete = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
@@ -148,17 +144,20 @@ var (
 	}
 
 	// A hash table to speedup perft.
+	hashSize  = 1 << 20
 	hashTable = make([]hashEntry, hashSize)
 )
 
-func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
+func perft(pos *engine.Position, depth int, hashTable []hashEntry, moves *[]engine.Move) counters {
 	if depth == 0 {
 		return counters{1, 0, 0, 0, 0}
 	}
 
-	index := pos.Zobrist % hashSize
-	if hashTable[index].depth == depth && hashTable[index].zobriest == pos.Zobrist {
-		return hashTable[index].counters
+	if hashTable != nil {
+		index := pos.Zobrist() % uint64(len(hashTable))
+		if hashTable[index].depth == depth && hashTable[index].zobriest == pos.Zobrist() {
+			return hashTable[index].counters
+		}
 	}
 
 	r := counters{}
@@ -190,14 +189,17 @@ func perft(pos *engine.Position, depth int, moves *[]engine.Move) counters {
 			}
 		}
 
-		r.Add(perft(pos, depth-1, moves))
+		r.Add(perft(pos, depth-1, hashTable, moves))
 		pos.UndoMove(move)
 	}
 
-	hashTable[index] = hashEntry{
-		zobriest: pos.Zobrist,
-		counters: r,
-		depth:    depth,
+	if hashTable != nil {
+		index := pos.Zobrist() % uint64(len(hashTable))
+		hashTable[index] = hashEntry{
+			zobriest: pos.Zobrist(),
+			counters: r,
+			depth:    depth,
+		}
 	}
 	return r
 }
@@ -206,7 +208,7 @@ func split(pos *engine.Position, depth, splitDepth int) counters {
 	r := counters{}
 	if depth == 0 || splitDepth == 0 {
 		moves := make([]engine.Move, 0, 256)
-		r = perft(pos, depth, &moves)
+		r = perft(pos, depth, hashTable, &moves)
 	} else {
 		var moves []engine.Move
 		pos.GenerateMoves(&moves)

@@ -17,7 +17,7 @@ func testHelper(t *testing.T, fen string, testData []counters) {
 			t.Errorf("invalid FEN: %s", fen)
 		}
 
-		actual := perft(pos, depth, new([]engine.Move))
+		actual := perft(pos, depth, hashTable, new([]engine.Move))
 		if expected != actual {
 			t.Errorf("at depth %d expected %+v got %+v", depth, expected, actual)
 		}
@@ -39,9 +39,7 @@ func TestPerftDuplain(t *testing.T) {
 func benchHelper(b *testing.B, fen string, depth int) {
 	pos, _ := engine.PositionFromFEN(fen)
 	for i := 0; i < b.N; i++ {
-		pos.Zobrist ^= uint64(i) // Change hash to recalculate positions.
-		perft(pos, depth, new([]engine.Move))
-		pos.Zobrist ^= uint64(i) // Change hash to recalculate positions.
+		perft(pos, depth, nil, new([]engine.Move))
 	}
 }
 

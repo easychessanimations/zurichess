@@ -18,13 +18,17 @@ type testEngine struct {
 	moves []Move
 }
 
+// Move does uci move (e.g. a1h8).
+// If m == "", then it does the null move.
 func (te *testEngine) Move(m string) {
-	move := te.Pos.UCIToMove(m)
+	move := Move{}
+	if m != "" {
+		move = te.Pos.UCIToMove(m)
+	}
 	if te.Pos.SideToMove == move.Capture().Color() {
-		te.T.Errorf("%v cannot capture its own color (move %v)",
+		te.T.Fatalf("%v cannot capture its own color (move %v)",
 			te.Pos.SideToMove, move)
 	}
-
 	te.moves = append(te.moves, move)
 	te.Pos.DoMove(move)
 }
@@ -743,5 +747,60 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Move("c6b8")
 	if !pos.IsThreeFoldRepetition() { // Knights, pawns, knights, knights.
 		t.Errorf("three fold repetition expected")
+	}
+}
+
+func TestNullMoveSimple(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("")
+	if Black != pos.SideToMove {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.SideToMove)
+	}
+	te.Undo()
+	if FENStartPos != pos.String() {
+		t.Fatalf("bad nullmove undo. expected %s, got %s", FENStartPos, pos.String())
+	}
+}
+
+func TestNullMoveEnpassantSquare(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("d2d4")
+	te.Move("")
+	if White != pos.SideToMove {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", White, pos.SideToMove)
+	}
+	if SquareA1 != pos.EnpassantSquare() {
+		t.Fatalf("bad nullmove EnpassantSquare. expected none, got %v", pos.EnpassantSquare())
+	}
+
+	te.Undo()
+	if SquareD3 != pos.EnpassantSquare() {
+		t.Fatalf("bad nullmove EnpassantSquare. expected %v, got %v", SquareD3, pos.EnpassantSquare())
+	}
+	te.Undo()
+}
+
+func TestNullMoveCastlingAbility(t *testing.T) {
+	pos, _ := PositionFromFEN(FENKiwipete)
+	te := &testEngine{T: t, Pos: pos}
+
+	te.Move("")
+	if Black != pos.SideToMove {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.SideToMove)
+	}
+	if AnyCastle != pos.CastlingAbility() {
+		t.Fatalf("bad nullmove CastlingAbility. expected %v, got %v", AnyCastle, pos.CastlingAbility())
+	}
+
+	te.Undo()
+	if FENKiwipete != pos.String() {
+		t.Fatalf("bad nullmove undo. expected %s, got %s", FENStartPos, pos.String())
+	}
+	if AnyCastle != pos.CastlingAbility() {
+		t.Fatalf("bad nullmove CastlingAbility. expected %v, got %v", AnyCastle, pos.CastlingAbility())
 	}
 }

@@ -300,10 +300,13 @@ func (pos *Position) DoMove(move Move) {
 	pos.pushState()
 
 	// Update castling rights.
-	pos.SetCastlingAbility(pos.curr.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+	pi := move.Piece()
+	if pi != NoPiece { // nullmove cannot change castling ability
+		pos.SetCastlingAbility(pos.curr.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+	}
 
 	// Update IrreversiblePly.
-	if move.Capture() != NoPiece || move.Piece().Figure() == Pawn {
+	if move.Capture() != NoPiece || pi.Figure() == Pawn {
 		pos.curr.IrreversiblePly = pos.Ply
 	}
 
@@ -315,7 +318,6 @@ func (pos *Position) DoMove(move Move) {
 	}
 
 	// Set Enpassant square for capturing.
-	pi := move.Piece()
 	if pi.Figure() == Pawn &&
 		move.From.Bitboard()&BbPawnStartRank != 0 &&
 		move.To.Bitboard()&BbPawnDoubleRank != 0 {
