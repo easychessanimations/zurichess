@@ -34,8 +34,8 @@ type Position struct {
 	NumPieces  [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
 	SideToMove Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
 
-	FullMoveNumber int
 	HalfMoveClock  int
+	FullMoveNumber int
 	Ply            int // current Ply
 
 	states []state // a state for each Ply
@@ -44,7 +44,11 @@ type Position struct {
 
 // NewPosition returns a new position.
 func NewPosition() *Position {
-	pos := &Position{states: make([]state, 1)}
+	pos := &Position{
+		HalfMoveClock:  0,
+		FullMoveNumber: 1,
+		states:         make([]state, 1),
+	}
 	pos.curr = &pos.states[pos.Ply]
 	return pos
 }
