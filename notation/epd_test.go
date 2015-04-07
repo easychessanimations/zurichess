@@ -148,7 +148,7 @@ func TestEPDParser(t *testing.T) {
 }
 
 func TestEPDString(t *testing.T) {
-	line := "r3r1k1/ppqb1ppp/8/4p1NQ/8/2P5/PP3PPP/R3R1K1 b - - bm Bd7xf5; id \"BK.12\";"
+	line := "r3r1k1/ppqb1ppp/8/4p1NQ/8/2P5/PP3PPP/R3R1K1 b - - bm Bd7-f5; id \"BK.12\";"
 
 	epd, err := ParseEPD(line)
 	if err != nil {
