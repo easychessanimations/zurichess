@@ -309,6 +309,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	// Do a null move.
 	// https://chessprogramming.wikispaces.com/Null+Move+Pruning
 	if nullMoveAllowed && // no two consective null moves
+		(!has || entry.Kind == FailedHigh) && // skip nullmove if it did not fail high before
 		depth > NullMoveDepthLimit && // not very close to leafs
 		eng.Position.NumPieces[sideToMove][Pawn]+1 < eng.Position.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
 		KnownLossScore < β && β < KnownWinScore { // disable in lost or won positions
