@@ -323,16 +323,16 @@ func (m *Move) UCI() string {
 func (m *Move) LAN() string {
 	r := figureToSymbol[m.Piece().Figure()] + m.From.String()
 	if m.Capture() != NoPiece {
-		r += "-"
-	} else {
 		r += "x"
+	} else {
+		r += "-"
 	}
 	r += m.To.String() + figureToSymbol[m.Promotion().Figure()]
 	return r
 }
 
-func (m *Move) String() string {
-	return m.UCI()
+func (m Move) String() string {
+	return m.LAN()
 }
 
 // Castling rights mask.

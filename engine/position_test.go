@@ -101,14 +101,12 @@ func (te *testEngine) King(expected []string) {
 }
 
 func testMoves(t *testing.T, moves []Move, expected []string) {
-	// t.Logf("expected = %v", expected)
-	// t.Logf("actual = %v", moves)
 	seen := make(map[string]bool)
 	for _, e := range expected {
 		seen[e] = false
 	}
 	for _, mo := range moves {
-		str := mo.String()
+		str := mo.UCI()
 		if dup, has := seen[str]; !has {
 			t.Error("move", str, "was not expected")
 		} else if dup {
