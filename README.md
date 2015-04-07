@@ -1,9 +1,10 @@
 # zurichess: a chess engine
 
 [Website](https://bitbucket.org/brtzsnr/zurichess) |
-[CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details&each_game=1&eng=Zurichess%20150116#Zurichess_150116) |
+[CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details+%28text%29&eng=Zurichess%20Appenzeller%2064-bit) |
 [Documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess) |
-[Wiki](http://chessprogramming.wikispaces.com/Zurichess)
+[Wiki](http://chessprogramming.wikispaces.com/Zurichess) |
+[![Build Status](https://drone.io/bitbucket.org/brtzsnr/zurichess/status.png)](https://drone.io/bitbucket.org/brtzsnr/zurichess/latest)
 
 zurichess is a chess engine and a chess library written in [Go](http://golang).
 
@@ -63,11 +64,16 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ### zurichess - basel (in development)
 
-* Speed up move ordering considerable.
+This release's theme is improving evaluation function.
+
+* Sped up move ordering considerably.
+* Implemented null move prunning.
+* Did some cleanups and micro optimizations.
+* Tuned check extensions and move ordering.
 
 ### zurichess - appenzeller (stable)
 
-This release's theme is improving search.
+This release's theme is improving search. ELO is about 1821 on CCRL 40/4.
 
 * Cleaned code and improved documentation.
 * Implemented aspiration window search with gradual widening.
@@ -83,7 +89,7 @@ This release's theme is improving search.
 
 ### zurichess - aargau
 
-This is the first public release. ELO is about 1727 according to CCRL40/4.
+This is the first public release. ELO is about 1727 on CCRL 40/4.
 
 * Core search function is a mini-max with alpha-beta pruning on top of a negamax framework.
 * Sliding attacks are implemented using fancy magic bitboards.
@@ -94,10 +100,10 @@ This is the first public release. ELO is about 1727 according to CCRL40/4.
 
 ## External links
 
-Here is list of zurichess related links:
+A list of zurichess related links:
 
 * [Chess Programming WIKI](http://chessprogramming.wikispaces.com/Zurichess)
-* [CCRL 40/4](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details&eng=Zurichess%20150116)
+* [CCRL 40/4](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details+%28text%29&eng=Zurichess%20Appenzeller%2064-bit)
 
 Other sites, pages and articles with a lot of useful information:
 
@@ -106,6 +112,8 @@ Other sites, pages and articles with a lot of useful information:
 * [The effect of hash collisions in a Computer Chess program](https://cis.uab.edu/hyatt/collisions.html)
 * [Computer Chess Programming Theory](http://www.frayn.net/beowulf/theory.html)
 * [Chess Programming Part V: Advanced Search](http://www.gamedev.net/page/resources/_/technical/artificial-intelligence/chess-programming-part-v-advanced-search-r1197)
+* [Computer Chess Programming](http://verhelst.home.xs4all.nl/chess/search.html)
+* [How Stockfish Works](http://rin.io/chess-engine/)
 
 ## Disclaimer
 
