@@ -265,8 +265,6 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
-//
-// At ply 0 negamax sets eng.root.
 func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16 {
 	sideToMove := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
@@ -312,9 +310,11 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	// https://chessprogramming.wikispaces.com/Null+Move+Pruning
 	if nullMoveAllowed && // no two consective null moves
 		depth > NullMoveDepthLimit && // not very close to leafs
-		eng.Position.NumPieces[sideToMove][Pawn]+1 < eng.Position.NumPieces[sideToMove][NoPiece] { // at least one minor/major piece.
+		eng.Position.NumPieces[sideToMove][Pawn]+1 < eng.Position.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
+		KnownLossScore < β && β < KnownWinScore { // disable in lost or won positions
 		// eng.tryMove makes sure that side does not remain in check.
-		if score := eng.tryMove(β-1, β, ply, depth-NullMoveDepthReduction, Move{}); score >= β {
+		score := eng.tryMove(β-1, β, ply, depth-NullMoveDepthReduction, Move{})
+		if score >= β {
 			return score
 		}
 	}
@@ -387,6 +387,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	α, β := γ-δ, γ+δ
 
 	for {
+		// At root a non-null move is required, cannot prune based on null-move.
 		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier, true)
 		if int(score) <= α {
 			α = inf(α - δ)
