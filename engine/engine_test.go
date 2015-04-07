@@ -37,12 +37,8 @@ func TestScore(t *testing.T) {
 			m := pos.UCIToMove(move)
 			dynamic.DoMove(m)
 			static.SetPosition(pos)
-
-			t.Log("move", m, "piece", m.Piece(), "capture", m.Capture())
 			if dynamic.Score() != static.Score() {
-				t.Logf("expected static score %v, got dynamic score %v",
-					static.Score(), dynamic.Score())
-				t.FailNow()
+				t.Fatalf("expected static score %v, got dynamic score %v", static.Score(), dynamic.Score())
 			}
 		}
 	}
