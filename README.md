@@ -66,10 +66,13 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 This release's theme is improving evaluation function.
 
-* Sped up move ordering considerably.
-* Implemented null move prunning.
-* Did some cleanups and micro optimizations.
-* Tuned check extensions and move ordering.
+* Speed up move ordering considerably.
+* Implement null move prunning.
+* Cleanup and micro optimizate.
+* Tune check extensions and move ordering.
+* Award mobility.
+* Handle three fold repetition.
+* Cache pawn structure evaluation.
 
 ### zurichess - appenzeller (stable)
 
