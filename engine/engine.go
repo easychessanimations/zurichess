@@ -10,7 +10,7 @@ const (
 	DepthMultiplier        = 8
 	CheckDepthExtension    = 6
 	NullMoveDepthLimit     = DepthMultiplier
-	NullMoveDepthReduction = 3 * DepthMultiplier
+	NullMoveDepthReduction = 1 * DepthMultiplier
 )
 
 var (
@@ -203,7 +203,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 		return -InfinityScore
 	}
 
-	score := -eng.negamax(-β, -α, ply+1, depth, move.MoveType != NoMove)
+	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType != NoMove)
 	eng.Position.UndoMove(move)
 
 	// If the position is known win/loss then the score is
@@ -308,13 +308,18 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 
 	// Do a null move.
 	// https://chessprogramming.wikispaces.com/Null+Move+Pruning
-	if nullMoveAllowed && // no two consective null moves
-		(!has || entry.Kind == FailedHigh) && // skip nullmove if it did not fail high before
+	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
+		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
-		eng.Position.NumPieces[sideToMove][Pawn]+1 < eng.Position.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
+		pos.NumPieces[sideToMove][Pawn]+1 < pos.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
 		KnownLossScore < β && β < KnownWinScore { // disable in lost or won positions
-		// eng.tryMove makes sure that side does not remain in check.
-		score := eng.tryMove(β-1, β, ply, depth-NullMoveDepthReduction, Move{})
+
+		reduction := int16(NullMoveDepthLimit)
+		if pos.NumPieces[sideToMove][Pawn]+3 < pos.NumPieces[sideToMove][NoPiece] {
+			// Reduce more when there are three minor/major pieces.
+			reduction += DepthMultiplier
+		}
+		score := eng.tryMove(β-1, β, ply, depth-reduction, Move{})
 		if score >= β {
 			return score
 		}
@@ -326,7 +331,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	eng.generateMoves(ply, &entry)
 	var move Move
 	for eng.stack.PopMove(&move) {
-		score := eng.tryMove(localα, β, ply, depth-DepthMultiplier, move)
+		score := eng.tryMove(localα, β, ply, depth, move)
 		if score >= β { // Fail high.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
