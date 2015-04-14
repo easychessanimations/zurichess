@@ -23,10 +23,10 @@ var (
 	//
 	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{
-		DoublePawnPenalty: 13,
-		BishopPairBonus:   20,
-		Mobility:          [FigureArraySize]int{0, 0, 2, 5, 6, 1, -12},
-		FigureBonus:       [FigureArraySize]int{0, 17, 332, 308, 385, 941, 10000},
+		DoublePawnPenalty: 11,
+		BishopPairBonus:   24,
+		Mobility:          [FigureArraySize]int{0, 0, 2, 5, 6, 1, -10},
+		FigureBonus:       [FigureArraySize]int{0, 17, 337, 313, 389, 941, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 			{}, // NoFigure
 			{ // Pawn
@@ -58,10 +58,10 @@ var (
 
 	// EndGameMaterial defines the material values for end game.
 	EndGameMaterial = Material{
-		DoublePawnPenalty: 49,
-		BishopPairBonus:   60,
-		Mobility:          [FigureArraySize]int{0, 0, 13, 9, 6, 13, 4},
-		FigureBonus:       [FigureArraySize]int{0, 147, 304, 346, 617, 1060, 10000},
+		DoublePawnPenalty: 53,
+		BishopPairBonus:   58,
+		Mobility:          [FigureArraySize]int{0, 0, 13, 9, 6, 13, -1},
+		FigureBonus:       [FigureArraySize]int{0, 147, 304, 346, 618, 1059, 10000},
 		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
 			{}, // NoFigure
 			{ // Pawn
