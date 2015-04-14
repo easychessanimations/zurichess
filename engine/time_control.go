@@ -68,7 +68,7 @@ func (tc *OnClockTimeControl) Start() {
 	// Branch more when there are more pieces.
 	// With fewer pieces, hash table kicks in.
 	branchFactor := defaultbranchFactor
-	for np := tc.NumPieces; np > 0; np /= 2 {
+	for np := tc.NumPieces; np > 0; np /= 3 {
 		branchFactor++
 	}
 
@@ -84,6 +84,11 @@ func (tc *OnClockTimeControl) Start() {
 	// The formula allows engine to use more of time.Left in the begining
 	// and rely more on the inc time later.
 	thinkTime := (tc.Time + time.Duration(movesToGo-1)*tc.Inc) / time.Duration(movesToGo)
+        if thinkTime > tc.Time {
+                // Do not allocate more than we have.
+                thinkTime = tc.Time
+        }
+
 	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 	tc.currDepth = 0
 }
