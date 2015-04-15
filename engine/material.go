@@ -40,7 +40,16 @@ var (
 				0, 0, 0, 0, 0, 0, 0, 0,
 			},
 			{}, // Knight
-			{}, // Bishop
+			{ // Bishop
+				-7, 2, -5, 0, 0, -5, 2, -7,
+				1, -1, -6, -4, -4, -6, -1, 1,
+				-1, 4, 18, 1, 1, 18, 4, -1,
+				-12, 2, 1, 26, 26, 1, 2, -12,
+				-12, 2, 1, 26, 26, 1, 2, -12,
+				-1, 4, 18, 1, 1, 18, 4, -1,
+				1, -1, -6, -4, -4, -6, -1, 1,
+				-7, 2, -5, 0, 0, -5, 2, -7,
+			},
 			{}, // Rook
 			{}, // Queen
 			{ // King
@@ -75,7 +84,16 @@ var (
 				0, 0, 0, 0, 0, 0, 0, 0,
 			},
 			{}, // Knight
-			{}, // Bishop
+			{ // Bishop
+				-1, -1, -13, -3, -3, -13, -1, -1,
+				-1, 2, 1, -2, -2, 1, 2, -1,
+				16, 14, 1, 7, 7, 1, 14, 16,
+				5, 6, 5, -9, -9, 5, 6, 5,
+				5, 6, 5, -9, -9, 5, 6, 5,
+				16, 14, 1, 7, 7, 1, 14, 16,
+				-1, 2, 1, -2, -2, 1, 2, -1,
+				-1, -1, -13, -3, -3, -13, -1, -1,
+			},
 			{}, // Rook
 			{}, // Queen
 			{ // King
@@ -152,6 +170,7 @@ func (m *Material) evaluate(pos *Position, side Color) int {
 		sq := bb.Pop()
 		bishop := BishopMagic[sq].Attack(all) &^ mask
 		score += m.FigureBonus[Bishop] + bishop.Popcnt()*m.Mobility[Bishop]
+		score += m.PieceSquareTable[Bishop][sq^colMask[side]]
 	}
 	for bb := pos.ByPiece(side, Rook); bb != 0; {
 		sq := bb.Pop()
