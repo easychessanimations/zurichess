@@ -84,10 +84,10 @@ func (tc *OnClockTimeControl) Start() {
 	// The formula allows engine to use more of time.Left in the begining
 	// and rely more on the inc time later.
 	thinkTime := (tc.Time + time.Duration(movesToGo-1)*tc.Inc) / time.Duration(movesToGo)
-        if thinkTime > tc.Time {
-                // Do not allocate more than we have.
-                thinkTime = tc.Time
-        }
+	if thinkTime > tc.Time {
+		// Do not allocate more than we have.
+		thinkTime = tc.Time
+	}
 
 	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 	tc.currDepth = 0

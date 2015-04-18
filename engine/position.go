@@ -21,7 +21,7 @@ func init() {
 }
 
 type state struct {
-	Castle          Castle // remaining castling rights.
+	CastlingAbility Castle // remaining castling rights.
 	EnpassantSquare Square // enpassant square. If none, then SquareA1.
 	IrreversiblePly int    // highest square in which an irreversible move (cannot be part of repetition) made
 	Zobrist         uint64
@@ -146,7 +146,7 @@ func (pos *Position) EnpassantSquare() Square {
 
 // CastlingAbility returns kings' castling ability.
 func (pos *Position) CastlingAbility() Castle {
-	return pos.curr.Castle
+	return pos.curr.CastlingAbility
 }
 
 // Zobrist returns the zobrist key of the position.
@@ -174,9 +174,9 @@ func (pos *Position) Verify() error {
 
 // SetCastlingAbility sets the side to move, correctly updating the Zobrist key.
 func (pos *Position) SetCastlingAbility(castle Castle) {
-	pos.curr.Zobrist ^= zobristCastle[pos.curr.Castle]
-	pos.curr.Castle = castle
-	pos.curr.Zobrist ^= zobristCastle[pos.curr.Castle]
+	pos.curr.Zobrist ^= zobristCastle[pos.curr.CastlingAbility]
+	pos.curr.CastlingAbility = castle
+	pos.curr.Zobrist ^= zobristCastle[pos.curr.CastlingAbility]
 }
 
 // SetSideToMove sets the side to move, correctly updating the Zobrist key.
@@ -306,7 +306,7 @@ func (pos *Position) DoMove(move Move) {
 	// Update castling rights.
 	pi := move.Piece()
 	if pi != NoPiece { // nullmove cannot change castling ability
-		pos.SetCastlingAbility(pos.curr.Castle &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+		pos.SetCastlingAbility(pos.curr.CastlingAbility &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
 	}
 
 	// Update IrreversiblePly.
@@ -340,7 +340,7 @@ func (pos *Position) DoMove(move Move) {
 // UndoMove takes back a move.
 // Expects the move to be valid.
 func (pos *Position) UndoMove(move Move) {
-	pos.SetCastlingAbility(pos.prev().Castle)
+	pos.SetCastlingAbility(pos.prev().CastlingAbility)
 	pos.SetEnpassantSquare(pos.prev().EnpassantSquare)
 	pos.SetSideToMove(pos.SideToMove.Opposite())
 
@@ -358,6 +358,14 @@ func (pos *Position) UndoMove(move Move) {
 	}
 
 	pos.popState()
+}
+
+// PawnThreats returns the set of squares threatened by side's pawns.
+func (pos *Position) PawnThreats(side Color) Bitboard {
+	pawns := pos.ByPiece(side, Pawn).Forward(side)
+	left := pawns & ^FileBb(7) << 1
+	right := pawns & ^FileBb(0) >> 1
+	return left | right
 }
 
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool, moves *[]Move) {
@@ -471,7 +479,7 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves
 	}
 }
 
-func (pos *Position) violentMask(violent bool) Bitboard {
+func (pos *Position) getViolentMask(violent bool) Bitboard {
 	if violent {
 		// Capture enemy pieces.
 		return pos.ByColor[pos.SideToMove.Opposite()]
@@ -481,7 +489,7 @@ func (pos *Position) violentMask(violent bool) Bitboard {
 }
 
 func (pos *Position) genKnightMoves(violent bool, moves *[]Move) {
-	mask := pos.violentMask(violent)
+	mask := pos.getViolentMask(violent)
 	pi := ColorFigure(pos.SideToMove, Knight)
 	for bb := pos.ByPiece(pos.SideToMove, Knight); bb != 0; {
 		from := bb.Pop()
@@ -491,7 +499,7 @@ func (pos *Position) genKnightMoves(violent bool, moves *[]Move) {
 }
 
 func (pos *Position) genBishopMoves(fig Figure, violent bool, moves *[]Move) {
-	mask := pos.violentMask(violent)
+	mask := pos.getViolentMask(violent)
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
@@ -502,7 +510,7 @@ func (pos *Position) genBishopMoves(fig Figure, violent bool, moves *[]Move) {
 }
 
 func (pos *Position) genRookMoves(fig Figure, violent bool, moves *[]Move) {
-	mask := pos.violentMask(violent)
+	mask := pos.getViolentMask(violent)
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
@@ -513,7 +521,7 @@ func (pos *Position) genRookMoves(fig Figure, violent bool, moves *[]Move) {
 }
 
 func (pos *Position) genKingMovesNear(violent bool, moves *[]Move) {
-	mask := pos.violentMask(violent)
+	mask := pos.getViolentMask(violent)
 	pi := ColorFigure(pos.SideToMove, King)
 	from := pos.ByPiece(pos.SideToMove, King).AsSquare()
 	att := BbKingAttack[from] & mask
@@ -528,7 +536,7 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 	}
 
 	// Castle king side.
-	if pos.curr.Castle&oo != 0 {
+	if pos.curr.CastlingAbility&oo != 0 {
 		r5 := RankFile(rank, 5)
 		r6 := RankFile(rank, 6)
 		if !pos.IsEmpty(r5) || !pos.IsEmpty(r6) {
@@ -548,7 +556,7 @@ func (pos *Position) genKingCastles(moves *[]Move) {
 EndCastleOO:
 
 	// Castle queen side.
-	if pos.curr.Castle&ooo != 0 {
+	if pos.curr.CastlingAbility&ooo != 0 {
 		r3 := RankFile(rank, 3)
 		r2 := RankFile(rank, 2)
 		r1 := RankFile(rank, 1)
@@ -573,16 +581,7 @@ EndCastleOOO:
 func (pos *Position) IsAttackedBy(sq Square, side Color) bool {
 	enemy := pos.ByColor[side]
 	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
-		pawns := pos.ByPiece(side, Pawn)
-		if side == White {
-			pawns <<= 8
-		} else {
-			pawns >>= 8
-		}
-		left := pawns & ^FileBb(7) << 1
-		right := pawns & ^FileBb(0) >> 1
-
-		if att := sq.Bitboard() & (left | right); att != 0 {
+		if att := sq.Bitboard() & pos.PawnThreats(side); att != 0 {
 			return true
 		}
 	}

@@ -151,11 +151,9 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 //
 // Pawn features are evaluated part of pawnStructure.
 func (m *Material) evaluate(pos *Position, side Color) int {
-	// Opposite pawns, one square forward.
-	pawns := pos.ByPiece(side.Opposite(), Pawn).Forward(side.Opposite())
-	// Squares occupied by current player and those attacked by opposite pawns.
-	mask := pos.ByColor[side] | (pawns & ^FileBb(7) << 1) | (pawns & ^FileBb(0) >> 1)
-	// All occupied squares.
+	// Exclude squares attacked by enemy pawns from calculating mobility.
+	excl := pos.ByColor[side] | pos.PawnThreats(side.Opposite())
+	// All occupied squares. Used to compute mobility.
 	all := pos.ByFigure[White] | pos.ByFigure[Black]
 
 	// Award connected bishops.
@@ -163,29 +161,29 @@ func (m *Material) evaluate(pos *Position, side Color) int {
 
 	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
-		knight := BbKnightAttack[sq] &^ mask
+		knight := BbKnightAttack[sq] &^ excl
 		score += m.FigureBonus[Knight] + knight.Popcnt()*m.Mobility[Knight]
 	}
 	for bb := pos.ByPiece(side, Bishop); bb != 0; {
 		sq := bb.Pop()
-		bishop := BishopMagic[sq].Attack(all) &^ mask
+		bishop := BishopMagic[sq].Attack(all) &^ excl
 		score += m.FigureBonus[Bishop] + bishop.Popcnt()*m.Mobility[Bishop]
 		score += m.PieceSquareTable[Bishop][sq^colMask[side]]
 	}
 	for bb := pos.ByPiece(side, Rook); bb != 0; {
 		sq := bb.Pop()
-		rook := RookMagic[sq].Attack(all) &^ mask
+		rook := RookMagic[sq].Attack(all) &^ excl
 		score += m.FigureBonus[Rook] + rook.Popcnt()*m.Mobility[Rook]
 	}
 	for bb := pos.ByPiece(side, Queen); bb != 0; {
 		sq := bb.Pop()
-		rook := RookMagic[sq].Attack(all) &^ mask
-		bishop := BishopMagic[sq].Attack(all) &^ mask
+		rook := RookMagic[sq].Attack(all) &^ excl
+		bishop := BishopMagic[sq].Attack(all) &^ excl
 		score += m.FigureBonus[Queen] + (rook|bishop).Popcnt()*m.Mobility[Queen]
 	}
 	for bb := pos.ByPiece(side, King); bb != 0; {
 		sq := bb.Pop()
-		king := BbKingAttack[sq] &^ mask
+		king := BbKingAttack[sq] &^ excl
 		score += m.FigureBonus[King] + king.Popcnt()*m.Mobility[King]
 		score += m.PieceSquareTable[King][sq^colMask[side]]
 	}
@@ -238,6 +236,8 @@ func phase(pos *Position) (int, int) {
 }
 
 // Evaluate evaluates position.
+//
+// Returned score is a tapered between MidGameMaterial and EndGameMaterial.
 func Evaluate(pos *Position) int16 {
 	midGame := MidGameMaterial.Evaluate(pos)
 	endGame := EndGameMaterial.Evaluate(pos)

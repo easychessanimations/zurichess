@@ -104,8 +104,8 @@ func BenchmarkScore(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		for _, g := range games {
+			var done []Move
 			todo := strings.Fields(g)
-			done := make([]Move, 0)
 
 			for j := range todo {
 				move := eng.Position.UCIToMove(todo[j])

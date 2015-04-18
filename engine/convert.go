@@ -146,6 +146,7 @@ func FormatEnpassantSquare(pos *Position) string {
 	return "-"
 }
 
+// ParseSideToMove sets side to move for pos from str.
 func ParseSideToMove(str string, pos *Position) error {
 	if col, ok := symbolToColor[str]; ok {
 		pos.SetSideToMove(col)
@@ -154,10 +155,12 @@ func ParseSideToMove(str string, pos *Position) error {
 	return fmt.Errorf("invalid color %s", str)
 }
 
+// FormatSideToMove returns "w" for white to play or "b" for black to play.
 func FormatSideToMove(pos *Position) string {
 	return colorToSymbol[pos.SideToMove]
 }
 
+// ParseCastlingAbility sets castling ability for pos from str.
 func ParseCastlingAbility(str string, pos *Position) error {
 	if str == "-" {
 		pos.SetCastlingAbility(NoCastle)
@@ -182,6 +185,8 @@ func ParseCastlingAbility(str string, pos *Position) error {
 	return nil
 }
 
+// FormatCastlingAbility returns a string specifying the castling ability
+// using standard FEN format.
 func FormatCastlingAbility(pos *Position) string {
 	return pos.CastlingAbility().String()
 }

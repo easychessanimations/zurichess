@@ -193,7 +193,7 @@ func AdjacentFilesBb(file int) Bitboard {
 	return bb
 }
 
-// As square returns the occupied square if the bitboard has a single piece.
+// AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
 	// same as logN.
@@ -240,11 +240,11 @@ func (bb *Bitboard) Pop() Square {
 type MoveType uint8
 
 const (
-	NoMove MoveType = iota
-	Normal
-	Promotion
-	Castling
-	Enpassant
+	NoMove    MoveType = iota // no move or null move
+	Normal                    // regular move
+	Promotion                 // pawn is promoted. Move.Promotion() gives the new piece
+	Castling                  // king castles
+	Enpassant                 // pawn takes enpassant
 )
 
 // Move stores a position dependent move.
@@ -254,6 +254,7 @@ type Move struct {
 	pieces   uint8 // packs captured piece and target piece
 }
 
+// MakeMove constructs a move.
 func MakeMove(moveType MoveType, from, to Square, capture, target Piece) Move {
 	return Move{
 		From:     from,

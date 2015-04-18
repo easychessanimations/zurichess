@@ -34,12 +34,13 @@ type Stats struct {
 	Nodes     uint64    // number of nodes searched
 }
 
-// Nodes returns nodes per second.
+// NPS returns nodes per second.
 func (s *Stats) NPS(now time.Time) uint64 {
 	elapsed := uint64(now.Sub(s.Start) + 1)
 	return s.Nodes * uint64(time.Second) / elapsed
 }
 
+// Time returns the number of elapsed milliseconds.
 func (s *Stats) Time(now time.Time) uint64 {
 	elapsed := uint64(now.Sub(s.Start) + 1)
 	return elapsed / uint64(time.Millisecond)
@@ -60,9 +61,9 @@ type Engine struct {
 	// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
 	killer [][2]Move
 
-	maxPly  int16 // max ply currently searching at.
-	stack   moveStack
-	pvTable pvTable // principal variation table
+	maxPly  int16     // max ply currently searching at.
+	stack   moveStack // stack of moves
+	pvTable pvTable   // principal variation table
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -105,24 +106,25 @@ func (eng *Engine) Score() int16 {
 // endPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) endPosition() (int16, bool) {
-	if eng.Position.NumPieces[White][King] == 0 {
-		return scoreMultiplier[eng.Position.SideToMove] * -MateScore, true
+	pos := eng.Position // shortcut
+	if pos.NumPieces[White][King] == 0 {
+		return scoreMultiplier[pos.SideToMove] * -MateScore, true
 	}
-	if eng.Position.NumPieces[Black][King] == 0 {
-		return scoreMultiplier[eng.Position.SideToMove] * +MateScore, true
+	if pos.NumPieces[Black][King] == 0 {
+		return scoreMultiplier[pos.SideToMove] * +MateScore, true
 	}
 	// K vs K is draw.
-	if eng.Position.NumPieces[NoColor][NoPiece] == 2 {
+	if pos.NumPieces[NoColor][NoPiece] == 2 {
 		return 0, true
 	}
 	// KN vs K and KB vs K are draws
-	if eng.Position.NumPieces[NoColor][NoPiece] == 3 {
-		if eng.Position.NumPieces[NoColor][Knight]+eng.Position.NumPieces[NoColor][Bishop] == 1 {
+	if pos.NumPieces[NoColor][NoPiece] == 3 {
+		if pos.NumPieces[NoColor][Knight]+pos.NumPieces[NoColor][Bishop] == 1 {
 			return 0, true
 		}
 	}
 	// Repetition is a draw.
-	if eng.Position.IsThreeFoldRepetition() {
+	if pos.IsThreeFoldRepetition() {
 		return 0, true
 	}
 	return 0, false
@@ -159,12 +161,17 @@ func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 }
 
 // quiescence evaluates the position after solving all captures.
+//
+// See https://chessprogramming.wikispaces.com/Quiescence+Search.
+// This is a very limited search which considers only captures.
+// Checks are not considered. In fact it assumes that the move
+// ordering will always put the king first.
 func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	if score, done := eng.endPosition(); done {
 		return score
 	}
 	score := eng.Score()
-	if score >= β {
+	if score >= β { // stand pat
 		return score
 	}
 	localα := α
@@ -206,7 +213,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType != NoMove)
 	eng.Position.UndoMove(move)
 
-	// If the position is known win/loss then the score is
+	// If the position is a known win/loss then the score is
 	// increased/decreased slightly so the search takes
 	// the shortest/longest path.
 	if score > KnownWinScore {
@@ -253,14 +260,17 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 // negamax fails soft, i.e. the score returned can be outside the bounds.
 // https://chessprogramming.wikispaces.com/Fail-Soft
 //
-// alpha, beta represent lower and upper bounds.
+// α, β represent lower and upper bounds.
 // ply is the move number (increasing).
+// depth is the fractional depth (decreasing)
+// nullMoveAllowed is true if null move is allowed, e.g. to avoid two consecutive null moves.
+//
 // Returns the score of the current position up to maxPly - ply depth.
 // Returned score is from current player's POV.
 //
 // Invariants:
-//   If score <= alpha then the search failed low
-//   else if score >= beta then the search failed high
+//   If score <= α then the search failed low and the score is an upper bound.
+//   else if score >= β then the search failed high and the score is a lower bound.
 //   else score is exact.
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
@@ -301,7 +311,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 
 	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
-		score := eng.quiescence(α, β, 0)
+		score := eng.quiescence(α, β, ply)
 		eng.updateHash(α, β, ply, score, &Move{})
 		return score
 	}
@@ -407,22 +417,25 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	}
 }
 
-func (eng *Engine) printInfo(score int16, moves []Move) {
+// printInfo prints a info UCI string.
+func (eng *Engine) printInfo(score int16, pv []Move) {
 	now := time.Now()
 	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
 		eng.maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
 
 	fmt.Printf("pv")
-	for _, m := range moves {
+	for _, m := range pv {
 		fmt.Printf(" %v", m.UCI())
 	}
 	fmt.Printf("\n")
 }
 
 // Play evaluates current position.
-// Returns principal variation, moves[0] is the next move.
 //
-// tc should already be started.
+// Returns principal variation, i.e. moves[0] is the best move found.
+// If no move was found (e.g. position is already a mate) an empty pv is returned.
+//
+// Time control, tc, should already be started.
 func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	score := int16(0)
 	eng.Stats = Stats{Start: time.Now()}
@@ -437,8 +450,5 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 		}
 	}
 
-	if !eng.Options.AnalyseMode {
-		// eng.printInfo(score, moves)
-	}
 	return moves
 }
