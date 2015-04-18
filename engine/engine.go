@@ -322,7 +322,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
 		pos.NumPieces[sideToMove][Pawn]+1 < pos.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
-		KnownLossScore < β && β < KnownWinScore { // disable in lost or won positions
+		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
 		reduction := int16(NullMoveDepthLimit)
 		if pos.NumPieces[sideToMove][Pawn]+3 < pos.NumPieces[sideToMove][NoPiece] {
