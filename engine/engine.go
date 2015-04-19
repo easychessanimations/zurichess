@@ -142,7 +142,7 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 }
 
 // updateHash updates GlobalHashTable with current position.
-func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
+func (eng *Engine) updateHash(α, β, depth, score int16, move *Move) {
 	kind := Exact
 	if score <= α {
 		kind = FailedLow
@@ -152,7 +152,7 @@ func (eng *Engine) updateHash(α, β, ply, score int16, move *Move) {
 
 	GlobalHashTable.Put(eng.Position, HashEntry{
 		Score:  score,
-		Depth:  eng.maxPly - ply,
+		Depth:  depth,
 		Kind:   kind,
 		Target: move.Piece(),
 		From:   move.From,
@@ -283,7 +283,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 
 	// Check the transposition table.
 	entry, has := eng.retrieveHash()
-	if has && eng.maxPly-ply <= entry.Depth {
+	if has && depth <= entry.Depth {
 		if ply > 0 && entry.Kind == Exact {
 			// Simply return if the score is exact.
 			return entry.Score
@@ -312,7 +312,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(α, β, ply)
-		eng.updateHash(α, β, ply, score, &Move{})
+		eng.updateHash(α, β, depth, score, &Move{})
 		return score
 	}
 
@@ -345,7 +345,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		if score >= β { // Fail high.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
-			eng.updateHash(α, β, ply, score, &move)
+			eng.updateHash(α, β, depth, score, &move)
 			return score
 		}
 		if score > bestScore {
@@ -367,7 +367,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		eng.saveKiller(ply, bestMove)
 	}
 
-	eng.updateHash(α, β, ply, bestScore, &bestMove)
+	eng.updateHash(α, β, depth, bestScore, &bestMove)
 	if α < bestScore && bestScore < β && bestMove.MoveType != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
