@@ -6,18 +6,21 @@
 [Wiki](http://chessprogramming.wikispaces.com/Zurichess) |
 [![Build Status](https://drone.io/bitbucket.org/brtzsnr/zurichess/status.png)](https://drone.io/bitbucket.org/brtzsnr/zurichess/latest)
 
-zurichess is a chess engine and a chess library written in [Go](http://golang).
+zurichess is a chess engine and a chess library written in
+[Go](http://golang).
 
-zurichess partially implements [UCI protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but the available commands are enough for most purposes.
-
-zurichess was successfully tested under Linux AMD64 and Linux ARM and other people have tested zurichess under Windows AMD64.
-Precompiled binaries for a number of platforms and architectures can be found on the [downloads](https://bitbucket.org/brtzsnr/zurichess/downloads) page.
-
+zurichess partially implements [UCI
+protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but
+the available commands are enough for most purposes.  zurichess was
+successfully tested under Linux AMD64 and Linux ARM and other people
+have tested zurichess under Windows AMD64.
 
 ## Build and Compile
 
-First you need to get the latest version of Go (currently 1.4). For instructions how to download and install Go for your OS see
-[documentation](https://golang.org/doc/install). After Go 1.4 is installed, a workspace needs to be created:
+First you need to get the latest version of Go (currently 1.4). For
+instructions how to download and install Go for your OS see
+[documentation](https://golang.org/doc/install). After Go 1.4 is
+installed, a workspace needs to be created:
 
 ```
 #!bash
@@ -34,11 +37,25 @@ $ $GOPATH/bin/zurichess --version
 zurichess (devel), build with go1.4 at (just now), running on amd64
 ```
 
+## Download
+
+Precompiled binaries for several platforms and architectures can be found
+on the [downloads](https://bitbucket.org/brtzsnr/zurichess/downloads)
+page.
+
+Latest Linux AMD64 binaries can be downloaded from
+[drone.io](https://drone.io/bitbucket.org/brtzsnr/zurichess/files). These
+binaries should be stable for any kind of testing.
+
+
 ## Perft
 
-A [perft](https://chessprogramming.wikispaces.com/Perft) tool is included.
-The tool supports any starting position and can do splits up to several levels which is very helpful for debugging a move generator.
-You can find more positions, results and external links on the [documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess/perft) page.
+A [perft](https://chessprogramming.wikispaces.com/Perft) tool
+is included.  The tool supports any starting position and can do
+splits up to several levels which is very helpful for debugging a move
+generator.  You can find more positions, results and external links on the
+[documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess/perft)
+page.
 
 ```
 #!bash
@@ -67,12 +84,12 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 This release's theme is improving evaluation function.
 
 * Speed up move ordering considerably.
-* Implement null move prunning.
-* Cleanup and micro optimizate.
+* Implement null move pruning.
+* Clean up and micro optimize the code.
 * Tune check extensions and move ordering.
-* Award mobility.
+* Award mobility and add new piece square tables.
 * Handle three fold repetition.
-* Cache pawn structure evaluation.
+* Evaluate pawn structure.
 
 ### zurichess - appenzeller (stable)
 
