@@ -196,7 +196,7 @@ func AdjacentFilesBb(file int) Bitboard {
 // AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
-	// same as logN.
+	// same as logN(bb)
 	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
 }
 
@@ -233,7 +233,8 @@ func (bb Bitboard) Popcnt() int {
 func (bb *Bitboard) Pop() Square {
 	sq := *bb & (-*bb)
 	*bb -= sq
-	return sq.AsSquare()
+	// same as logN(sq)
+	return Square(debrujin64[sq*debrujinMul>>debrujinShift])
 }
 
 // Move type.

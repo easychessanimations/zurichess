@@ -223,8 +223,8 @@ func (pos *Position) Remove(sq Square, pi Piece) {
 		col, fig := pi.Color(), pi.Figure()
 		bb := ^sq.Bitboard()
 
-		pos.ByColor[pi.Color()] &= bb
-		pos.ByFigure[pi.Figure()] &= bb
+		pos.ByColor[col] &= bb
+		pos.ByFigure[fig] &= bb
 		pos.NumPieces[NoColor][NoFigure]--
 		pos.NumPieces[NoColor][fig]--
 		pos.NumPieces[col][NoFigure]--
@@ -239,13 +239,12 @@ func (pos *Position) IsEmpty(sq Square) bool {
 
 // Get returns the piece at sq.
 func (pos *Position) Get(sq Square) Piece {
-	col := White*Color(pos.ByColor[White]>>sq&1) +
-		Black*Color(pos.ByColor[Black]>>sq&1)
+	col := White*Color(pos.ByColor[White]>>sq&1) + Black*Color(pos.ByColor[Black]>>sq&1)
 	if col == NoColor {
 		return NoPiece
 	}
 	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-		if pos.ByFigure[fig]&sq.Bitboard() != 0 {
+		if pos.ByFigure[fig]>>sq&1 != 0 {
 			return ColorFigure(col, fig)
 		}
 	}
