@@ -67,8 +67,13 @@ func (ht *HashTable) Size() int {
 }
 
 // split splits lock into a lock and two hash table indexes.
+// expects mask to be at least 3 bits.
 func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
-	return uint32(lock >> 32), uint32(lock>>0) & mask, uint32(lock>>8) & mask
+	hi := uint32(lock >> 32)
+	lo := uint32(lock)
+	h0 := lo & mask
+	h1 := h0 ^ (lo >> 29)
+	return hi, h0, h1
 }
 
 // Put puts a new entry in the database.
