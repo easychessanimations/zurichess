@@ -68,7 +68,7 @@ func (tc *OnClockTimeControl) Start() {
 	// Branch more when there are more pieces.
 	// With fewer pieces, hash table kicks in.
 	branchFactor := defaultbranchFactor
-	for np := tc.NumPieces; np > 0; np /= 3 {
+	for np := tc.NumPieces; np > 0; np /= 4 {
 		branchFactor++
 	}
 
