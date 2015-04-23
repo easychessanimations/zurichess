@@ -18,9 +18,6 @@ var (
 	MateScore      int16 = 30000
 	InfinityScore  int16 = 32000
 
-	// The original values for PieceSquareTable were suggested by Tomasz Michniewski as an extremely basic
-	// evaluation here: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-	//
 	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{
 		DoublePawnPenalty: 11,
@@ -53,6 +50,8 @@ var (
 			{}, // Rook
 			{}, // Queen
 			{ // King
+				// The values for King were suggested by Tomasz Michniewski.
+				// Numbers were copied from: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 				20, 30, 10, 0, 0, 10, 30, 20,
 				20, 20, 0, 0, 0, 0, 20, 20,
 				-10, -20, -20, -20, -20, -20, -20, -10,
@@ -97,6 +96,8 @@ var (
 			{}, // Rook
 			{}, // Queen
 			{ // King
+				// The values for King were suggested by Tomasz Michniewski.
+				// Numbers were copied from: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 				-50, -30, -30, -30, -30, -30, -30, -50,
 				-30, -30, 0, 0, 0, 0, -30, -30,
 				-30, -10, 20, 30, 30, 20, -10, -30,
@@ -113,17 +114,15 @@ var (
 // Material evaluates a position from static point of view,
 // i.e. pieces and their position on the table.
 type Material struct {
-	pawnTable pawnTable
+	pawnTable pawnTable // a cache for pawn evaluation
 
 	DoublePawnPenalty int
 	BishopPairBonus   int
-	Mobility          [FigureArraySize]int
-
-	// FigureBonus stores how much each piece is worth.
-	FigureBonus [FigureArraySize]int
+	Mobility          [FigureArraySize]int // how much each piece's mobility is worth
+	FigureBonus       [FigureArraySize]int // how much each piece is worth
 
 	// Piece Square Table from White POV.
-	// For black the table is rotated, i.e. black index = 63 - white index.
+	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
 	// The tables are indexed from SquareA1 to SquareH8.
 	PieceSquareTable [FigureArraySize][SquareArraySize]int
 }

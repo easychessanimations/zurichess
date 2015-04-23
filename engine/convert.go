@@ -1,3 +1,6 @@
+// TODO: Move this file to bitbucket.org/brtzsnr/zurichess/internal
+// Methods here exported because they are used also by notation package.
+
 package engine
 
 import (

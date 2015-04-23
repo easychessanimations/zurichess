@@ -1,4 +1,14 @@
 // Package engine implements board, moves and search.
+//
+// Search features implemented are:
+//
+//   * Aspiration window - https://chessprogramming.wikispaces.com/Aspiration+Windows
+//   * Killer move heuristic - /https://chessprogramming.wikispaces.com/Killer+Heuristic
+//   * Null move prunning - https://chessprogramming.wikispaces.com/Null+Move+Pruning
+//   * Check extension - https://chessprogramming.wikispaces.com/Check+Extensions
+//   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
+//   * Fail soft - https://chessprogramming.wikispaces.com/Fail-Soft
+//   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 package engine
 
 import (
@@ -7,10 +17,10 @@ import (
 )
 
 const (
-	DepthMultiplier        = 8
-	CheckDepthExtension    = 6
-	NullMoveDepthLimit     = DepthMultiplier
-	NullMoveDepthReduction = 1 * DepthMultiplier
+	DepthMultiplier        = 8                   // depth multiplier for fractional depths
+	CheckDepthExtension    = 6                   // how much to extend search in case of checks
+	NullMoveDepthLimit     = DepthMultiplier     // disable null-move below this limit
+	NullMoveDepthReduction = 1 * DepthMultiplier // default null-move depth reduction. Can reduce more in some situations.
 )
 
 var (
@@ -53,13 +63,11 @@ func (s *Stats) CacheHitRatio() float32 {
 
 // Engine implements the logic to search the best move for a position.
 type Engine struct {
-	Options  Options
+	Options  Options   // engine options
 	Position *Position // current Position
-	Stats    Stats
+	Stats    Stats     // search statistics
 
-	// killer stores a few killer moves per ply.
-	// For killer heuristic see https://chessprogramming.wikispaces.com/Killer+Heuristic
-	killer [][2]Move
+	killer [][2]Move // killer stores a few killer moves per ply
 
 	maxPly  int16     // max ply currently searching at.
 	stack   moveStack // stack of moves
@@ -162,10 +170,9 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move *Move) {
 
 // quiescence evaluates the position after solving all captures.
 //
-// See https://chessprogramming.wikispaces.com/Quiescence+Search.
-// This is a very limited search which considers only captures.
+// This is a very limited search which considers only violent moves.
 // Checks are not considered. In fact it assumes that the move
-// ordering will always put the king first.
+// ordering will always put the king capture first.
 func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	if score, done := eng.endPosition(); done {
 		return score
@@ -255,10 +262,8 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 }
 
 // negamax implements negamax framework.
-// http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 //
 // negamax fails soft, i.e. the score returned can be outside the bounds.
-// https://chessprogramming.wikispaces.com/Fail-Soft
 //
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).
@@ -305,7 +310,6 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	if sideIsChecked {
 		// Extend search when the side to move is in check.
-		// https://chessprogramming.wikispaces.com/Check+Extensions
 		depth += CheckDepthExtension
 	}
 
@@ -317,7 +321,6 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	}
 
 	// Do a null move.
-	// https://chessprogramming.wikispaces.com/Null+Move+Pruning
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
 		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
@@ -342,7 +345,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	var move Move
 	for eng.stack.PopMove(&move) {
 		score := eng.tryMove(localα, β, ply, depth, move)
-		if score >= β { // Fail high.
+		if score >= β { // Fail high, cut node.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
 			eng.updateHash(α, β, depth, score, &move)
@@ -358,7 +361,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 
 	// If no move was found then the game is over.
 	if bestMove.MoveType == NoMove {
-		if eng.Position.IsChecked(sideToMove) {
+		if sideIsChecked {
 			bestScore = -MateScore
 		} else {
 			bestScore = 0
@@ -394,7 +397,6 @@ func sup(b int) int {
 // estimated is the score from previous depths.
 func (eng *Engine) alphaBeta(estimated int16) int16 {
 	// This method only implement aspiration windows.
-	// (see https://chessprogramming.wikispaces.com/Aspiration+Windows).
 	//
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:

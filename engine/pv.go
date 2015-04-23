@@ -47,11 +47,12 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 
 	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
 	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
+	zobrist := pos.Zobrist()
 
 	var entry *pvEntry
-	if entry1.Lock == pos.Zobrist() {
+	if entry1.Lock == zobrist {
 		entry = entry1
-	} else if entry2.Lock == pos.Zobrist() {
+	} else if entry2.Lock == zobrist {
 		entry = entry2
 	} else if entry1.Birth <= entry2.Birth {
 		entry = entry1
@@ -67,15 +68,18 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 	}
 }
 
+// TODO: Return move.
+// TODO: Lookup move in transposition table if none is available.
 func (pv *pvTable) get(pos *Position) *pvEntry {
 	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
 	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
+	zobrist := pos.Zobrist()
 
 	var entry *pvEntry
-	if entry1.Lock == pos.Zobrist() {
+	if entry1.Lock == zobrist {
 		entry = entry1
 	}
-	if entry2.Lock == pos.Zobrist() {
+	if entry2.Lock == zobrist {
 		entry = entry2
 	}
 	if entry == nil {

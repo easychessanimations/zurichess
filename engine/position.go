@@ -23,7 +23,7 @@ func init() {
 type state struct {
 	CastlingAbility Castle // remaining castling rights.
 	EnpassantSquare Square // enpassant square. If none, then SquareA1.
-	IrreversiblePly int    // highest square in which an irreversible move (cannot be part of repetition) made
+	IrreversiblePly int    // highest square in which an irreversible move (cannot be part of repetition) was made
 	Zobrist         uint64
 }
 
@@ -56,6 +56,8 @@ func NewPosition() *Position {
 func PositionFromFEN(fen string) (*Position, error) {
 	// Split fen into 6 fields.
 	// Same as string.Fields() but creates much less garbage.
+	// The optimization is important when a huge number of positions
+	// need to be evaluated.
 	f, p := [6]string{}, 0
 	for i := 0; i < len(fen); {
 		// Find the start and end of the token.
@@ -297,8 +299,7 @@ func (pos *Position) PrettyPrint() {
 
 }
 
-// DoMove performs a move of known piece.
-// Expects the move to be valid.
+// DoMove executes a valid move.
 func (pos *Position) DoMove(move Move) {
 	pos.pushState()
 
@@ -336,8 +337,7 @@ func (pos *Position) DoMove(move Move) {
 	pos.SetSideToMove(pos.SideToMove.Opposite())
 }
 
-// UndoMove takes back a move.
-// Expects the move to be valid.
+// UndoMove takes back the last move.
 func (pos *Position) UndoMove(move Move) {
 	pos.SetCastlingAbility(pos.prev().CastlingAbility)
 	pos.SetEnpassantSquare(pos.prev().EnpassantSquare)

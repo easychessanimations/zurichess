@@ -1,5 +1,6 @@
-// epd.go implements parsing of chess positions in FEN and EPD notations.
-
+// Package notation implements parsing of chess positions.
+//
+// Current supported formats are FEN and EPD notations.
 package notation
 
 import (

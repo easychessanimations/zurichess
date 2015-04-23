@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	DefaultHashTableSizeMB = 96
-	GlobalHashTable        *HashTable
+	DefaultHashTableSizeMB = 96       // default size in MB.
+	GlobalHashTable        *HashTable // global transposition table.
 )
 
 type HashKind uint8
@@ -22,6 +22,8 @@ const (
 )
 
 // HashEntry is a value in the transposition table.
+//
+// TODO: store full move and age.
 type HashEntry struct {
 	Kind   HashKind // type of hash
 	Target Piece    // from favorite move
@@ -37,8 +39,8 @@ type HashEntry struct {
 }
 
 // HashTable is a transposition table.
-// Engine uses a hash table to cache position scores so
-// it doesn't have to recompute them again.
+// Engine uses this table to cache position scores so
+// it doesn't have to research them again.
 type HashTable struct {
 	table []HashEntry // len(table) is a power of two and equals mask+1
 	mask  uint32      // mask is used to determine the index in the table.
