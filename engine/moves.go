@@ -51,7 +51,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	// s[b:e] is the part that still needs to be parsed.
 	b, e := 0, len(s)
 	if b == e {
-		return Move{}, errorWrongLength
+		return Move(0), errorWrongLength
 	}
 	// Skip + (check) and # (checkmate) at the end.
 	for e > b && (s[e-1] == '#' || s[e-1] == '+') {
@@ -86,7 +86,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 			target = ColorFigure(pos.SideToMove, Pawn)
 		} else {
 			if fig := symbolToFigure[rune(s[b])]; fig == NoFigure {
-				return Move{}, errorUnknownFigure
+				return Move(0), errorUnknownFigure
 			} else {
 				target = ColorFigure(pos.SideToMove, fig)
 			}
@@ -100,15 +100,15 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 		// Check pawn promotion.
 		if e-1 < b {
-			return Move{}, errorWrongLength
+			return Move(0), errorWrongLength
 		}
 		if !('1' <= s[e-1] && s[e-1] <= '8') {
 			// Not a rank, but a promotion.
 			if target.Figure() != Pawn {
-				return Move{}, errorBadPromotion
+				return Move(0), errorBadPromotion
 			}
 			if fig := symbolToFigure[rune(s[e-1])]; fig == NoFigure {
-				return Move{}, errorUnknownFigure
+				return Move(0), errorUnknownFigure
 			} else {
 				moveType = Promotion
 				target = ColorFigure(pos.SideToMove, fig)
@@ -122,12 +122,12 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 		// Handle destination square.
 		if e-2 < b {
-			return Move{}, errorWrongLength
+			return Move(0), errorWrongLength
 		}
 		var err error
 		to, err = SquareFromString(s[e-2 : e])
 		if err != nil {
-			return Move{}, err
+			return Move(0), err
 		}
 		if pos.IsEnpassantSquare(to) {
 			moveType = Enpassant
@@ -144,7 +144,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 		// Parse disambiguation.
 		if e-b > 2 {
-			return Move{}, errorBadDisambiguation
+			return Move(0), errorBadDisambiguation
 		}
 		for ; b < e; b++ {
 			switch {
@@ -153,7 +153,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 			case '1' <= s[b] && s[b] <= '8':
 				rank = int(s[b] - '1')
 			default:
-				return Move{}, errorBadDisambiguation
+				return Move(0), errorBadDisambiguation
 			}
 		}
 	}
@@ -166,21 +166,21 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		pos.GenerateFigureMoves(target.Figure(), &moves)
 	}
 	for _, pm := range moves {
-		if pm.MoveType != moveType || pm.Capture() != capture {
+		if pm.MoveType() != moveType || pm.Capture() != capture {
 			continue
 		}
-		if pm.To != to || pm.Target() != target {
+		if pm.To() != to || pm.Target() != target {
 			continue
 		}
-		if rank != -1 && pm.From.Rank() != rank {
+		if rank != -1 && pm.From().Rank() != rank {
 			continue
 		}
-		if file != -1 && pm.From.File() != file {
+		if file != -1 && pm.From().File() != file {
 			continue
 		}
 		return pm, nil
 	}
-	return Move{}, errorNoSuchMove
+	return Move(0), errorNoSuchMove
 }
 
 // UCIToMove parses a move given in UCI format.

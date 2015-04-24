@@ -96,7 +96,7 @@ func (pv *pvTable) Get(pos *Position) []Move {
 
 	// Extract the moves by following the position.
 	entry := pv.get(pos)
-	for entry != nil && entry.Move.MoveType != NoMove && !seen[pos.Zobrist()] {
+	for entry != nil && entry.Move.MoveType() != NoMove && !seen[pos.Zobrist()] {
 		seen[pos.Zobrist()] = true
 		moves = append(moves, entry.Move)
 		pos.DoMove(entry.Move)

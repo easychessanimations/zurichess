@@ -21,7 +21,7 @@ type testEngine struct {
 // Move does uci move (e.g. a1h8).
 // If m == "", then it does the null move.
 func (te *testEngine) Move(m string) {
-	move := Move{}
+	move := Move(0)
 	if m != "" {
 		move = te.Pos.UCIToMove(m)
 	}
@@ -60,7 +60,7 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 	var actual []Move
 	te.Pos.GenerateFigureMoves(Pawn, &actual)
 	for i := range actual {
-		if actual[i].From == sq {
+		if actual[i].From() == sq {
 			actual[end] = actual[i]
 			end++
 		}
@@ -481,11 +481,11 @@ func TestGenPawnEnpassant(t *testing.T) {
 	}
 
 	for _, m := range moves {
-		if Enpassant != m.MoveType {
-			t.Fatalf("expected move typ %v, got %v", Enpassant, m.MoveType)
+		if Enpassant != m.MoveType() {
+			t.Fatalf("expected move typ %v, got %v", Enpassant, m.MoveType())
 		}
-		if SquareB3 != m.To {
-			t.Fatalf("expected to at %v, got at %v", SquareB3, m.To)
+		if SquareB3 != m.To() {
+			t.Fatalf("expected to at %v, got at %v", SquareB3, m.To())
 		}
 		if SquareB4 != m.CaptureSquare() {
 			t.Fatalf("expected capture at %v, got at %v", SquareB4, m.CaptureSquare())

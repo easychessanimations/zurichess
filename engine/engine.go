@@ -163,7 +163,7 @@ func (eng *Engine) retrieveHash(ply int16) (HashEntry, bool) {
 }
 
 // updateHash updates GlobalHashTable with current position.
-func (eng *Engine) updateHash(α, β, ply, depth, score int16, move *Move) {
+func (eng *Engine) updateHash(α, β, ply, depth, score int16, move Move) {
 	kind := Exact
 	if score <= α {
 		kind = FailedLow
@@ -195,8 +195,8 @@ func (eng *Engine) updateHash(α, β, ply, depth, score int16, move *Move) {
 		Depth:  depth,
 		Kind:   kind,
 		Target: move.Piece(),
-		From:   move.From,
-		To:     move.To,
+		From:   move.From(),
+		To:     move.To(),
 	})
 }
 
@@ -237,7 +237,7 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 		}
 	}
 
-	if α < localα && localα < β && bestMove.MoveType != NoMove {
+	if α < localα && localα < β && bestMove.MoveType() != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 	return localα
@@ -251,7 +251,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 		return -InfinityScore
 	}
 
-	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType != NoMove)
+	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType() != NoMove)
 	eng.Position.UndoMove(move)
 	return score
 }
@@ -273,7 +273,7 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 		eng.Position.GenerateMoves,
 		func(m Move) int16 {
 			// Awards bonus for hash and killer moves.
-			if m.From == entry.From && m.To == entry.To && m.Target() == entry.Target {
+			if m.From() == entry.From && m.To() == entry.To && m.Target() == entry.Target {
 				return HashMoveBonus
 			}
 			if len(eng.killer) > int(ply) {
@@ -346,7 +346,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(α, β, ply)
-		eng.updateHash(α, β, ply, depth, score, &Move{})
+		eng.updateHash(α, β, ply, depth, score, Move(0))
 		return score
 	}
 
@@ -362,14 +362,14 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 			// Reduce more when there are three minor/major pieces.
 			reduction += DepthMultiplier
 		}
-		score := eng.tryMove(β-1, β, ply, depth-reduction, Move{})
+		score := eng.tryMove(β-1, β, ply, depth-reduction, Move(0))
 		if score >= β {
 			return score
 		}
 	}
 
 	localα := α
-	bestMove, bestScore := Move{}, -InfinityScore
+	bestMove, bestScore := Move(0), -InfinityScore
 
 	eng.generateMoves(ply, &entry)
 	var move Move
@@ -378,7 +378,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		if score >= β { // Fail high, cut node.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
-			eng.updateHash(α, β, ply, depth, score, &move)
+			eng.updateHash(α, β, ply, depth, score, move)
 			return score
 		}
 		if score > bestScore {
@@ -390,7 +390,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	}
 
 	// If no move was found then the game is over.
-	if bestMove.MoveType == NoMove {
+	if bestMove.MoveType() == NoMove {
 		if sideIsChecked {
 			bestScore = MatedScore + ply
 		} else {
@@ -400,8 +400,8 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		eng.saveKiller(ply, bestMove)
 	}
 
-	eng.updateHash(α, β, ply, depth, bestScore, &bestMove)
-	if α < bestScore && bestScore < β && bestMove.MoveType != NoMove {
+	eng.updateHash(α, β, ply, depth, bestScore, bestMove)
+	if α < bestScore && bestScore < β && bestMove.MoveType() != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 

@@ -337,7 +337,7 @@ func (pos *Position) DoMove(move Move) {
 	// Update castling rights.
 	pi := move.Piece()
 	if pi != NoPiece { // nullmove cannot change castling ability
-		pos.SetCastlingAbility(pos.curr.CastlingAbility &^ lostCastleRights[move.From] &^ lostCastleRights[move.To])
+		pos.SetCastlingAbility(pos.curr.CastlingAbility &^ lostCastleRights[move.From()] &^ lostCastleRights[move.To()])
 	}
 
 	// Update IrreversiblePly.
@@ -346,25 +346,25 @@ func (pos *Position) DoMove(move Move) {
 	}
 
 	// Move rook on castling.
-	if move.MoveType == Castling {
-		rook, start, end := CastlingRook(move.To)
+	if move.MoveType() == Castling {
+		rook, start, end := CastlingRook(move.To())
 		pos.Remove(start, rook)
 		pos.Put(end, rook)
 	}
 
 	// Set Enpassant square for capturing.
 	if pi.Figure() == Pawn &&
-		move.From.Bitboard()&BbPawnStartRank != 0 &&
-		move.To.Bitboard()&BbPawnDoubleRank != 0 {
-		pos.SetEnpassantSquare((move.From + move.To) / 2)
+		move.From().Bitboard()&BbPawnStartRank != 0 &&
+		move.To().Bitboard()&BbPawnDoubleRank != 0 {
+		pos.SetEnpassantSquare((move.From() + move.To()) / 2)
 	} else {
 		pos.SetEnpassantSquare(SquareA1)
 	}
 
 	// Update the pieces the chess board.
-	pos.Remove(move.From, pi)
+	pos.Remove(move.From(), pi)
 	pos.Remove(move.CaptureSquare(), move.Capture())
-	pos.Put(move.To, move.Target())
+	pos.Put(move.To(), move.Target())
 	pos.SetSideToMove(pos.SideToMove.Opposite())
 }
 
@@ -376,13 +376,13 @@ func (pos *Position) UndoMove(move Move) {
 
 	// Modify the chess board.
 	pi := move.Piece()
-	pos.Put(move.From, pi)
-	pos.Remove(move.To, move.Target())
+	pos.Put(move.From(), pi)
+	pos.Remove(move.To(), move.Target())
 	pos.Put(move.CaptureSquare(), move.Capture())
 
 	// Move rook on castling.
-	if move.MoveType == Castling {
-		rook, start, end := CastlingRook(move.To)
+	if move.MoveType() == Castling {
+		rook, start, end := CastlingRook(move.To())
 		pos.Put(start, rook)
 		pos.Remove(end, rook)
 	}

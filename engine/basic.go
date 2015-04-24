@@ -274,87 +274,107 @@ const (
 )
 
 // Move stores a position dependent move.
-type Move struct {
-	From, To Square // source and destination squares
-	MoveType MoveType
-	pieces   uint8 // packs captured piece and target piece
-}
+//
+// Bit representation
+//   00.00.00.ff - from
+//   00.00.ff.00 - to
+//   00.0f.00.00 - move type
+//   00.f0.00.00 - promotion
+//   0f.00.00.00 - capture
+//   f0.00.00.00 - piece
+type Move uint32
 
 // MakeMove constructs a move.
 func MakeMove(moveType MoveType, from, to Square, capture, target Piece) Move {
-	return Move{
-		From:     from,
-		To:       to,
-		MoveType: moveType,
-		pieces:   uint8(capture<<4) + uint8(target),
+	promotion, piece := NoPiece, target
+	if moveType == Promotion {
+		promotion = target
+		piece = ColorFigure(target.Color(), Pawn)
 	}
+
+	return Move(from)<<0 +
+		Move(to)<<8 +
+		Move(moveType)<<16 +
+		Move(promotion)<<20 +
+		Move(capture)<<24 +
+		Move(piece)<<28
+}
+
+// From returns the starting square.
+func (m Move) From() Square {
+	return Square(m >> 0 & 0xff)
+}
+
+// To returns the destination square.
+func (m Move) To() Square {
+	return Square(m >> 8 & 0xff)
+}
+
+// MoveType returns the move type.
+func (m Move) MoveType() MoveType {
+	return MoveType(m >> 16 & 0xf)
 }
 
 // SideToMove returns which player is moving.
-func (m *Move) SideToMove() Color {
-	// Same as m.Piece().Color().
-	return Color(m.pieces&1 + 1)
+func (m Move) SideToMove() Color {
+	return m.Piece().Color()
 }
 
 // CaptureSquare returns the captured piece square.
 // If no piece is captured, the result is undefined.
-func (m *Move) CaptureSquare() Square {
-	if m.MoveType != Enpassant {
-		return m.To
+func (m Move) CaptureSquare() Square {
+	if m.MoveType() != Enpassant {
+		return m.To()
 	}
-	return m.From&0x38 + m.To&0x7
+	return m.From()&0x38 + m.To()&0x7
 }
 
 // Capture returns the captured pieces.
-func (m *Move) Capture() Piece {
-	return Piece(m.pieces >> 4)
+func (m Move) Capture() Piece {
+	return Piece(m >> 24 & 0xf)
 }
 
 // Target returns the piece on the to square after the move is executed.
-func (m *Move) Target() Piece {
-	return Piece(m.pieces & 0xf)
+func (m Move) Target() Piece {
+	if m.MoveType() != Promotion {
+		return m.Piece()
+	}
+	return m.Promotion()
 }
 
 // Piece returns the piece moved.
-func (m *Move) Piece() Piece {
-	if m.MoveType != Promotion {
-		return Piece(m.pieces & 0xf)
-	}
-	// Same as ColorFigure(m.Piece().Color(), Pawn)
-	return Piece(Pawn<<1) + Piece(m.pieces&1)
+func (m Move) Piece() Piece {
+	return Piece(m >> 28 & 0xf)
 }
 
 // Promotion returns the promoted piece if any.
-func (m *Move) Promotion() Piece {
-	if m.MoveType != Promotion {
-		return NoPiece
-	}
-	return Piece(m.pieces & 0xf)
+func (m Move) Promotion() Piece {
+	return Piece(m >> 20 & 0xf)
 }
 
 // IsViolent returns true if the move can change the position's score
 // significantly.
-func (m *Move) IsViolent() bool {
-	return m.MoveType == Promotion || m.Capture() != NoPiece
+func (m Move) IsViolent() bool {
+	return m.Capture() != NoPiece || m.MoveType() == Promotion
 }
 
 // UCI converts a move to UCI format.
 // The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
 // incorrectly states that this is the long algebraic notation (LAN).
-func (m *Move) UCI() string {
-	return m.From.String() + m.To.String() + figureToSymbol[m.Promotion().Figure()]
+func (m Move) UCI() string {
+	return m.From().String() + m.To().String() + figureToSymbol[m.Promotion().Figure()]
 }
 
 // LAN converts a move to Long Algebraic Notation.
 // http://en.wikipedia.org/wiki/Algebraic_notation_%28chess%29#Long_algebraic_notation
-func (m *Move) LAN() string {
-	r := figureToSymbol[m.Piece().Figure()] + m.From.String()
+func (m Move) LAN() string {
+	r := figureToSymbol[m.Piece().Figure()] + m.From().String()
 	if m.Capture() != NoPiece {
 		r += "x"
 	} else {
 		r += "-"
 	}
-	r += m.To.String() + figureToSymbol[m.Promotion().Figure()]
+	r += m.To().String() + figureToSymbol[m.Promotion().Figure()]
 	return r
 }
 

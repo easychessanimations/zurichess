@@ -178,13 +178,13 @@ func perft(pos *engine.Position, depth int, hashTable []hashEntry, moves *[]engi
 			if move.Capture() != engine.NoPiece {
 				r.captures++
 			}
-			if move.MoveType == engine.Enpassant {
+			if move.MoveType() == engine.Enpassant {
 				r.enpassant++
 			}
-			if move.MoveType == engine.Castling {
+			if move.MoveType() == engine.Castling {
 				r.castles++
 			}
-			if move.MoveType == engine.Promotion {
+			if move.MoveType() == engine.Promotion {
 				r.promotions++
 			}
 		}
