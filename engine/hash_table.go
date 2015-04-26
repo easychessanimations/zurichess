@@ -34,7 +34,7 @@ type HashEntry struct {
 	// Normally, lock is derived from the position's Zobrist key.
 	lock uint32
 
-	Score int16 // score of the position
+	Score int16 // score of the position. if mate, score is relative to current position.
 	Depth int16 // remaining search depth
 }
 

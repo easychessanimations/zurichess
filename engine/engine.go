@@ -107,19 +107,22 @@ func (eng *Engine) UndoMove(move Move) {
 
 // Score evaluates current position from White's POV.
 func (eng *Engine) Score() int16 {
-	eng.Stats.Nodes++
 	return scoreMultiplier[eng.Position.SideToMove] * Evaluate(eng.Position)
 }
 
 // endPosition determines whether current position is an end game.
 // Returns score and a bool if the game has ended.
-func (eng *Engine) endPosition() (int16, bool) {
+func (eng *Engine) endPosition(ply int16) (int16, bool) {
+	// If the position is a known win/loss then the score is
+	// increased/decreased slightly so the search takes
+	// the shortest/longest path.
+
 	pos := eng.Position // shortcut
 	if pos.NumPieces[White][King] == 0 {
-		return scoreMultiplier[pos.SideToMove] * -MateScore, true
+		return scoreMultiplier[pos.SideToMove] * (ply - MateScore), true
 	}
 	if pos.NumPieces[Black][King] == 0 {
-		return scoreMultiplier[pos.SideToMove] * +MateScore, true
+		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
 	}
 	// K vs K is draw.
 	if pos.NumPieces[NoColor][NoPiece] == 2 {
@@ -139,10 +142,20 @@ func (eng *Engine) endPosition() (int16, bool) {
 }
 
 // retrieveHash gets from GlobalHashTable the current position.
-func (eng *Engine) retrieveHash() (HashEntry, bool) {
+func (eng *Engine) retrieveHash(ply int16) (HashEntry, bool) {
 	entry, ok := GlobalHashTable.Get(eng.Position)
 	if ok {
 		eng.Stats.CacheHit++
+		// Return mate score relative to root.
+		if entry.Score < KnownLossScore {
+                        if entry.Kind == Exact {
+                                entry.Score += ply
+                        }
+		} else if entry.Score > KnownWinScore {
+                        if entry.Kind == Exact {
+                                entry.Score -= ply
+                        }
+		}
 	} else {
 		eng.Stats.CacheMiss++
 	}
@@ -150,12 +163,31 @@ func (eng *Engine) retrieveHash() (HashEntry, bool) {
 }
 
 // updateHash updates GlobalHashTable with current position.
-func (eng *Engine) updateHash(α, β, depth, score int16, move *Move) {
+func (eng *Engine) updateHash(α, β, ply, depth, score int16, move *Move) {
 	kind := Exact
 	if score <= α {
 		kind = FailedLow
 	} else if score >= β {
 		kind = FailedHigh
+	}
+
+	// Save mate score relative to current position.
+	if score < KnownLossScore {
+                if kind == Exact {
+                        score -= ply
+                } else if kind == FailedLow {
+                        score = KnownLossScore
+                } else {
+                        return
+                }
+	} else if score > KnownWinScore {
+                if kind == Exact {
+                        score += ply
+                } else if kind == FailedHigh {
+                        score = KnownWinScore
+                } else {
+                        return
+                }
 	}
 
 	GlobalHashTable.Put(eng.Position, HashEntry{
@@ -174,9 +206,11 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move *Move) {
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
 func (eng *Engine) quiescence(α, β, ply int16) int16 {
-	if score, done := eng.endPosition(); done {
+	eng.Stats.Nodes++
+	if score, done := eng.endPosition(ply); done {
 		return score
 	}
+
 	score := eng.Score()
 	if score >= β { // stand pat
 		return score
@@ -219,16 +253,6 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, move Move) int16 {
 
 	score := -eng.negamax(-β, -α, ply+1, depth-DepthMultiplier, move.MoveType != NoMove)
 	eng.Position.UndoMove(move)
-
-	// If the position is a known win/loss then the score is
-	// increased/decreased slightly so the search takes
-	// the shortest/longest path.
-	if score > KnownWinScore {
-		score--
-	}
-	if score < KnownLossScore {
-		score++
-	}
 	return score
 }
 
@@ -281,13 +305,19 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
 func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16 {
+	eng.Stats.Nodes++
 	sideToMove := eng.Position.SideToMove
-	if score, done := eng.endPosition(); done {
+	if score, done := eng.endPosition(ply); done {
 		return score
+	}
+	if MateScore-ply <= α {
+		// If an ancestor already has a mate in ply moves then
+		// the search will always fail low.
+		return -InfinityScore
 	}
 
 	// Check the transposition table.
-	entry, has := eng.retrieveHash()
+	entry, has := eng.retrieveHash(ply)
 	if has && depth <= entry.Depth {
 		if ply > 0 && entry.Kind == Exact {
 			// Simply return if the score is exact.
@@ -316,7 +346,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	if depth <= 0 {
 		// Stop searching when maximum depth is reached.
 		score := eng.quiescence(α, β, ply)
-		eng.updateHash(α, β, depth, score, &Move{})
+		eng.updateHash(α, β, ply, depth, score, &Move{})
 		return score
 	}
 
@@ -348,7 +378,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		if score >= β { // Fail high, cut node.
 			eng.saveKiller(ply, move)
 			eng.stack.PopAll()
-			eng.updateHash(α, β, depth, score, &move)
+			eng.updateHash(α, β, ply, depth, score, &move)
 			return score
 		}
 		if score > bestScore {
@@ -362,7 +392,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	// If no move was found then the game is over.
 	if bestMove.MoveType == NoMove {
 		if sideIsChecked {
-			bestScore = -MateScore
+			bestScore = ply - MateScore
 		} else {
 			bestScore = 0
 		}
@@ -370,7 +400,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		eng.saveKiller(ply, bestMove)
 	}
 
-	eng.updateHash(α, β, depth, bestScore, &bestMove)
+	eng.updateHash(α, β, ply, depth, bestScore, &bestMove)
 	if α < bestScore && bestScore < β && bestMove.MoveType != NoMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
@@ -379,15 +409,15 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 }
 
 func inf(a int) int {
-	if a <= int(-InfinityScore) {
-		return int(-InfinityScore)
+	if a <= int(-MateScore) {
+		return int(-MateScore)
 	}
 	return int(a)
 }
 
 func sup(b int) int {
-	if b >= int(InfinityScore) {
-		return int(InfinityScore)
+	if b >= int(MateScore) {
+		return int(MateScore)
 	}
 	return int(b)
 }
@@ -402,11 +432,14 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
 	γ, δ := int(estimated), 15
-	α, β := γ-δ, γ+δ
+	α, β := inf(γ-δ), sup(γ+δ)
+	score := estimated
 
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score := eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier, true)
+		score = eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier, true)
+		// fmt.Println("info string searched", α, β, score, eng.Stats)
+
 		if int(score) <= α {
 			α = inf(α - δ)
 			δ += δ / 2
