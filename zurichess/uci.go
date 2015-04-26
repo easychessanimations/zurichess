@@ -227,6 +227,9 @@ func (uci *UCI) setoption(args []string) error {
 	if args[2] != "value" {
 		return fmt.Errorf("expected third field 'value', got %s", args[0])
 	}
+	if len(args) <= 3 || args[3] == "" {
+		return nil
+	}
 
 	switch args[1] {
 	case "UCI_AnalyseMode":
