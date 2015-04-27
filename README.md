@@ -79,7 +79,7 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## History
 
-### zurichess - basel (in development)
+### zurichess - basel
 
 This release's theme is improving evaluation function.
 
@@ -89,7 +89,8 @@ This release's theme is improving evaluation function.
 * Tune check extensions and move ordering.
 * Award mobility and add new piece square tables.
 * Handle three fold repetition.
-* Evaluate pawn structure.
+* Cache pawn structure evaluation.
+* Fix transposition table bug causing a search explosion around mates.
 
 ### zurichess - appenzeller (stable)
 

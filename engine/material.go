@@ -13,10 +13,11 @@ var (
 	// overflows during computation of the position's score.
 	// Scores returned directly are int16.
 
-	KnownWinScore  int16 = 25000
-	KnownLossScore int16 = -KnownWinScore
-	MateScore      int16 = 30000
-	InfinityScore  int16 = 32000
+	KnownWinScore  int16 = 25000          // All scores strictly greater than KnownWinScore are sure wins.
+	KnownLossScore int16 = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
+	MateScore      int16 = 30000          // MateScore - N is mate in N plies.
+	MatedScore     int16 = -MateScore     // MatedScore + N is mated in N plies.
+	InfinityScore  int16 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
 
 	// MidGameMaterial defines the material values for mid game.
 	MidGameMaterial = Material{

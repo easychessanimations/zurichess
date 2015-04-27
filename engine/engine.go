@@ -110,7 +110,7 @@ func (eng *Engine) Score() int16 {
 	return scoreMultiplier[eng.Position.SideToMove] * Evaluate(eng.Position)
 }
 
-// endPosition determines whether current position is an end game.
+// endPosition determines whether the current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) endPosition(ply int16) (int16, bool) {
 	// If the position is a known win/loss then the score is
@@ -119,7 +119,7 @@ func (eng *Engine) endPosition(ply int16) (int16, bool) {
 
 	pos := eng.Position // shortcut
 	if pos.NumPieces[White][King] == 0 {
-		return scoreMultiplier[pos.SideToMove] * (ply - MateScore), true
+		return scoreMultiplier[pos.SideToMove] * (MatedScore + ply), true
 	}
 	if pos.NumPieces[Black][King] == 0 {
 		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
@@ -148,13 +148,13 @@ func (eng *Engine) retrieveHash(ply int16) (HashEntry, bool) {
 		eng.Stats.CacheHit++
 		// Return mate score relative to root.
 		if entry.Score < KnownLossScore {
-                        if entry.Kind == Exact {
-                                entry.Score += ply
-                        }
+			if entry.Kind == Exact {
+				entry.Score += ply
+			}
 		} else if entry.Score > KnownWinScore {
-                        if entry.Kind == Exact {
-                                entry.Score -= ply
-                        }
+			if entry.Kind == Exact {
+				entry.Score -= ply
+			}
 		}
 	} else {
 		eng.Stats.CacheMiss++
@@ -173,21 +173,21 @@ func (eng *Engine) updateHash(α, β, ply, depth, score int16, move *Move) {
 
 	// Save mate score relative to current position.
 	if score < KnownLossScore {
-                if kind == Exact {
-                        score -= ply
-                } else if kind == FailedLow {
-                        score = KnownLossScore
-                } else {
-                        return
-                }
+		if kind == Exact {
+			score -= ply
+		} else if kind == FailedLow {
+			score = KnownLossScore
+		} else {
+			return
+		}
 	} else if score > KnownWinScore {
-                if kind == Exact {
-                        score += ply
-                } else if kind == FailedHigh {
-                        score = KnownWinScore
-                } else {
-                        return
-                }
+		if kind == Exact {
+			score += ply
+		} else if kind == FailedHigh {
+			score = KnownWinScore
+		} else {
+			return
+		}
 	}
 
 	GlobalHashTable.Put(eng.Position, HashEntry{
@@ -294,8 +294,8 @@ func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
 // depth is the fractional depth (decreasing)
 // nullMoveAllowed is true if null move is allowed, e.g. to avoid two consecutive null moves.
 //
-// Returns the score of the current position up to maxPly - ply depth.
-// Returned score is from current player's POV.
+// Returns the score of the current position up to depth (modulo reductions/extensions).
+// The returned score is from current player's POV.
 //
 // Invariants:
 //   If score <= α then the search failed low and the score is an upper bound.
@@ -392,7 +392,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	// If no move was found then the game is over.
 	if bestMove.MoveType == NoMove {
 		if sideIsChecked {
-			bestScore = ply - MateScore
+			bestScore = MatedScore + ply
 		} else {
 			bestScore = 0
 		}
