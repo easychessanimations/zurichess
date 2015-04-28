@@ -44,6 +44,17 @@ func TestScore(t *testing.T) {
 	}
 }
 
+func TestEndGamePosition(t *testing.T) {
+	pos, _ := PositionFromFEN("6k1/5p1p/4p1p1/3p4/5P1P/8/3r2q1/6K1 w - - 2 55")
+	tc := &FixedDepthTimeControl{MinDepth: 3, MaxDepth: 3}
+	tc.Start()
+	eng := NewEngine(pos, Options{})
+	moves := eng.Play(tc)
+	if 0 != len(moves) {
+		t.Errorf("expected no pv, got %d moves", len(moves))
+	}
+}
+
 func TestZugzwang(t *testing.T) {
 	data := [][2]string{
 		// {"Ra2-a6", "kbK5/pp6/1P6/8/8/8/R7/8 w - - 0 1"},

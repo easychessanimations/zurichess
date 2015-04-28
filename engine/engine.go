@@ -409,15 +409,15 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 }
 
 func inf(a int) int {
-	if a <= int(-MateScore) {
-		return int(-MateScore)
+	if a <= int(-InfinityScore) {
+		return int(-InfinityScore)
 	}
 	return int(a)
 }
 
 func sup(b int) int {
-	if b >= int(MateScore) {
-		return int(MateScore)
+	if b >= int(InfinityScore) {
+		return int(InfinityScore)
 	}
 	return int(b)
 }
