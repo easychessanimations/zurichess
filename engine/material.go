@@ -153,37 +153,35 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 func (m *Material) evaluate(pos *Position, side Color) int {
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[side] | pos.PawnThreats(side.Opposite())
-	// All occupied squares. Used to compute mobility.
-	all := pos.ByFigure[White] | pos.ByFigure[Black]
+	all := pos.ByFigure[Pawn] | pos.ByFigure[Knight]
 
 	// Award connected bishops.
 	score := int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
 
 	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
-		knight := BbKnightAttack[sq] &^ excl
+		knight := pos.KnightMobility(sq) &^ excl
 		score += m.FigureBonus[Knight] + knight.Popcnt()*m.Mobility[Knight]
 	}
 	for bb := pos.ByPiece(side, Bishop); bb != 0; {
 		sq := bb.Pop()
-		bishop := BishopMagic[sq].Attack(all) &^ excl
+		bishop := pos.BishopMobility(sq, all) &^ excl
 		score += m.FigureBonus[Bishop] + bishop.Popcnt()*m.Mobility[Bishop]
 		score += m.PieceSquareTable[Bishop][sq^colMask[side]]
 	}
 	for bb := pos.ByPiece(side, Rook); bb != 0; {
 		sq := bb.Pop()
-		rook := RookMagic[sq].Attack(all) &^ excl
+		rook := pos.RookMobility(sq, all) &^ excl
 		score += m.FigureBonus[Rook] + rook.Popcnt()*m.Mobility[Rook]
 	}
 	for bb := pos.ByPiece(side, Queen); bb != 0; {
 		sq := bb.Pop()
-		rook := RookMagic[sq].Attack(all) &^ excl
-		bishop := BishopMagic[sq].Attack(all) &^ excl
-		score += m.FigureBonus[Queen] + (rook|bishop).Popcnt()*m.Mobility[Queen]
+		queen := pos.QueenMobility(sq, all) &^ excl
+		score += m.FigureBonus[Queen] + queen.Popcnt()*m.Mobility[Queen]
 	}
 	for bb := pos.ByPiece(side, King); bb != 0; {
 		sq := bb.Pop()
-		king := BbKingAttack[sq] &^ excl
+		king := pos.KingMobility(sq) &^ excl
 		score += m.FigureBonus[King] + king.Popcnt()*m.Mobility[King]
 		score += m.PieceSquareTable[King][sq^colMask[side]]
 	}

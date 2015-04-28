@@ -258,6 +258,32 @@ func (pos *Position) Get(sq Square) Piece {
 	panic("unreachable")
 }
 
+// KnightMobility returns all squares a knigth can reach from sq.
+func (pos *Position) KnightMobility(sq Square) Bitboard {
+	return BbKnightAttack[sq]
+}
+
+// BishopMobility returns all squares a bishop can reach from sq.
+func (pos *Position) BishopMobility(sq Square, all Bitboard) Bitboard {
+	return BishopMagic[sq].Attack(all)
+}
+
+// RookMobility returns all squares a rook can reach from sq.
+func (pos *Position) RookMobility(sq Square, all Bitboard) Bitboard {
+	return RookMagic[sq].Attack(all)
+}
+
+// QueenMobility returns all squares a queen can reach from sq.
+func (pos *Position) QueenMobility(sq Square, all Bitboard) Bitboard {
+	return RookMagic[sq].Attack(all) | BishopMagic[sq].Attack(all)
+}
+
+// KingMobility returns all squares a king can reach from sq.
+// Doesn't include castling.
+func (pos *Position) KingMobility(sq Square) Bitboard {
+	return BbKingAttack[sq]
+}
+
 // IsThreeFoldRepetition returns whether current position was seen three times already.
 func (pos *Position) IsThreeFoldRepetition() bool {
 	if pos.Ply-pos.curr.IrreversiblePly < 4 {
@@ -606,13 +632,13 @@ func (pos *Position) IsAttackedBy(sq Square, side Color) bool {
 	// Bishop&Queen
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
-	if bishops != 0 && bishops&BishopMagic[sq].Attack(all) != 0 {
+	if bishops != 0 && bishops&pos.BishopMobility(sq, all) != 0 {
 		return true
 	}
 
 	// Rook&Queen
 	rooks := enemy & (pos.ByFigure[Rook] | pos.ByFigure[Queen])
-	if rooks != 0 && rooks&RookMagic[sq].Attack(all) != 0 {
+	if rooks != 0 && rooks&pos.RookMobility(sq, all) != 0 {
 		return true
 	}
 
