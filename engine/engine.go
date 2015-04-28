@@ -191,12 +191,10 @@ func (eng *Engine) updateHash(α, β, ply, depth, score int16, move Move) {
 	}
 
 	GlobalHashTable.Put(eng.Position, HashEntry{
-		Score:  score,
-		Depth:  depth,
-		Kind:   kind,
-		Target: move.Piece(),
-		From:   move.From(),
-		To:     move.To(),
+		Score: score,
+		Depth: depth,
+		Kind:  kind,
+		Move:  move,
 	})
 }
 
@@ -268,12 +266,12 @@ func (eng *Engine) saveKiller(ply int16, move Move) {
 }
 
 // generateMoves generates and orders moves.
-func (eng *Engine) generateMoves(ply int16, entry *HashEntry) {
+func (eng *Engine) generateMoves(ply int16, hashMove Move) {
 	eng.stack.Stack(
 		eng.Position.GenerateMoves,
 		func(m Move) int16 {
 			// Awards bonus for hash and killer moves.
-			if m.From() == entry.From && m.To() == entry.To && m.Target() == entry.Target {
+			if m == hashMove {
 				return HashMoveBonus
 			}
 			if len(eng.killer) > int(ply) {
@@ -371,7 +369,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	localα := α
 	bestMove, bestScore := Move(0), -InfinityScore
 
-	eng.generateMoves(ply, &entry)
+	eng.generateMoves(ply, entry.Move)
 	var move Move
 	for eng.stack.PopMove(&move) {
 		score := eng.tryMove(localα, β, ply, depth, move)
