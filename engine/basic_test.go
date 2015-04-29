@@ -4,6 +4,30 @@ import (
 	"testing"
 )
 
+func TestBitboardNSWE(t *testing.T) {
+	data := []struct {
+		f    func(bb Bitboard) Bitboard
+		i, o Bitboard
+	}{
+		{North, RankBb(7), 0},
+		{North, RankBb(6), RankBb(7)},
+		{South, RankBb(1), RankBb(0)},
+		{South, RankBb(0), 0},
+		{East, FileBb(7), 0},
+		{East, FileBb(6), FileBb(7)},
+		{West, FileBb(1), FileBb(0)},
+		{West, FileBb(0), 0},
+		{West, (1 << 0) | (1 << 1), (1 << 0)},
+		{East, (1 << 62) | (1 << 63), (1 << 63)},
+	}
+
+	for i, d := range data {
+		if d.o != d.f(d.i) {
+			t.Errorf("#%d expected 0x%08x, got 0x%08x", i, d.o, d.f(d.i))
+		}
+	}
+}
+
 func TestSquareFromString(t *testing.T) {
 	data := []struct {
 		sq  Square

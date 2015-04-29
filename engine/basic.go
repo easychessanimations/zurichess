@@ -193,6 +193,31 @@ func AdjacentFilesBb(file int) Bitboard {
 	return bb
 }
 
+// North shifts all squares one rank up.
+func North(bb Bitboard) Bitboard {
+	return bb << 8
+}
+
+// South shifts all squares one rank down.
+func South(bb Bitboard) Bitboard {
+	return bb >> 8
+}
+
+// East shifts all squares one file right.
+func East(bb Bitboard) Bitboard {
+	return bb &^ FileBb(7) << 1
+}
+
+// West shifts all squares one file left.
+func West(bb Bitboard) Bitboard {
+	return bb &^ FileBb(0) >> 1
+}
+
+// Has returns bb if sq is occupied in bitboard.
+func (bb Bitboard) Has(sq Square) bool {
+	return bb>>sq&1 != 0
+}
+
 // AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
@@ -210,9 +235,9 @@ func (bb Bitboard) LSB() Bitboard {
 func (bb Bitboard) Forward(col Color) Bitboard {
 	switch col {
 	case White:
-		return bb << 8
+		return North(bb)
 	case Black:
-		return bb >> 8
+		return South(bb)
 	default:
 		return bb
 	}
