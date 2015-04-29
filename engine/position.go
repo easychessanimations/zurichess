@@ -241,12 +241,17 @@ func (pos *Position) IsEmpty(sq Square) bool {
 
 // Get returns the piece at sq.
 func (pos *Position) Get(sq Square) Piece {
-	col := White*Color(pos.ByColor[White]>>sq&1) + Black*Color(pos.ByColor[Black]>>sq&1)
-	if col == NoColor {
+	var col Color
+	if pos.ByColor[White].Has(sq) {
+		col = White
+	} else if pos.ByColor[Black].Has(sq) {
+		col = Black
+	} else {
 		return NoPiece
 	}
+
 	for fig := FigureMinValue; fig <= FigureMaxValue; fig++ {
-		if pos.ByFigure[fig]>>sq&1 != 0 {
+		if pos.ByFigure[fig].Has(sq) {
 			return ColorFigure(col, fig)
 		}
 	}
@@ -362,9 +367,7 @@ func (pos *Position) UndoMove(move Move) {
 // PawnThreats returns the set of squares threatened by side's pawns.
 func (pos *Position) PawnThreats(side Color) Bitboard {
 	pawns := pos.ByPiece(side, Pawn).Forward(side)
-	left := pawns & ^FileBb(7) << 1
-	right := pawns & ^FileBb(0) >> 1
-	return left | right
+	return West(pawns) | East(pawns)
 }
 
 func (pos *Position) genPawnPromotions(from, to Square, capt Piece, violent bool, moves *[]Move) {
@@ -397,10 +400,10 @@ func (pos *Position) genPawnAdvanceMoves(violent bool, moves *[]Move) {
 	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	if pos.SideToMove == White {
-		bb &= free >> 8
+		bb &= South(free)
 		forward = RankFile(+1, 0)
 	} else {
-		bb &= free << 8
+		bb &= North(free)
 		forward = RankFile(-1, 0)
 	}
 	for bb != 0 {
@@ -416,10 +419,10 @@ func (pos *Position) genPawnDoubleAdvanceMoves(moves *[]Move) {
 	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	free := ^(pos.ByColor[White] | pos.ByColor[Black])
 	if pos.SideToMove == White {
-		bb &= RankBb(1) & (free >> 8) & (free >> 16)
+		bb &= RankBb(1) & South(free) & South(South(free))
 		forward = RankFile(+2, 0)
 	} else {
-		bb &= RankBb(6) & (free << 8) & (free << 16)
+		bb &= RankBb(6) & North(free) & North(North(free))
 		forward = RankFile(-2, 0)
 	}
 	for bb != 0 {
@@ -444,17 +447,17 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 
 	forward := 0
 	if pos.SideToMove == White {
-		enemy >>= 8
+		enemy = South(enemy)
 		forward = +1
 	} else {
-		enemy <<= 8
+		enemy = North(enemy)
 		forward = -1
 	}
 
 	// Left
 	bb := pos.ByPiece(pos.SideToMove, Pawn)
 	att := RankFile(forward, -1)
-	for bbl := bb & ((enemy & ^FileBb(7)) << 1); bbl > 0; {
+	for bbl := bb & East(enemy); bbl > 0; {
 		from := bbl.Pop()
 		to := from + att
 		capt := pos.pawnCapture(to)
@@ -463,7 +466,7 @@ func (pos *Position) genPawnAttackMoves(violent bool, moves *[]Move) {
 
 	// Right
 	att = RankFile(forward, +1)
-	for bbr := bb & ((enemy & ^FileBb(0)) >> 1); bbr > 0; {
+	for bbr := bb & West(enemy); bbr > 0; {
 		from := bbr.Pop()
 		to := from + att
 		capt := pos.pawnCapture(to)
