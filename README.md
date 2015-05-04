@@ -2,12 +2,14 @@
 
 [Website](https://bitbucket.org/brtzsnr/zurichess) |
 [CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details+%28text%29&eng=Zurichess%20Appenzeller%2064-bit) |
-[Documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess) |
 [Wiki](http://chessprogramming.wikispaces.com/Zurichess) |
+[![Reference](https://godoc.org/bitbucket.org/brtzsnr/zurichess?status.svg)](https://godoc.org/bitbucket.org/brtzsnr/zurichess)
 [![Build Status](https://drone.io/bitbucket.org/brtzsnr/zurichess/status.png)](https://drone.io/bitbucket.org/brtzsnr/zurichess/latest)
 
 zurichess is a chess engine and a chess library written in
-[Go](http://golang).
+[Go](http://golang). Its main goals are: to be a relatively
+strong chess engine and to enable chess tools writing. See
+the libray reference.
 
 zurichess partially implements [UCI
 protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but
