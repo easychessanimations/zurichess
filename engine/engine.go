@@ -219,9 +219,9 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 		localα = score
 	}
 
-	eng.stack.Stack(eng.Position.GenerateViolentMoves, mvvlva)
-	var move, bestMove Move
-	for eng.stack.PopMove(&move) {
+	var bestMove Move
+	eng.stack.GenerateViolentMoves(eng.Position)
+	for move := Move(0); eng.stack.PopMove(&move); {
 		eng.Position.DoMove(move)
 		score := -eng.quiescence(-β, -localα, ply+1)
 		eng.Position.UndoMove(move)
@@ -285,21 +285,12 @@ func (eng *Engine) saveKiller(ply int16, move Move) {
 }
 
 // generateMoves generates and orders moves.
-func (eng *Engine) generateMoves(ply int16, hashMove Move) {
-	eng.stack.Stack(
-		eng.Position.GenerateMoves,
-		func(m Move) int16 {
-			// Awards bonus for hash and killer moves.
-			if m == hashMove {
-				return HashMoveBonus
-			}
-			if len(eng.killer) > int(ply) {
-				if m == eng.killer[ply][0] || m == eng.killer[ply][1] {
-					return KillerMoveBonus
-				}
-			}
-			return mvvlva(m)
-		})
+func (eng *Engine) generateMoves(ply int16, hash Move) {
+	var killer [2]Move
+	if len(eng.killer) > int(ply) {
+		killer = eng.killer[ply]
+	}
+	eng.stack.GenerateMoves(eng.Position, hash, killer)
 }
 
 // negamax implements negamax framework.

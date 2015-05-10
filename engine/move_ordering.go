@@ -93,16 +93,44 @@ type moveStack struct {
 	heads []int
 }
 
-// Stack generates and sorts by weigth the moves for current search ply.
-func (ms *moveStack) Stack(generate func(*[]Move), weight func(Move) int16) {
+// GenerateMoves generates all moves.
+// Called from main search tree which has hash and killer moves available.
+func (ms *moveStack) GenerateMoves(pos *Position, hash Move, killer [2]Move) {
+	// Awards bonus for hash and killer moves.
+	start := len(ms.moves)
+	pos.GenerateMoves(&ms.moves)
+	for _, m := range ms.moves[start:] {
+		var weight int16
+		if m == hash {
+			weight = HashMoveBonus
+		} else if m == killer[0] || m == killer[1] {
+			weight = KillerMoveBonus
+		} else {
+			weight = mvvlva(m)
+		}
+		ms.order = append(ms.order, weight)
+	}
+	ms.push()
+}
+
+// GenerateViolentMoves generates all violent moves.
+// Called from quiescence search tree.
+func (ms *moveStack) GenerateViolentMoves(pos *Position) {
+	start := len(ms.moves)
+	pos.GenerateViolentMoves(&ms.moves)
+	for _, m := range ms.moves[start:] {
+		ms.order = append(ms.order, mvvlva(m))
+	}
+	ms.push()
+}
+
+// push creates a new level of moves.
+// moves must be already inserted.
+func (ms *moveStack) push() {
 	if len(ms.heads) == 0 {
 		ms.heads = append(ms.heads, 0)
 	}
-	start := len(ms.moves)
-	generate(&ms.moves)
-	for _, m := range ms.moves[start:] {
-		ms.order = append(ms.order, weight(m))
-	}
+	start := ms.heads[len(ms.heads)-1]
 	(&heapSort{ms.moves[start:], ms.order[start:]}).sort()
 	ms.heads = append(ms.heads, len(ms.moves))
 }
