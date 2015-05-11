@@ -81,7 +81,11 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## History
 
-### zurichess - basel
+### zurichess - bern (development)
+
+* Implement Principal Variation Search.
+
+### zurichess - basel (stable)
 
 This release's theme is improving evaluation function.
 
@@ -94,9 +98,9 @@ This release's theme is improving evaluation function.
 * Cache pawn structure evaluation.
 * Fix transposition table bug causing a search explosion around mates.
 
-### zurichess - appenzeller (stable)
+### zurichess - appenzeller
 
-This release's theme is improving search. ELO is about 1821 on CCRL 40/4.
+This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
 
 * Cleaned code and improved documentation.
 * Implemented aspiration window search with gradual widening.
