@@ -213,6 +213,32 @@ func West(bb Bitboard) Bitboard {
 	return bb &^ FileBb(0) >> 1
 }
 
+// NorthFill returns a bitboard with all north bits set.
+func NorthFill(bb Bitboard) Bitboard {
+	bb |= (bb << 8)
+	bb |= (bb << 16)
+	bb |= (bb << 24)
+	return bb
+}
+
+// NorthSpan is like NorthFill shifted on up.
+func NorthSpan(bb Bitboard) Bitboard {
+	return NorthFill(North(bb))
+}
+
+// SouthFill returns a bitboard with all south bits set.
+func SouthFill(bb Bitboard) Bitboard {
+	bb |= (bb >> 8)
+	bb |= (bb >> 16)
+	bb |= (bb >> 24)
+	return bb
+}
+
+// SouthSpan is like SouthFill shifted on up.
+func SouthSpan(bb Bitboard) Bitboard {
+	return SouthFill(South(bb))
+}
+
 // Has returns bb if sq is occupied in bitboard.
 func (bb Bitboard) Has(sq Square) bool {
 	return bb>>sq&1 != 0

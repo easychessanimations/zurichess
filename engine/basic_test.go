@@ -19,6 +19,12 @@ func TestBitboardNSWE(t *testing.T) {
 		{West, FileBb(0), 0},
 		{West, (1 << 0) | (1 << 1), (1 << 0)},
 		{East, (1 << 62) | (1 << 63), (1 << 63)},
+		{NorthFill, RankBb(7), RankBb(7)},
+		{NorthFill, RankBb(6), RankBb(6) | RankBb(7)},
+		{NorthFill, 0x80000402002000, 0xa6a6262622202000},
+		{SouthFill, RankBb(0), RankBb(0)},
+		{SouthFill, RankBb(1), RankBb(0) | RankBb(1)},
+		{SouthFill, 0x100218220080, 0x10121a3a3aba},
 	}
 
 	for i, d := range data {
