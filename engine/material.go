@@ -20,10 +20,10 @@ var (
 	InfinityScore  int16 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
 
 	Evaluation = Material{
-		DoublePawnPenalty: Score{11, 53},
-		BishopPairBonus:   Score{24, 58},
-		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {2, 13}, {5, 9}, {6, 6}, {1, 13}, {-10, -1}},
-		FigureBonus:       [FigureArraySize]Score{{0, 0}, {17, 147}, {337, 304}, {313, 346}, {389, 618}, {941, 1059}, {10000, 10000}},
+		DoublePawnPenalty: Score{23, 37},
+		BishopPairBonus:   Score{27, 57},
+		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {7, 9}, {3, 8}, {5, 7}, {2, 14}, {-11, 0}},
+		FigureBonus:       [FigureArraySize]Score{{0, 0}, {22, 148}, {328, 314}, {342, 332}, {455, 594}, {1020, 1041}, {10000, 10000}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
@@ -125,12 +125,12 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score Score) {
 func (m *Material) evaluate(pos *Position, side Color) Score {
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[side] | pos.PawnThreats(side.Opposite())
-	all := pos.ByFigure[Pawn] | pos.ByFigure[Knight]
 	mask := colMask[side]
 
 	// Award connected bishops.
 	score := m.BishopPairBonus.Times(int32(pos.NumPieces[side][Bishop] / 2))
 
+	all := pos.ByFigure[Pawn]
 	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
 		knight := pos.KnightMobility(sq) &^ excl
@@ -144,6 +144,7 @@ func (m *Material) evaluate(pos *Position, side Color) Score {
 		score = score.Plus(m.Mobility[Bishop].Times(bishop.Popcnt()))
 		score = score.Plus(m.PieceSquareTable[Bishop][sq^mask])
 	}
+	all = pos.ByFigure[Pawn] | pos.ByFigure[Knight] | pos.ByFigure[Bishop]
 	for bb := pos.ByPiece(side, Rook); bb != 0; {
 		sq := bb.Pop()
 		rook := pos.RookMobility(sq, all) &^ excl
