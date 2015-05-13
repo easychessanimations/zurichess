@@ -21,11 +21,15 @@ var (
 		250, 349, 948, 1355, 1631, 2314, 20000, // Queen
 		250, 928, 1088, 1349, 1593, 2417, 20000, // King
 	}
+)
 
+const (
 	// Give bonus to move found in the hash table.
 	HashMoveBonus int16 = 4096
 	// Give bonus to killer move.
 	KillerMoveBonus int16 = 1024
+	// Penalize moves to squares attacked by pawns. Only in quiescence search.
+	PawnThreatPenalty int16 = 500
 )
 
 // SetMvvLva sets the MVV/LVA table.
@@ -116,10 +120,15 @@ func (ms *moveStack) GenerateMoves(pos *Position, hash Move, killer [2]Move) {
 // GenerateViolentMoves generates all violent moves.
 // Called from quiescence search tree.
 func (ms *moveStack) GenerateViolentMoves(pos *Position) {
+	threats := pos.PawnThreats(pos.SideToMove.Opposite())
 	start := len(ms.moves)
 	pos.GenerateViolentMoves(&ms.moves)
 	for _, m := range ms.moves[start:] {
-		ms.order = append(ms.order, mvvlva(m))
+		weight := mvvlva(m)
+		if threats.Has(m.To()) {
+			weight -= PawnThreatPenalty
+		}
+		ms.order = append(ms.order, weight)
 	}
 	ms.push()
 }
