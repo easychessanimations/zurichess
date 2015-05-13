@@ -9,6 +9,7 @@
 //   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
 //   * Fail soft - https://chessprogramming.wikispaces.com/Fail-Soft
 //   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
+//   * Principal variation search - https://chessprogramming.wikispaces.com/Principal+Variation+Search
 package engine
 
 import (
@@ -21,7 +22,7 @@ const (
 	CheckDepthExtension    = 6 // how much to extend search in case of checks
 	NullMoveDepthLimit     = 8 // disable null-move below this limit
 	NullMoveDepthReduction = 8 // default null-move depth reduction. Can reduce more in some situations.
-	PVSDepthLimit          = 7
+	PVSDepthLimit          = 7 // do not do PVS below and including this limit
 )
 
 var (
@@ -114,10 +115,6 @@ func (eng *Engine) Score() int16 {
 // endPosition determines whether the current position is an end game.
 // Returns score and a bool if the game has ended.
 func (eng *Engine) endPosition(ply int16) (int16, bool) {
-	// If the position is a known win/loss then the score is
-	// increased/decreased slightly so the search takes
-	// the shortest/longest path.
-
 	pos := eng.Position // shortcut
 	if pos.NumPieces[White][King] == 0 {
 		return scoreMultiplier[pos.SideToMove] * (MatedScore + ply), true
@@ -148,6 +145,8 @@ func (eng *Engine) retrieveHash(ply int16) (HashEntry, bool) {
 	if ok {
 		eng.Stats.CacheHit++
 		// Return mate score relative to root.
+		// The score was adjusted relative to position before the
+		// hash table was updated.
 		if entry.Score < KnownLossScore {
 			if entry.Kind == Exact {
 				entry.Score += ply
@@ -163,7 +162,7 @@ func (eng *Engine) retrieveHash(ply int16) (HashEntry, bool) {
 	return entry, ok
 }
 
-// updateHash updates GlobalHashTable with current position.
+// updateHash updates GlobalHashTable with the current position.
 func (eng *Engine) updateHash(α, β, ply, depth, score int16, move Move) {
 	kind := Exact
 	if score <= α {
@@ -172,7 +171,8 @@ func (eng *Engine) updateHash(α, β, ply, depth, score int16, move Move) {
 		kind = FailedHigh
 	}
 
-	// Save mate score relative to current position.
+	// Save the mate score relative to the current position.
+	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
 		if kind == Exact {
 			score -= ply
@@ -351,7 +351,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		depth += CheckDepthExtension
 	}
 
-	// Stop searching when maximum depth is reached.
+	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
 		score := eng.quiescence(α, β, ply)
 		eng.updateHash(α, β, ply, depth, score, Move(0))
@@ -378,7 +378,8 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 		}
 	}
 
-	// Search with a null window if there is already a good move.
+	// Principal variation search: search with a null window if there is
+	// already a good move.
 	nullWindow := false
 	allowNullWindow := has && len(eng.killer) > int(ply)
 
