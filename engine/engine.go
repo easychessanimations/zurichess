@@ -221,7 +221,7 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 
 	var bestMove Move
 	eng.stack.GenerateViolentMoves(eng.Position)
-	for move := Move(0); eng.stack.PopMove(&move); {
+	for move := NullMove; eng.stack.PopMove(&move); {
 		eng.Position.DoMove(move)
 		score := -eng.quiescence(-β, -localα, ply+1)
 		eng.Position.UndoMove(move)
@@ -262,12 +262,12 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, nullWindow bool, move Move)
 
 	var score int16
 	if nullWindow && α+1 != β && depth > PVSDepthLimit {
-		score = -eng.negamax(-α-1, -α, ply+1, depth, move.MoveType() != NoMove)
+		score = -eng.negamax(-α-1, -α, ply+1, depth, move != NullMove)
 		if α < score && score < β {
-			score = -eng.negamax(-β, -α, ply+1, depth, move.MoveType() != NoMove)
+			score = -eng.negamax(-β, -α, ply+1, depth, move != NullMove)
 		}
 	} else {
-		score = -eng.negamax(-β, -α, ply+1, depth, move.MoveType() != NoMove)
+		score = -eng.negamax(-β, -α, ply+1, depth, move != NullMove)
 	}
 	eng.Position.UndoMove(move)
 	return score
@@ -354,7 +354,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
 		score := eng.quiescence(α, β, ply)
-		eng.updateHash(α, β, ply, depth, score, Move(0))
+		eng.updateHash(α, β, ply, depth, score, NullMove)
 		return score
 	}
 
@@ -372,7 +372,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 			// Reduce more when there are three minor/major pieces.
 			reduction += DepthMultiplier
 		}
-		score := eng.tryMove(β-1, β, ply, depth-reduction, false, Move(0))
+		score := eng.tryMove(β-1, β, ply, depth-reduction, false, NullMove)
 		if score >= β {
 			return score
 		}
@@ -384,10 +384,10 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	allowNullWindow := has && len(eng.killer) > int(ply)
 
 	localα := α
-	bestMove, bestScore := Move(0), -InfinityScore
+	bestMove, bestScore := NullMove, -InfinityScore
 
 	eng.generateMoves(ply, entry.Move)
-	for move := Move(0); eng.stack.PopMove(&move); {
+	for move := NullMove; eng.stack.PopMove(&move); {
 		score := eng.tryMove(localα, β, ply, depth, nullWindow, move)
 		if score >= β { // Fail high, cut node.
 			eng.saveKiller(ply, move)
@@ -405,7 +405,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	}
 
 	// If no move was found then the game is over.
-	if bestMove.MoveType() == NoMove {
+	if bestMove == NullMove {
 		if sideIsChecked {
 			bestScore = MatedScore + ply
 		} else {
@@ -417,7 +417,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 
 	// Update hash and principal variation tables.
 	eng.updateHash(α, β, ply, depth, bestScore, bestMove)
-	if α < bestScore && bestScore < β && bestMove.MoveType() != NoMove {
+	if α < bestScore && bestScore < β && bestMove != NullMove {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 

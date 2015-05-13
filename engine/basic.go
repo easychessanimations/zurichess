@@ -299,6 +299,10 @@ const (
 	Enpassant                 // pawn takes enpassant
 )
 
+const (
+	NullMove = Move(0)
+)
+
 // Move stores a position dependent move.
 //
 // Bit representation
