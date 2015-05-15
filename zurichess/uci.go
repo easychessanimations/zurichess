@@ -180,7 +180,6 @@ func (uci *UCI) go_(args []string) {
 		case "depth":
 			i++
 			d, _ := strconv.Atoi(args[i])
-			fdtc.MinDepth = 0
 			fdtc.MaxDepth = d
 			tc = fdtc
 		}

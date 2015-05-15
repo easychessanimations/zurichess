@@ -16,16 +16,14 @@ type TimeControl interface {
 	NextDepth() int
 }
 
-// FixedDepthTimeControl searches all depths from MinDepth to MaxDepth.
+// FixedDepthTimeControl searches all depths up to MaxDepth.
 type FixedDepthTimeControl struct {
-	MinDepth int
-	MaxDepth int
-
-	currDepth int
+	MaxDepth  int // maximum depth to search to
+	currDepth int // current depth
 }
 
 func (tc *FixedDepthTimeControl) Start() {
-	tc.currDepth = tc.MinDepth - 1
+	tc.currDepth = -1
 }
 
 func (tc *FixedDepthTimeControl) NextDepth() int {
