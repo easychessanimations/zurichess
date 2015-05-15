@@ -104,6 +104,10 @@ func (s Score) Times(t int32) Score {
 	return Score{s.M * t, s.E * t}
 }
 
+func (s Score) Greater(t int32) bool {
+	return (s.M/2 + s.E/2) > t
+}
+
 // Material stores the evaluation parameters.
 type Material struct {
 	DoublePawnPenalty Score

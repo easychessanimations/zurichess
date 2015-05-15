@@ -3,13 +3,14 @@
 // Search features implemented are:
 //
 //   * Aspiration window - https://chessprogramming.wikispaces.com/Aspiration+Windows
-//   * Killer move heuristic - /https://chessprogramming.wikispaces.com/Killer+Heuristic
-//   * Null move prunning - https://chessprogramming.wikispaces.com/Null+Move+Pruning
 //   * Check extension - https://chessprogramming.wikispaces.com/Check+Extensions
-//   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
 //   * Fail soft - https://chessprogramming.wikispaces.com/Fail-Soft
+//   * Killer move heuristic - /https://chessprogramming.wikispaces.com/Killer+Heuristic
+//   * Late move redution (LMR) - https://chessprogramming.wikispaces.com/Late+Move+Reductions
 //   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
-//   * Principal variation search - https://chessprogramming.wikispaces.com/Principal+Variation+Search
+//   * Null move prunning (NMP) - https://chessprogramming.wikispaces.com/Null+Move+Pruning
+//   * Principal variation search (PVS) - https://chessprogramming.wikispaces.com/Principal+Variation+Search
+//   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
 package engine
 
 import (
@@ -22,6 +23,8 @@ const (
 	NullMoveDepthLimit     = 1 // disable null-move below this limit
 	NullMoveDepthReduction = 1 // default null-move depth reduction. Can reduce more in some situations.
 	PVSDepthLimit          = 0 // do not do PVS below and including this limit
+	LMRDepthLimit          = 3 // do not do LMR below and including this limit
+	LMRFullMoveLimit       = 4 // do not do LMR for the first few moves
 )
 
 var (
@@ -249,10 +252,11 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 // ply is the move number (increasing).
 // depth is the fractional depth (decreasing)
 // nullWindow indicates whether to scout first.
+// lateMove indicates this move is late and should be reduce.
 // move is the move to execute
 //
 // Returns the score from the deeper search.
-func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, move Move) int16 {
+func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, move Move) int16 {
 	depth--
 	pos := eng.Position // shortcut
 	us := pos.SideToMove
@@ -260,29 +264,38 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, move Move) int1
 
 	eng.evaluation.DoMove(move)
 	if pos.IsChecked(us) {
+		// Exit early if we throw the king in check.
 		eng.evaluation.UndoMove(move)
 		return -InfinityScore
 	}
 	if pos.IsChecked(them) {
+		lateMove = false // tactical, dangerous
+
 		// Extend the search when our move gives check.
 		// However do not extend if we can just take the undefended piece.
+		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
 		// TODO: This is a very crude form of SEE.
-		// See discussion:
-		// http://www.talkchess.com/forum/viewtopic.php?t=56361
 		if !pos.IsAttackedBy(move.To(), them) || pos.IsAttackedBy(move.To(), us) {
 			depth += CheckDepthExtension
 		}
 	}
 
-	var score int16
-	if nullWindow && α+1 != β && depth > PVSDepthLimit {
-		score = -eng.negamax(-α-1, -α, depth, move != NullMove)
-		if α < score && score < β {
+	score := α + 1
+	if lateMove { // reduce late moves
+		score = -eng.negamax(-α-1, -α, depth-1, move != NullMove)
+	}
+
+	if score > α { // if late move reduction failed
+		if nullWindow || lateMove {
+			score = -eng.negamax(-α-1, -α, depth, move != NullMove)
+			if α < score && score < β {
+				score = -eng.negamax(-β, -α, depth, move != NullMove)
+			}
+		} else {
 			score = -eng.negamax(-β, -α, depth, move != NullMove)
 		}
-	} else {
-		score = -eng.negamax(-β, -α, depth, move != NullMove)
 	}
+
 	eng.evaluation.UndoMove(move)
 	return score
 }
@@ -388,23 +401,41 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
 		}
-		score := eng.tryMove(β-1, β, depth-reduction, false, NullMove)
+		score := eng.tryMove(β-1, β, depth-reduction, false, false, NullMove)
 		if score >= β {
 			return score
 		}
 	}
 
-	// Principal variation search: search with a null window if there is
-	// already a good move.
-	nullWindow := false
-	allowNullWindow := has && len(eng.killer) > ply
+	pvNode := α+1 < β
+	// Principal variation search: search with a null window if there is already a good move.
+	nullWindow := false                                          // updated once alpha is improved
+	allowNullWindow := pvNode && has && len(eng.killer) > ply && // good moves available
+		depth > PVSDepthLimit // disable PVS near leafs
+	// Late move reduction: search best moves with full depth, reduce remaining moves.
+	allowLateMove := !pvNode &&
+		!sideIsChecked && // dangerous position
+		// eng.evaluation.Static.Greater(int32(α)) && // ???
+		depth > LMRDepthLimit
 
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
 
-	eng.stack.GenerateMoves(eng.Position, entry.Move, eng.getKillers())
+	killer := eng.getKillers()
+	eng.stack.GenerateMoves(eng.Position, entry.Move, killer)
+
+	numQuiet := 0
 	for move := NullMove; eng.stack.PopMove(&move); {
-		score := eng.tryMove(localα, β, depth, nullWindow, move)
+		quiet := !move.IsViolent() && // checks handled by Engine.tryMove
+			move != entry.Move && // not best move previously
+			move != killer[0] && move != killer[1] // not killer from sibling positions
+		if quiet {
+			numQuiet++
+		}
+
+		lateMove := allowLateMove && quiet && numQuiet > LMRFullMoveLimit
+		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
+
 		if score >= β { // Fail high, cut node.
 			eng.saveKiller(move)
 			eng.stack.PopAll()
@@ -516,6 +547,5 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 			eng.printInfo(int16(maxPly), score, moves)
 		}
 	}
-
 	return moves
 }
