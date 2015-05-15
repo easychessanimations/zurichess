@@ -68,7 +68,7 @@ var (
 
 // Score represents a pair of mid game and end game scores.
 type Score struct {
-	M, E int
+	M, E int32
 }
 
 func (s Score) Plus(o Score) Score {
@@ -79,7 +79,7 @@ func (s Score) Minus(o Score) Score {
 	return Score{s.M - o.M, s.E - o.E}
 }
 
-func (s Score) Times(t int) Score {
+func (s Score) Times(t int32) Score {
 	return Score{s.M * t, s.E * t}
 }
 
@@ -129,7 +129,7 @@ func (m *Material) evaluate(pos *Position, side Color) Score {
 	mask := colMask[side]
 
 	// Award connected bishops.
-	score := m.BishopPairBonus.Times(int(pos.NumPieces[side][Bishop] / 2))
+	score := m.BishopPairBonus.Times(int32(pos.NumPieces[side][Bishop] / 2))
 
 	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
@@ -171,54 +171,46 @@ func (m *Material) evaluate(pos *Position, side Color) Score {
 //
 // The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
 func (m *Material) Evaluate(pos *Position) Score {
-	// Evaluate pieces position.
-	score := m.evaluate(pos, White).Minus(m.evaluate(pos, Black))
-
-	// Evaluate pawn structure.
-	whitePawns := pos.ByPiece(White, Pawn)
-	blackPawns := pos.ByPiece(Black, Pawn)
-	pawns, ok := m.pawnTable.get(whitePawns, blackPawns)
+	// Evaluate pawn structure, possible using a cached score.
+	white := pos.ByPiece(White, Pawn)
+	black := pos.ByPiece(Black, Pawn)
+	score, ok := m.pawnTable.get(white, black)
 	if !ok {
-		pawns = m.pawnStructure(pos, White).Minus(m.pawnStructure(pos, Black))
-		m.pawnTable.put(whitePawns, blackPawns, pawns)
+		score = m.pawnStructure(pos, White).Minus(m.pawnStructure(pos, Black))
+		m.pawnTable.put(white, black, score)
 	}
-	score = score.Plus(pawns)
 
-	return score
+	// Evaluate the rest of the pieces.
+	return score.Plus(m.evaluate(pos, White)).Minus(m.evaluate(pos, Black))
 }
 
-// phase returns a current, total pair which is the linear progress
-// between mid game and end game.
+// phase returns the score phase between mid game and end game.
 //
 // phase is determined by the number of pieces left in the game where
 // pawn has score 0, knight and bishop 1, rook 2, queen 2.
 // See tapered eval: // https://chessprogramming.wikispaces.com/Tapered+Eval
-func phase(pos *Position) (int, int) {
-	totalPhase := 16*0 + 4*1 + 4*1 + 4*2 + 2*4
-	currPhase := totalPhase
-	currPhase -= int(pos.NumPieces[NoColor][Pawn]) * 0
-	currPhase -= int(pos.NumPieces[NoColor][Knight]) * 1
-	currPhase -= int(pos.NumPieces[NoColor][Bishop]) * 1
-	currPhase -= int(pos.NumPieces[NoColor][Rook]) * 2
-	currPhase -= int(pos.NumPieces[NoColor][Queen]) * 4
-	currPhase = (currPhase*256 + totalPhase/2) / totalPhase
-	return currPhase, 256
+func phase(pos *Position, score Score) int32 {
+	total := int32(16*0 + 4*1 + 4*1 + 4*2 + 2*4)
+	curr := total
+	// curr -= int32(pos.NumPieces[NoColor][Pawn]) * 0
+	curr -= int32(pos.NumPieces[NoColor][Knight]) * 1
+	curr -= int32(pos.NumPieces[NoColor][Bishop]) * 1
+	curr -= int32(pos.NumPieces[NoColor][Rook]) * 2
+	curr -= int32(pos.NumPieces[NoColor][Queen]) * 4
+	curr = (curr*256 + total/2) / total
+	return (score.M*(256-curr) + score.E*curr) / 256
 }
 
 // Evaluate evaluates position.
-//
-// Returned score is a tapered between MidGameMaterial and EndGameMaterial.
+// Returns a score phased between mid and end game.
 func Evaluate(pos *Position) int16 {
-	score := Evaluation.Evaluate(pos)
-	curr, total := phase(pos)
-	phased := (score.M*(total-curr) + score.E*curr) / total
-
-	if int(-InfinityScore) > phased || phased > int(InfinityScore) {
+	score := phase(pos, Evaluation.Evaluate(pos))
+	if int32(-InfinityScore) > score || score > int32(InfinityScore) {
+		// TODO: Should be between KnownLossScore and KnownWinScore
 		panic(fmt.Sprintf("score %d should be between %d and %d",
 			score, -InfinityScore, +InfinityScore))
 	}
-
-	return int16(phased)
+	return int16(score)
 }
 
 // SetMaterialValue parses str and updates array.

@@ -270,14 +270,14 @@ func (bb Bitboard) Forward(col Color) Bitboard {
 }
 
 // Popcnt counts number of squares set in bb.
-func (bb Bitboard) Popcnt() int {
+func (bb Bitboard) Popcnt() int32 {
 	// same as popcnt.
 	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
 	bb = bb - ((bb >> 1) & k1)
 	bb = (bb & k2) + ((bb >> 2) & k2)
 	bb = (bb + (bb >> 4)) & k4
 	bb = (bb * kf) >> 56
-	return int(bb)
+	return int32(bb)
 }
 
 // Pop pops a set square from the bitboard.
