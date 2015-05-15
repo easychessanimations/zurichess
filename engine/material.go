@@ -19,128 +19,100 @@ var (
 	MatedScore     int16 = -MateScore     // MatedScore + N is mated in N plies.
 	InfinityScore  int16 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
 
-	// MidGameMaterial defines the material values for mid game.
-	MidGameMaterial = Material{
-		DoublePawnPenalty: 11,
-		BishopPairBonus:   24,
-		Mobility:          [FigureArraySize]int{0, 0, 2, 5, 6, 1, -10},
-		FigureBonus:       [FigureArraySize]int{0, 17, 337, 313, 389, 941, 10000},
-		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
-			{}, // NoFigure
-			{ // Pawn
-				0, 0, 0, 0, 0, 0, 0, 0,
-				36, 52, 47, 41, 41, 47, 52, 36,
-				39, 53, 46, 54, 54, 46, 53, 39,
-				30, 38, 48, 60, 60, 48, 38, 30,
-				27, 29, 42, 57, 57, 42, 29, 27,
-				51, 80, 41, 82, 82, 41, 80, 51,
-				102, 104, 94, 111, 111, 94, 104, 102,
-				0, 0, 0, 0, 0, 0, 0, 0,
-			},
-			{}, // Knight
-			{ // Bishop
-				-7, 2, -5, 0, 0, -5, 2, -7,
-				1, -1, -6, -4, -4, -6, -1, 1,
-				-1, 4, 18, 1, 1, 18, 4, -1,
-				-12, 2, 1, 26, 26, 1, 2, -12,
-				-12, 2, 1, 26, 26, 1, 2, -12,
-				-1, 4, 18, 1, 1, 18, 4, -1,
-				1, -1, -6, -4, -4, -6, -1, 1,
-				-7, 2, -5, 0, 0, -5, 2, -7,
-			},
-			{}, // Rook
-			{}, // Queen
-			{ // King
-				// The values for King were suggested by Tomasz Michniewski.
-				// Numbers were copied from: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-				20, 30, 10, 0, 0, 10, 30, 20,
-				20, 20, 0, 0, 0, 0, 20, 20,
-				-10, -20, -20, -20, -20, -20, -20, -10,
-				-20, -30, -30, -40, -40, -30, -30, -20,
-				-30, -40, -40, -50, -50, -40, -40, -30,
-				-30, -40, -40, -50, -50, -40, -40, -30,
-				-30, -40, -40, -50, -50, -40, -40, -30,
-				-30, -40, -40, -50, -50, -40, -40, -30,
-			},
-		},
-	}
+	Evaluation = Material{
+		DoublePawnPenalty: Score{11, 53},
+		BishopPairBonus:   Score{24, 58},
+		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {2, 13}, {5, 9}, {6, 6}, {1, 13}, {-10, -1}},
+		FigureBonus:       [FigureArraySize]Score{{0, 0}, {17, 147}, {337, 304}, {313, 346}, {389, 618}, {941, 1059}, {10000, 10000}},
 
-	// EndGameMaterial defines the material values for end game.
-	EndGameMaterial = Material{
-		DoublePawnPenalty: 53,
-		BishopPairBonus:   58,
-		Mobility:          [FigureArraySize]int{0, 0, 13, 9, 6, 13, -1},
-		FigureBonus:       [FigureArraySize]int{0, 147, 304, 346, 618, 1059, 10000},
-		PieceSquareTable: [FigureArraySize][SquareArraySize]int{
+		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
 			{ // Pawn
-				0, 0, 0, 0, 0, 0, 0, 0,
-				22, 17, 2, -22, -22, 2, 17, 22,
-				13, 17, -3, -4, -4, -3, 17, 13,
-				23, 21, -13, -4, -4, -13, 21, 23,
-				48, 47, 14, 8, 8, 14, 47, 48,
-				122, 101, 92, 101, 101, 92, 101, 122,
-				124, 108, 119, 100, 100, 119, 108, 124,
-				0, 0, 0, 0, 0, 0, 0, 0,
+				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+				{36, 22}, {52, 17}, {47, 2}, {41, -22}, {41, -22}, {47, 2}, {52, 17}, {36, 22},
+				{39, 13}, {53, 17}, {46, -3}, {54, -4}, {54, -4}, {46, -3}, {53, 17}, {39, 13},
+				{30, 23}, {38, 21}, {48, -13}, {60, -4}, {60, -4}, {48, -13}, {38, 21}, {30, 23},
+				{27, 48}, {29, 47}, {42, 14}, {57, 8}, {57, 8}, {42, 14}, {29, 47}, {27, 48},
+				{51, 122}, {80, 101}, {41, 92}, {82, 101}, {82, 101}, {41, 92}, {80, 101}, {51, 122},
+				{102, 124}, {104, 108}, {94, 119}, {111, 100}, {111, 100}, {94, 119}, {104, 108}, {102, 124},
+				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
 			},
 			{}, // Knight
 			{ // Bishop
-				-1, -1, -13, -3, -3, -13, -1, -1,
-				-1, 2, 1, -2, -2, 1, 2, -1,
-				16, 14, 1, 7, 7, 1, 14, 16,
-				5, 6, 5, -9, -9, 5, 6, 5,
-				5, 6, 5, -9, -9, 5, 6, 5,
-				16, 14, 1, 7, 7, 1, 14, 16,
-				-1, 2, 1, -2, -2, 1, 2, -1,
-				-1, -1, -13, -3, -3, -13, -1, -1,
+				{-7, -1}, {2, -1}, {-5, -13}, {0, -3}, {0, -3}, {-5, -13}, {2, -1}, {-7, -1},
+				{1, -1}, {-1, 2}, {-6, 1}, {-4, -2}, {-4, -2}, {-6, 1}, {-1, 2}, {1, -1},
+				{-1, 16}, {4, 14}, {18, 1}, {1, 7}, {1, 7}, {18, 1}, {4, 14}, {-1, 16},
+				{-12, 5}, {2, 6}, {1, 5}, {26, -9}, {26, -9}, {1, 5}, {2, 6}, {-12, 5},
+				{-12, 5}, {2, 6}, {1, 5}, {26, -9}, {26, -9}, {1, 5}, {2, 6}, {-12, 5},
+				{-1, 16}, {4, 14}, {18, 1}, {1, 7}, {1, 7}, {18, 1}, {4, 14}, {-1, 16},
+				{1, -1}, {-1, 2}, {-6, 1}, {-4, -2}, {-4, -2}, {-6, 1}, {-1, 2}, {1, -1},
+				{-7, -1}, {2, -1}, {-5, -13}, {0, -3}, {0, -3}, {-5, -13}, {2, -1}, {-7, -1},
 			},
 			{}, // Rook
 			{}, // Queen
 			{ // King
 				// The values for King were suggested by Tomasz Michniewski.
 				// Numbers were copied from: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-				-50, -30, -30, -30, -30, -30, -30, -50,
-				-30, -30, 0, 0, 0, 0, -30, -30,
-				-30, -10, 20, 30, 30, 20, -10, -30,
-				-30, -10, 30, 40, 40, 30, 10, -30,
-				-30, -10, 30, 40, 40, 30, -10, -30,
-				-30, -10, 20, 30, 30, 20, -10, -30,
-				-30, -20, -10, 0, 0, -10, -20, -30,
-				-50, -40, -30, -20, -20, -30, -40, -50,
+				{20, -50}, {30, -30}, {10, -30}, {0, -30}, {0, -30}, {10, -30}, {30, -30}, {20, -50},
+				{20, -30}, {20, -30}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {20, -30}, {20, -30},
+				{-10, -30}, {-20, -10}, {-20, 20}, {-20, 30}, {-20, 30}, {-20, 20}, {-20, -10}, {-10, -30},
+				{-20, -30}, {-30, -10}, {-30, 30}, {-40, 40}, {-40, 40}, {-30, 30}, {-30, 10}, {-20, -30},
+				{-30, -30}, {-40, -10}, {-40, 30}, {-50, 40}, {-50, 40}, {-40, 30}, {-40, -10}, {-30, -30},
+				{-30, -30}, {-40, -10}, {-40, 20}, {-50, 30}, {-50, 30}, {-40, 20}, {-40, -10}, {-30, -30},
+				{-30, -30}, {-40, -20}, {-40, -10}, {-50, 0}, {-50, 0}, {-40, -10}, {-40, -20}, {-30, -30},
+				{-30, -50}, {-40, -40}, {-40, -30}, {-50, -20}, {-50, -20}, {-40, -30}, {-40, -40}, {-30, -50},
 			},
 		},
 	}
 )
+
+// Score represents a pair of mid game and end game scores.
+type Score struct {
+	M, E int
+}
+
+func (s Score) Plus(o Score) Score {
+	return Score{s.M + o.M, s.E + o.E}
+}
+
+func (s Score) Minus(o Score) Score {
+	return Score{s.M - o.M, s.E - o.E}
+}
+
+func (s Score) Times(t int) Score {
+	return Score{s.M * t, s.E * t}
+}
 
 // Material evaluates a position from static point of view,
 // i.e. pieces and their position on the table.
 type Material struct {
 	pawnTable pawnTable // a cache for pawn evaluation
 
-	DoublePawnPenalty int
-	BishopPairBonus   int
-	Mobility          [FigureArraySize]int // how much each piece's mobility is worth
-	FigureBonus       [FigureArraySize]int // how much each piece is worth
+	DoublePawnPenalty Score
+	BishopPairBonus   Score
+	Mobility          [FigureArraySize]Score // how much each piece's mobility is worth
+	FigureBonus       [FigureArraySize]Score // how much each piece is worth
 
 	// Piece Square Table from White POV.
 	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
 	// The tables are indexed from SquareA1 to SquareH8.
-	PieceSquareTable [FigureArraySize][SquareArraySize]int
+	PieceSquareTable [FigureArraySize][SquareArraySize]Score
 }
 
 // pawns computes the pawn structure score of side.
 // pawns awards chains and penalizes double pawns.
-func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
+func (m *Material) pawnStructure(pos *Position, side Color) (score Score) {
 	pawns := pos.ByPiece(side, Pawn)
 	mask := colMask[side]
 	psqt := m.PieceSquareTable[Pawn][:]
 
 	for bb := pawns; bb != 0; {
 		sq := bb.Pop()
-		score += m.FigureBonus[Pawn] + psqt[sq^mask]
+		score = score.Plus(m.FigureBonus[Pawn])
+		score = score.Plus(psqt[sq^mask])
 		fwd := sq.Bitboard().Forward(side)
 		if fwd&pawns != 0 {
-			score -= m.DoublePawnPenalty
+			score = score.Minus(m.DoublePawnPenalty)
 		}
 	}
 
@@ -150,40 +122,46 @@ func (m *Material) pawnStructure(pos *Position, side Color) (score int) {
 // evaluate position for side.
 //
 // Pawn features are evaluated part of pawnStructure.
-func (m *Material) evaluate(pos *Position, side Color) int {
+func (m *Material) evaluate(pos *Position, side Color) Score {
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[side] | pos.PawnThreats(side.Opposite())
 	all := pos.ByFigure[Pawn] | pos.ByFigure[Knight]
+	mask := colMask[side]
 
 	// Award connected bishops.
-	score := int(pos.NumPieces[side][Bishop]/2) * m.BishopPairBonus
+	score := m.BishopPairBonus.Times(int(pos.NumPieces[side][Bishop] / 2))
 
 	for bb := pos.ByPiece(side, Knight); bb != 0; {
 		sq := bb.Pop()
 		knight := pos.KnightMobility(sq) &^ excl
-		score += m.FigureBonus[Knight] + knight.Popcnt()*m.Mobility[Knight]
+		score = score.Plus(m.FigureBonus[Knight])
+		score = score.Plus(m.Mobility[Knight].Times(knight.Popcnt()))
 	}
 	for bb := pos.ByPiece(side, Bishop); bb != 0; {
 		sq := bb.Pop()
 		bishop := pos.BishopMobility(sq, all) &^ excl
-		score += m.FigureBonus[Bishop] + bishop.Popcnt()*m.Mobility[Bishop]
-		score += m.PieceSquareTable[Bishop][sq^colMask[side]]
+		score = score.Plus(m.FigureBonus[Bishop])
+		score = score.Plus(m.Mobility[Bishop].Times(bishop.Popcnt()))
+		score = score.Plus(m.PieceSquareTable[Bishop][sq^mask])
 	}
 	for bb := pos.ByPiece(side, Rook); bb != 0; {
 		sq := bb.Pop()
 		rook := pos.RookMobility(sq, all) &^ excl
-		score += m.FigureBonus[Rook] + rook.Popcnt()*m.Mobility[Rook]
+		score = score.Plus(m.FigureBonus[Rook])
+		score = score.Plus(m.Mobility[Rook].Times(rook.Popcnt()))
 	}
 	for bb := pos.ByPiece(side, Queen); bb != 0; {
 		sq := bb.Pop()
 		queen := pos.QueenMobility(sq, all) &^ excl
-		score += m.FigureBonus[Queen] + queen.Popcnt()*m.Mobility[Queen]
+		score = score.Plus(m.FigureBonus[Queen])
+		score = score.Plus(m.Mobility[Queen].Times(queen.Popcnt()))
 	}
 	for bb := pos.ByPiece(side, King); bb != 0; {
 		sq := bb.Pop()
 		king := pos.KingMobility(sq) &^ excl
-		score += m.FigureBonus[King] + king.Popcnt()*m.Mobility[King]
-		score += m.PieceSquareTable[King][sq^colMask[side]]
+		score = score.Plus(m.FigureBonus[King])
+		score = score.Plus(m.Mobility[King].Times(king.Popcnt()))
+		score = score.Plus(m.PieceSquareTable[King][sq^mask])
 	}
 
 	return score
@@ -192,25 +170,19 @@ func (m *Material) evaluate(pos *Position, side Color) int {
 // Evaluate returns positions score from white's POV.
 //
 // The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
-func (m *Material) Evaluate(pos *Position) int {
+func (m *Material) Evaluate(pos *Position) Score {
 	// Evaluate pieces position.
-	score := m.evaluate(pos, White)
-	score -= m.evaluate(pos, Black)
+	score := m.evaluate(pos, White).Minus(m.evaluate(pos, Black))
 
 	// Evaluate pawn structure.
 	whitePawns := pos.ByPiece(White, Pawn)
 	blackPawns := pos.ByPiece(Black, Pawn)
 	pawns, ok := m.pawnTable.get(whitePawns, blackPawns)
 	if !ok {
-		pawns = m.pawnStructure(pos, White) - m.pawnStructure(pos, Black)
+		pawns = m.pawnStructure(pos, White).Minus(m.pawnStructure(pos, Black))
 		m.pawnTable.put(whitePawns, blackPawns, pawns)
 	}
-	score += pawns
-
-	if int(-InfinityScore) > score || score > int(InfinityScore) {
-		panic(fmt.Sprintf("score %d should be between %d and %d",
-			score, -InfinityScore, +InfinityScore))
-	}
+	score = score.Plus(pawns)
 
 	return score
 }
@@ -237,11 +209,16 @@ func phase(pos *Position) (int, int) {
 //
 // Returned score is a tapered between MidGameMaterial and EndGameMaterial.
 func Evaluate(pos *Position) int16 {
-	midGame := MidGameMaterial.Evaluate(pos)
-	endGame := EndGameMaterial.Evaluate(pos)
+	score := Evaluation.Evaluate(pos)
 	curr, total := phase(pos)
-	score := (midGame*(total-curr) + endGame*curr) / total
-	return int16(score)
+	phased := (score.M*(total-curr) + score.E*curr) / total
+
+	if int(-InfinityScore) > phased || phased > int(InfinityScore) {
+		panic(fmt.Sprintf("score %d should be between %d and %d",
+			score, -InfinityScore, +InfinityScore))
+	}
+
+	return int16(phased)
 }
 
 // SetMaterialValue parses str and updates array.

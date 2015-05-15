@@ -8,7 +8,7 @@ const (
 type pawnEntry struct {
 	white Bitboard
 	black Bitboard
-	score int
+	score Score
 }
 
 type pawnTable [1 << pawnTableBits]pawnEntry
@@ -20,13 +20,13 @@ func hash(white, black Bitboard) int {
 }
 
 // get retrieves score from the table, if cached.
-func (pt *pawnTable) get(white, black Bitboard) (int, bool) {
+func (pt *pawnTable) get(white, black Bitboard) (Score, bool) {
 	entry := &pt[hash(white, black)]
 	return entry.score, (entry.white == white && entry.black == black)
 }
 
 // put stores score in the table.
-func (pt *pawnTable) put(white, black Bitboard, score int) {
+func (pt *pawnTable) put(white, black Bitboard, score Score) {
 	entry := &pt[hash(white, black)]
 	entry.white = white
 	entry.black = black
