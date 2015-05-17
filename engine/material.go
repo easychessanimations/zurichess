@@ -276,15 +276,15 @@ func phase(pos *Position, score Score) int32 {
 }
 
 // Evaluate evaluates position from White's POV.
+//
 // Returns a score phased between mid and end game.
-// The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
+// The returned is always between KnowLossScore and KnownWinScore, excluding.
 func (e *Evaluation) Evaluate() int16 {
 	score := e.evaluate()
 	eval := phase(e.position, score)
-	if int32(-InfinityScore) > eval || eval > int32(InfinityScore) {
-		// TODO: Should be between KnownLossScore and KnownWinScore
+	if int32(KnownLossScore) >= eval || eval >= int32(KnownWinScore) {
 		panic(fmt.Sprintf("score %d (%v) should be between %d and %d",
-			eval, score, -InfinityScore, +InfinityScore))
+			eval, score, KnownLossScore, KnownWinScore))
 	}
 	return int16(eval)
 }
