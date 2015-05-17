@@ -309,23 +309,22 @@ const (
 //   00.00.00.ff - from
 //   00.00.ff.00 - to
 //   00.0f.00.00 - move type
-//   00.f0.00.00 - promotion
+//   00.f0.00.00 - target
 //   0f.00.00.00 - capture
 //   f0.00.00.00 - piece
 type Move uint32
 
 // MakeMove constructs a move.
 func MakeMove(moveType MoveType, from, to Square, capture, target Piece) Move {
-	promotion, piece := NoPiece, target
+	piece := target
 	if moveType == Promotion {
-		promotion = target
 		piece = ColorFigure(target.Color(), Pawn)
 	}
 
 	return Move(from)<<0 +
 		Move(to)<<8 +
 		Move(moveType)<<16 +
-		Move(promotion)<<20 +
+		Move(target)<<20 +
 		Move(capture)<<24 +
 		Move(piece)<<28
 }
@@ -366,10 +365,7 @@ func (m Move) Capture() Piece {
 
 // Target returns the piece on the to square after the move is executed.
 func (m Move) Target() Piece {
-	if m.MoveType() != Promotion {
-		return m.Piece()
-	}
-	return m.Promotion()
+	return Piece(m >> 20 & 0xf)
 }
 
 // Piece returns the piece moved.
@@ -379,7 +375,10 @@ func (m Move) Piece() Piece {
 
 // Promotion returns the promoted piece if any.
 func (m Move) Promotion() Piece {
-	return Piece(m >> 20 & 0xf)
+	if m.MoveType() != Promotion {
+		return NoPiece
+	}
+	return m.Target()
 }
 
 // IsViolent returns true if the move can change the position's score
