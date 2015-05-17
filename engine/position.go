@@ -263,17 +263,17 @@ func (pos *Position) KnightMobility(sq Square) Bitboard {
 	return BbKnightAttack[sq]
 }
 
-// BishopMobility returns all squares a bishop can reach from sq.
+// BishopMobility returns the squares a bishop can reach from sq given all pieces.
 func (pos *Position) BishopMobility(sq Square, all Bitboard) Bitboard {
 	return BishopMagic[sq].Attack(all)
 }
 
-// RookMobility returns all squares a rook can reach from sq.
+// RookMobility returns the squares a rook can reach from sq given all pieces.
 func (pos *Position) RookMobility(sq Square, all Bitboard) Bitboard {
 	return RookMagic[sq].Attack(all)
 }
 
-// QueenMobility returns all squares a queen can reach from sq.
+// QueenMobility returns the squares a queen can reach from sq given all pieces.
 func (pos *Position) QueenMobility(sq Square, all Bitboard) Bitboard {
 	return RookMagic[sq].Attack(all) | BishopMagic[sq].Attack(all)
 }

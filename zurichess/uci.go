@@ -16,7 +16,7 @@ var (
 	ErrQuit = fmt.Errorf("quit")
 
 	globals = map[string]interface{}{
-		"Evaluation": &engine.Evaluation,
+		"Material": &engine.GlobalMaterial,
 	}
 )
 

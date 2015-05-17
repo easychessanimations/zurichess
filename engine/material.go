@@ -7,7 +7,9 @@ import (
 )
 
 var (
-	colMask = [3]Square{0x00, 0x00, 0x38}
+	// sq ^ colorMask[col] is sq from col's POV.
+	// Used with PieceSquareTables which are from White's POV.
+	colorMask = [3]Square{0x00, 0x00, 0x38}
 
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
@@ -19,7 +21,7 @@ var (
 	MatedScore     int16 = -MateScore     // MatedScore + N is mated in N plies.
 	InfinityScore  int16 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
 
-	Evaluation = Material{
+	GlobalMaterial = Material{
 		DoublePawnPenalty: Score{23, 37},
 		BishopPairBonus:   Score{27, 57},
 		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {7, 9}, {3, 8}, {5, 7}, {2, 14}, {-11, 0}},
@@ -71,118 +73,189 @@ type Score struct {
 	M, E int32
 }
 
+func pov(s Score, col Color) Score {
+	switch col {
+	case White:
+		return s
+	case Black:
+		return s.Neg()
+	default:
+		return Score{}
+	}
+}
+
+// Neg returns -s.
+func (s Score) Neg() Score {
+	return Score{-s.M, -s.E}
+}
+
+// Plus returns s + o.
 func (s Score) Plus(o Score) Score {
 	return Score{s.M + o.M, s.E + o.E}
 }
 
+// Minus returns s - o.
 func (s Score) Minus(o Score) Score {
 	return Score{s.M - o.M, s.E - o.E}
 }
 
+// Times return s scaled by t.
 func (s Score) Times(t int32) Score {
 	return Score{s.M * t, s.E * t}
 }
 
-// Material evaluates a position from static point of view,
-// i.e. pieces and their position on the table.
+// Material stores the evaluation parameters.
 type Material struct {
-	pawnTable pawnTable // a cache for pawn evaluation
-
 	DoublePawnPenalty Score
 	BishopPairBonus   Score
 	Mobility          [FigureArraySize]Score // how much each piece's mobility is worth
 	FigureBonus       [FigureArraySize]Score // how much each piece is worth
-
 	// Piece Square Table from White POV.
 	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
 	// The tables are indexed from SquareA1 to SquareH8.
 	PieceSquareTable [FigureArraySize][SquareArraySize]Score
 }
 
+// Evaluation evaluates a position.
+//
+// Evaluation has two parts:
+//  - a primitive static score that is incrementally updated every move.
+//  - a dynamic score, a more refined score of the position.
+type Evaluation struct {
+	Static    Score     // static score, i.e. only the figure bonus
+	position  *Position // position to evaluate
+	material  *Material // evaluation parameters
+	pawnTable pawnTable // a cache for pawn evaluation
+
+	piece [PieceArraySize]Score // cached scores for piece
+	promo [PieceArraySize]Score // cached scores for promotion
+}
+
+// MakeEvaluation returns a new Evaluation object which evaluates
+// pos using parameters in mat.
+func MakeEvaluation(pos *Position, mat *Material) Evaluation {
+	static := Score{}
+	for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
+		pi := pos.Get(sq)
+		static = static.Plus(pov(mat.FigureBonus[pi.Figure()], pi.Color()))
+	}
+	var piece, promo [PieceArraySize]Score
+	for pi := PieceMinValue; pi <= PieceMaxValue; pi++ {
+		piece[pi] = pov(mat.FigureBonus[pi.Figure()], pi.Color())
+		promo[pi] = pov(mat.FigureBonus[pi.Figure()].Minus(mat.FigureBonus[Pawn]), pi.Color())
+	}
+	return Evaluation{
+		Static:   static,
+		position: pos,
+		material: mat,
+		piece:    piece,
+		promo:    promo,
+	}
+}
+
+// DoMove executes a move and updates the static score.
+func (e *Evaluation) DoMove(m Move) {
+	e.position.DoMove(m)
+	e.Static = e.Static.Minus(e.piece[m.Capture()])
+	if m.MoveType() == Promotion {
+		e.Static = e.Static.Plus(e.promo[m.Target()])
+	}
+}
+
+// UndoMove takes back the latest move and updates the static score.
+func (e *Evaluation) UndoMove(m Move) {
+	e.position.UndoMove(m)
+	e.Static = e.Static.Plus(e.piece[m.Capture()])
+	if m.MoveType() == Promotion {
+		e.Static = e.Static.Minus(e.promo[m.Target()])
+	}
+}
+
 // pawns computes the pawn structure score of side.
-// pawns awards chains and penalizes double pawns.
-func (m *Material) pawnStructure(pos *Position, side Color) (score Score) {
-	pawns := pos.ByPiece(side, Pawn)
-	mask := colMask[side]
-	psqt := m.PieceSquareTable[Pawn][:]
+func (e *Evaluation) pawnStructure(us Color) (score Score) {
+	// FigureBonus is included in the static score, and thus not added here.
+	pos, mat := e.position, e.material // shortcut
+	pawns := pos.ByPiece(us, Pawn)
+	mask := colorMask[us]
+	psqt := mat.PieceSquareTable[Pawn][:]
 
 	for bb := pawns; bb != 0; {
 		sq := bb.Pop()
-		score = score.Plus(m.FigureBonus[Pawn])
 		score = score.Plus(psqt[sq^mask])
-		fwd := sq.Bitboard().Forward(side)
+		// Award advanced pawns.
+		// Penalize double pawns.
+		fwd := sq.Bitboard().Forward(us)
 		if fwd&pawns != 0 {
-			score = score.Minus(m.DoublePawnPenalty)
+			score = score.Minus(mat.DoublePawnPenalty)
 		}
 	}
 
 	return score
 }
 
-// evaluate position for side.
+// evaluate position for a single side.
 //
-// Pawn features are evaluated part of pawnStructure.
-func (m *Material) evaluate(pos *Position, side Color) Score {
+// The returned score is from White's POV. Pawn features are evaluated part of pawnStructure.
+func (e *Evaluation) evaluateSide(us Color) Score {
+	// FigureBonus is included in the static score, and thus not added here.
+	pos, mat := e.position, e.material // shortcut
 	// Exclude squares attacked by enemy pawns from calculating mobility.
-	excl := pos.ByColor[side] | pos.PawnThreats(side.Opposite())
-	mask := colMask[side]
+	excl := pos.ByColor[us] | pos.PawnThreats(us.Opposite())
+	mask := colorMask[us]
 
 	// Award connected bishops.
-	score := m.BishopPairBonus.Times(int32(pos.NumPieces[side][Bishop] / 2))
+	score := mat.BishopPairBonus.Times(int32(pos.NumPieces[us][Bishop] / 2))
 
 	all := pos.ByFigure[Pawn]
-	for bb := pos.ByPiece(side, Knight); bb != 0; {
+	for bb := pos.ByPiece(us, Knight); bb != 0; {
 		sq := bb.Pop()
 		knight := pos.KnightMobility(sq) &^ excl
-		score = score.Plus(m.FigureBonus[Knight])
-		score = score.Plus(m.Mobility[Knight].Times(knight.Popcnt()))
+		score = score.Plus(mat.Mobility[Knight].Times(knight.Popcnt()))
 	}
-	for bb := pos.ByPiece(side, Bishop); bb != 0; {
+	for bb := pos.ByPiece(us, Bishop); bb != 0; {
 		sq := bb.Pop()
 		bishop := pos.BishopMobility(sq, all) &^ excl
-		score = score.Plus(m.FigureBonus[Bishop])
-		score = score.Plus(m.Mobility[Bishop].Times(bishop.Popcnt()))
-		score = score.Plus(m.PieceSquareTable[Bishop][sq^mask])
+		score = score.Plus(mat.Mobility[Bishop].Times(bishop.Popcnt()))
+		score = score.Plus(mat.PieceSquareTable[Bishop][sq^mask])
 	}
 	all = pos.ByFigure[Pawn] | pos.ByFigure[Knight] | pos.ByFigure[Bishop]
-	for bb := pos.ByPiece(side, Rook); bb != 0; {
+	for bb := pos.ByPiece(us, Rook); bb != 0; {
 		sq := bb.Pop()
 		rook := pos.RookMobility(sq, all) &^ excl
-		score = score.Plus(m.FigureBonus[Rook])
-		score = score.Plus(m.Mobility[Rook].Times(rook.Popcnt()))
+		score = score.Plus(mat.Mobility[Rook].Times(rook.Popcnt()))
 	}
-	for bb := pos.ByPiece(side, Queen); bb != 0; {
+	for bb := pos.ByPiece(us, Queen); bb != 0; {
 		sq := bb.Pop()
 		queen := pos.QueenMobility(sq, all) &^ excl
-		score = score.Plus(m.FigureBonus[Queen])
-		score = score.Plus(m.Mobility[Queen].Times(queen.Popcnt()))
+		score = score.Plus(mat.Mobility[Queen].Times(queen.Popcnt()))
 	}
-	for bb := pos.ByPiece(side, King); bb != 0; {
+	for bb := pos.ByPiece(us, King); bb != 0; {
 		sq := bb.Pop()
 		king := pos.KingMobility(sq) &^ excl
-		score = score.Plus(m.FigureBonus[King])
-		score = score.Plus(m.Mobility[King].Times(king.Popcnt()))
-		score = score.Plus(m.PieceSquareTable[King][sq^mask])
+		score = score.Plus(mat.Mobility[King].Times(king.Popcnt()))
+		score = score.Plus(mat.PieceSquareTable[King][sq^mask])
 	}
 
 	return score
 }
 
-// Evaluate returns positions score from white's POV.
-//
-// The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
-func (m *Material) Evaluate(pos *Position) Score {
+// evaluate returns position's score from White's POV.
+func (e *Evaluation) evaluate() Score {
+	pos := e.position // shortcut
+
 	// Evaluate pawn structure, possible using a cached score.
 	white := pos.ByPiece(White, Pawn)
 	black := pos.ByPiece(Black, Pawn)
-	score, ok := m.pawnTable.get(white, black)
+	score, ok := e.pawnTable.get(white, black)
 	if !ok {
-		score = m.pawnStructure(pos, White).Minus(m.pawnStructure(pos, Black))
-		m.pawnTable.put(white, black, score)
+		score = e.pawnStructure(White).Minus(e.pawnStructure(Black))
+		e.pawnTable.put(white, black, score)
 	}
 
-	// Evaluate the rest of the pieces.
-	return score.Plus(m.evaluate(pos, White)).Minus(m.evaluate(pos, Black))
+	// Evaluate the remaining pieces.
+	score = score.Plus(e.evaluateSide(White)).Minus(e.evaluateSide(Black))
+	// Include the static evaluation, too
+	return score.Plus(e.Static)
 }
 
 // phase returns the score phase between mid game and end game.
@@ -202,16 +275,18 @@ func phase(pos *Position, score Score) int32 {
 	return (score.M*(256-curr) + score.E*curr) / 256
 }
 
-// Evaluate evaluates position.
+// Evaluate evaluates position from White's POV.
 // Returns a score phased between mid and end game.
-func Evaluate(pos *Position) int16 {
-	score := phase(pos, Evaluation.Evaluate(pos))
-	if int32(-InfinityScore) > score || score > int32(InfinityScore) {
+// The returned score is guaranteed to be between -InfinityScore and +InfinityScore.
+func (e *Evaluation) Evaluate() int16 {
+	score := e.evaluate()
+	eval := phase(e.position, score)
+	if int32(-InfinityScore) > eval || eval > int32(InfinityScore) {
 		// TODO: Should be between KnownLossScore and KnownWinScore
-		panic(fmt.Sprintf("score %d should be between %d and %d",
-			score, -InfinityScore, +InfinityScore))
+		panic(fmt.Sprintf("score %d (%v) should be between %d and %d",
+			eval, score, -InfinityScore, +InfinityScore))
 	}
-	return int16(score)
+	return int16(eval)
 }
 
 // SetMaterialValue parses str and updates array.

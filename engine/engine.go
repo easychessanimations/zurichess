@@ -69,11 +69,11 @@ type Engine struct {
 	Position *Position // current Position
 	Stats    Stats     // search statistics
 
-	killer [][2]Move // killer stores a few killer moves per ply
-
-	maxPly  int16     // max ply currently searching at.
-	stack   moveStack // stack of moves
-	pvTable pvTable   // principal variation table
+	evaluation Evaluation // position evaluator
+	killer     [][2]Move  // killer stores a few killer moves per ply
+	maxPly     int16      // max ply currently searching at.
+	stack      moveStack  // stack of moves
+	pvTable    pvTable    // principal variation table
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -95,21 +95,22 @@ func (eng *Engine) SetPosition(pos *Position) {
 	} else {
 		eng.Position, _ = PositionFromFEN(FENStartPos)
 	}
+	eng.evaluation = MakeEvaluation(eng.Position, &GlobalMaterial)
 }
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
-	eng.Position.DoMove(move)
+	eng.evaluation.DoMove(move)
 }
 
 // UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
-	eng.Position.UndoMove(move)
+	eng.evaluation.UndoMove(move)
 }
 
 // Score evaluates current position from White's POV.
 func (eng *Engine) Score() int16 {
-	return scoreMultiplier[eng.Position.SideToMove] * Evaluate(eng.Position)
+	return scoreMultiplier[eng.Position.SideToMove] * eng.evaluation.Evaluate()
 }
 
 // endPosition determines whether the current position is an end game.
@@ -222,9 +223,9 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 	var bestMove Move
 	eng.stack.GenerateViolentMoves(eng.Position)
 	for move := NullMove; eng.stack.PopMove(&move); {
-		eng.Position.DoMove(move)
+		eng.evaluation.DoMove(move)
 		score := -eng.quiescence(-β, -localα, ply+1)
-		eng.Position.UndoMove(move)
+		eng.evaluation.UndoMove(move)
 
 		if score >= β {
 			eng.stack.PopAll()
@@ -254,9 +255,9 @@ func (eng *Engine) quiescence(α, β, ply int16) int16 {
 func (eng *Engine) tryMove(α, β, ply, depth int16, nullWindow bool, move Move) int16 {
 	depth -= DepthMultiplier
 	side := eng.Position.SideToMove
-	eng.Position.DoMove(move)
+	eng.evaluation.DoMove(move)
 	if eng.Position.IsChecked(side) {
-		eng.Position.UndoMove(move)
+		eng.evaluation.UndoMove(move)
 		return -InfinityScore
 	}
 
@@ -269,7 +270,7 @@ func (eng *Engine) tryMove(α, β, ply, depth int16, nullWindow bool, move Move)
 	} else {
 		score = -eng.negamax(-β, -α, ply+1, depth, move != NullMove)
 	}
-	eng.Position.UndoMove(move)
+	eng.evaluation.UndoMove(move)
 	return score
 }
 
