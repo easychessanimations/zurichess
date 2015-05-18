@@ -255,11 +255,22 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 // Returns the score from the deeper search.
 func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, move Move) int16 {
 	depth -= DepthMultiplier
-	side := eng.Position.SideToMove
+	pos := eng.Position // shortcut
+	us := pos.SideToMove
+	them := us.Opposite()
+
 	eng.evaluation.DoMove(move)
-	if eng.Position.IsChecked(side) {
+	if pos.IsChecked(us) {
 		eng.evaluation.UndoMove(move)
 		return -InfinityScore
+	}
+	if pos.IsChecked(them) {
+		// Extend the search when our move gives check.
+		// However do not extend if we can just take the undefended piece.
+		// TODO: This is a very crude form of SEE.
+		if !pos.IsAttackedBy(move.To(), them) || pos.IsAttackedBy(move.To(), us) {
+			depth += CheckDepthExtension
+		}
 	}
 
 	var score int16
@@ -354,12 +365,6 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		}
 	}
 
-	// Extend search when the side to move is in check.
-	sideIsChecked := eng.Position.IsChecked(sideToMove)
-	if sideIsChecked {
-		depth += CheckDepthExtension
-	}
-
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
 		score := eng.quiescence(α, β)
@@ -370,6 +375,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// Do a null move.
 	// If the null move fails high it means this position is too good,
 	// so opponent will not play it.
+	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
 		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
