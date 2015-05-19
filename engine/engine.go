@@ -71,7 +71,6 @@ type Engine struct {
 
 	evaluation Evaluation // position evaluator
 	killer     [][2]Move  // killer stores a few killer moves per ply
-	maxPly     int16      // max ply currently searching at.
 	stack      moveStack  // stack of moves
 	pvTable    pvTable    // principal variation table
 }
@@ -360,7 +359,7 @@ func (eng *Engine) negamax(α, β, ply, depth int16, nullMoveAllowed bool) int16
 	}
 
 	// Do a null move.
-	// If the null move fails high it means this position is to good,
+	// If the null move fails high it means this position is too good,
 	// so opponent will not play it.
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
 		!sideIsChecked && // not illegal move
@@ -439,10 +438,10 @@ func sup(b int) int {
 	return int(b)
 }
 
-// alphaBeta starts the search up to depth eng.maxPly.
+// alphaBeta starts the search up to depth maxPly.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) alphaBeta(estimated int16) int16 {
+func (eng *Engine) alphaBeta(maxPly, estimated int16) int16 {
 	// This method only implement aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
@@ -454,7 +453,7 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.negamax(int16(α), int16(β), 0, eng.maxPly*DepthMultiplier, true)
+		score = eng.negamax(int16(α), int16(β), 0, maxPly*DepthMultiplier, true)
 		// fmt.Println("info string searched", α, β, score, eng.Stats)
 
 		if int(score) <= α {
@@ -470,10 +469,10 @@ func (eng *Engine) alphaBeta(estimated int16) int16 {
 }
 
 // printInfo prints a info UCI string.
-func (eng *Engine) printInfo(score int16, pv []Move) {
+func (eng *Engine) printInfo(maxPly, score int16, pv []Move) {
 	now := time.Now()
 	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-		eng.maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
+		maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
 
 	fmt.Printf("pv")
 	for _, m := range pv {
@@ -494,11 +493,10 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	eng.killer = eng.killer[:0]
 
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
-		eng.maxPly = int16(maxPly)
-		score = eng.alphaBeta(score)
+		score = eng.alphaBeta(int16(maxPly), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
-			eng.printInfo(score, moves)
+			eng.printInfo(int16(maxPly), score, moves)
 		}
 	}
 
