@@ -260,28 +260,28 @@ func (pos *Position) Get(sq Square) Piece {
 
 // KnightMobility returns all squares a knigth can reach from sq.
 func (pos *Position) KnightMobility(sq Square) Bitboard {
-	return BbKnightAttack[sq]
+	return bbKnightAttack[sq]
 }
 
 // BishopMobility returns the squares a bishop can reach from sq given all pieces.
 func (pos *Position) BishopMobility(sq Square, all Bitboard) Bitboard {
-	return BishopMagic[sq].Attack(all)
+	return bishopMagic[sq].Attack(all)
 }
 
 // RookMobility returns the squares a rook can reach from sq given all pieces.
 func (pos *Position) RookMobility(sq Square, all Bitboard) Bitboard {
-	return RookMagic[sq].Attack(all)
+	return rookMagic[sq].Attack(all)
 }
 
 // QueenMobility returns the squares a queen can reach from sq given all pieces.
 func (pos *Position) QueenMobility(sq Square, all Bitboard) Bitboard {
-	return RookMagic[sq].Attack(all) | BishopMagic[sq].Attack(all)
+	return rookMagic[sq].Attack(all) | bishopMagic[sq].Attack(all)
 }
 
 // KingMobility returns all squares a king can reach from sq.
 // Doesn't include castling.
 func (pos *Position) KingMobility(sq Square) Bitboard {
-	return BbKingAttack[sq]
+	return bbKingAttack[sq]
 }
 
 // IsThreeFoldRepetition returns whether current position was seen three times already.
@@ -521,7 +521,7 @@ func (pos *Position) genKnightMoves(violent bool, moves *[]Move) {
 	pi := ColorFigure(pos.SideToMove, Knight)
 	for bb := pos.ByPiece(pos.SideToMove, Knight); bb != 0; {
 		from := bb.Pop()
-		att := BbKnightAttack[from] & mask
+		att := bbKnightAttack[from] & mask
 		pos.genBitboardMoves(pi, from, att, moves)
 	}
 }
@@ -532,7 +532,7 @@ func (pos *Position) genBishopMoves(fig Figure, violent bool, moves *[]Move) {
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := BishopMagic[from].Attack(ref) & mask
+		att := bishopMagic[from].Attack(ref) & mask
 		pos.genBitboardMoves(pi, from, att, moves)
 	}
 }
@@ -543,7 +543,7 @@ func (pos *Position) genRookMoves(fig Figure, violent bool, moves *[]Move) {
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
 		from := bb.Pop()
-		att := RookMagic[from].Attack(ref) & mask
+		att := rookMagic[from].Attack(ref) & mask
 		pos.genBitboardMoves(pi, from, att, moves)
 	}
 }
@@ -552,7 +552,7 @@ func (pos *Position) genKingMovesNear(violent bool, moves *[]Move) {
 	mask := pos.getViolentMask(violent)
 	pi := ColorFigure(pos.SideToMove, King)
 	from := pos.ByPiece(pos.SideToMove, King).AsSquare()
-	att := BbKingAttack[from] & mask
+	att := bbKingAttack[from] & mask
 	pos.genBitboardMoves(pi, from, att, moves)
 }
 
@@ -608,24 +608,24 @@ EndCastleOOO:
 // IsAttackedBy returns true if sq is under attacked by side.
 func (pos *Position) IsAttackedBy(sq Square, side Color) bool {
 	enemy := pos.ByColor[side]
-	if BbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
+	if bbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
 		if att := sq.Bitboard() & pos.PawnThreats(side); att != 0 {
 			return true
 		}
 	}
 
 	// Knight
-	if BbKnightAttack[sq]&enemy&pos.ByFigure[Knight] != 0 {
+	if bbKnightAttack[sq]&enemy&pos.ByFigure[Knight] != 0 {
 		return true
 	}
 
 	// Quick test of queen's attack on an empty board.
-	if BbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
+	if bbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
 		return false
 	}
 
 	// King.
-	if BbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
+	if bbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
 		return true
 	}
 

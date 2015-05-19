@@ -16,7 +16,7 @@ func TestRookAttack(t *testing.T) {
 	}
 
 	for _, d := range data {
-		actual := RookMagic[d.sq].Attack(d.occ)
+		actual := rookMagic[d.sq].Attack(d.occ)
 		if actual != d.att {
 			t.Errorf("expected %d, got %d", d.att, actual)
 		}
@@ -35,7 +35,7 @@ func TestBishopAttack(t *testing.T) {
 	}
 
 	for _, d := range data {
-		actual := BishopMagic[d.sq].Attack(d.occ)
+		actual := bishopMagic[d.sq].Attack(d.occ)
 		if actual != d.att {
 			t.Errorf("expected %d, got %d", d.att, actual)
 		}
