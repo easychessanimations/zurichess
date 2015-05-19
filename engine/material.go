@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+const (
+	KnownWinScore  = 25000          // All scores strictly greater than KnownWinScore are sure wins.
+	KnownLossScore = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
+	MateScore      = 30000          // MateScore - N is mate in N plies.
+	MatedScore     = -MateScore     // MatedScore + N is mated in N plies.
+	InfinityScore  = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
+)
+
 var (
 	// sq ^ colorMask[col] is sq from col's POV.
 	// Used with PieceSquareTables which are from White's POV.
@@ -13,14 +21,6 @@ var (
 
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
-	// Scores returned directly are int16.
-
-	KnownWinScore  int16 = 25000          // All scores strictly greater than KnownWinScore are sure wins.
-	KnownLossScore int16 = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
-	MateScore      int16 = 30000          // MateScore - N is mate in N plies.
-	MatedScore     int16 = -MateScore     // MatedScore + N is mated in N plies.
-	InfinityScore  int16 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
-
 	GlobalMaterial = Material{
 		DoublePawnPenalty: Score{23, 37},
 		BishopPairBonus:   Score{27, 57},
