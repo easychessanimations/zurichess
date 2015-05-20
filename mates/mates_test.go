@@ -81,7 +81,7 @@ func TestMateIn2(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	helper(t, "testdata/mateIn2.epd", 5, 2)
+	helper(t, "testdata/mateIn2.epd", 5, 1)
 }
 
 /*
