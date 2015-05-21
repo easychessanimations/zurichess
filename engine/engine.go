@@ -18,11 +18,10 @@ import (
 )
 
 const (
-	DepthMultiplier        = 8 // depth multiplier for fractional depths
-	CheckDepthExtension    = 6 // how much to extend search in case of checks
-	NullMoveDepthLimit     = 8 // disable null-move below this limit
-	NullMoveDepthReduction = 8 // default null-move depth reduction. Can reduce more in some situations.
-	PVSDepthLimit          = 7 // do not do PVS below and including this limit
+	CheckDepthExtension    = 1 // how much to extend search in case of checks
+	NullMoveDepthLimit     = 1 // disable null-move below this limit
+	NullMoveDepthReduction = 1 // default null-move depth reduction. Can reduce more in some situations.
+	PVSDepthLimit          = 0 // do not do PVS below and including this limit
 )
 
 var (
@@ -254,7 +253,7 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 //
 // Returns the score from the deeper search.
 func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, move Move) int16 {
-	depth -= DepthMultiplier
+	depth--
 	pos := eng.Position // shortcut
 	us := pos.SideToMove
 	them := us.Opposite()
@@ -387,7 +386,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		reduction := int16(NullMoveDepthLimit)
 		if pos.NumPieces[sideToMove][Pawn]+3 < pos.NumPieces[sideToMove][NoPiece] {
 			// Reduce more when there are three minor/major pieces.
-			reduction += DepthMultiplier
+			reduction++
 		}
 		score := eng.tryMove(β-1, β, depth-reduction, false, NullMove)
 		if score >= β {
@@ -470,7 +469,7 @@ func (eng *Engine) alphaBeta(maxPly, estimated int16) int16 {
 
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.negamax(int16(α), int16(β), maxPly*DepthMultiplier, true)
+		score = eng.negamax(int16(α), int16(β), maxPly, true)
 		// fmt.Println("info string searched", α, β, score, eng.Stats)
 
 		if int(score) <= α {
