@@ -22,21 +22,22 @@ var (
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
 	GlobalMaterial = Material{
-		DoublePawnPenalty: Score{23, 37},
-		BishopPairBonus:   Score{27, 57},
-		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {7, 9}, {3, 8}, {5, 7}, {2, 14}, {-11, 0}},
-		FigureBonus:       [FigureArraySize]Score{{0, 0}, {22, 148}, {328, 314}, {342, 332}, {455, 594}, {1020, 1041}, {10000, 10000}},
+		DoublePawnPenalty: Score{24, 35},
+		PassedOnRank:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {1, 56}, {14, 88}, {54, 178}, {77, 234}, {0, 0}},
+		BishopPairBonus:   Score{26, 57},
+		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {8, 8}, {4, 8}, {7, 4}, {2, 5}, {-8, -2}},
+		FigureBonus:       [FigureArraySize]Score{{0, 0}, {0, 0}, {307, 271}, {328, 294}, {413, 574}, {1045, 1030}, {0, 0}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
 			{ // Pawn
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-				{36, 22}, {52, 17}, {47, 2}, {41, -22}, {41, -22}, {47, 2}, {52, 17}, {36, 22},
-				{39, 13}, {53, 17}, {46, -3}, {54, -4}, {54, -4}, {46, -3}, {53, 17}, {39, 13},
-				{30, 23}, {38, 21}, {48, -13}, {60, -4}, {60, -4}, {48, -13}, {38, 21}, {30, 23},
-				{27, 48}, {29, 47}, {42, 14}, {57, 8}, {57, 8}, {42, 14}, {29, 47}, {27, 48},
-				{51, 122}, {80, 101}, {41, 92}, {82, 101}, {82, 101}, {41, 92}, {80, 101}, {51, 122},
-				{102, 124}, {104, 108}, {94, 119}, {111, 100}, {111, 100}, {94, 119}, {104, 108}, {102, 124},
+				{59, 118}, {67, 128}, {56, 119}, {73, 51}, {76, 63}, {84, 114}, {92, 119}, {67, 95},
+				{54, 131}, {62, 134}, {64, 117}, {64, 102}, {75, 111}, {76, 120}, {91, 121}, {70, 114},
+				{48, 135}, {63, 133}, {60, 119}, {80, 106}, {81, 108}, {72, 113}, {66, 129}, {50, 121},
+				{40, 154}, {53, 149}, {70, 118}, {67, 107}, {73, 107}, {65, 120}, {53, 142}, {52, 134},
+				{81, 130}, {95, 114}, {72, 98}, {69, 56}, {44, 50}, {83, 104}, {99, 91}, {97, 102},
+				{55, 108}, {62, 92}, {68, 54}, {69, 65}, {75, 45}, {48, 64}, {57, 110}, {64, 92},
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
 			},
 			{}, // Knight
@@ -98,9 +99,12 @@ func (s Score) Times(t int32) Score {
 // Material stores the evaluation parameters.
 type Material struct {
 	DoublePawnPenalty Score
-	BishopPairBonus   Score
-	Mobility          [FigureArraySize]Score // how much each piece's mobility is worth
-	FigureBonus       [FigureArraySize]Score // how much each piece is worth
+	PassedOnRank      [8]Score // score of each passed pawn
+	BishopPairBonus   Score    // how much a pair of bishop is worth
+
+	Mobility    [FigureArraySize]Score // how much each piece's mobility is worth
+	FigureBonus [FigureArraySize]Score // how much each piece is worth
+
 	// Piece Square Table from White POV.
 	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
 	// The tables are indexed from SquareA1 to SquareH8.
@@ -140,19 +144,47 @@ func MakeEvaluation(pos *Position, mat *Material) Evaluation {
 // pawns computes the pawn structure score of side.
 func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	pos, mat := e.position, e.material // shortcut
-	pawns := pos.ByPiece(us, Pawn)
 	mask := colorMask[us]
-	psqt := mat.PieceSquareTable[Pawn][:]
 
-	for bb := pawns; bb != 0; {
+	// Award pawns based on the Hans Berliner's system.
+	ours := pos.ByPiece(us, Pawn)
+	theirs := pos.ByPiece(us.Opposite(), Pawn)
+
+	// From white's POV (P - white pawn, p - black pawn).
+	// block
+	// .......
+	// .....P.
+	// .....x.
+	// ..p..x.
+	// .xxx.x.
+	// .xxx.x.
+	// .xxx.x.
+	// .xxx.x.
+	block := East(theirs) | theirs | West(theirs)
+	double := Bitboard(0)
+	if us == White {
+		block = SouthSpan(block) | SouthSpan(ours)
+		double = South(ours) & ours
+	} else /* if us == Black */ {
+		block = NorthSpan(block) | NorthSpan(ours)
+		double = North(ours) & ours
+	}
+
+	passed := ours &^ block // no pawn in front and no enemy on the adjacent files
+
+	for bb := ours; bb != 0; {
 		sq := bb.Pop()
-		// Award advanced pawns.
-		score = score.Plus(mat.FigureBonus[Pawn]).Plus(psqt[sq^mask])
-		// Penalize double pawns.
-		fwd := sq.Bitboard().Forward(us)
-		if fwd&pawns != 0 {
-			score = score.Minus(mat.DoublePawnPenalty)
+		rank := (sq ^ mask).Rank() // from our POV
+
+		ps := mat.PieceSquareTable[Pawn][sq^mask]
+		if passed.Has(sq) {
+			ps = ps.Plus(mat.PassedOnRank[rank])
 		}
+		if double.Has(sq) {
+			ps = ps.Minus(mat.DoublePawnPenalty)
+		}
+
+		score = score.Plus(ps)
 	}
 
 	return score
