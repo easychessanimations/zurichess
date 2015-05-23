@@ -15,8 +15,8 @@ type castleInfo struct {
 
 var (
 	itoa               = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8"} // shortcut for Itoa
-	colorToSymbol      = []string{"", "w", "b"}
-	pieceToSymbol      = []string{".", "?", "P", "p", "N", "n", "B", "b", "R", "r", "Q", "q", "K", "k"}
+	colorToSymbol      = []string{"", "b", "w"}
+	pieceToSymbol      = []string{".", "?", "p", "P", "n", "N", "b", "B", "r", "R", "q", "Q", "k", "K"}
 	symbolToCastleInfo = map[rune]castleInfo{
 		'K': castleInfo{
 			Castle: WhiteOO,

@@ -102,16 +102,16 @@ type Color uint
 
 const (
 	NoColor Color = iota
-	White
 	Black
+	White
 
 	ColorArraySize = int(iota)
-	ColorMinValue  = White
-	ColorMaxValue  = Black
+	ColorMinValue  = Black
+	ColorMaxValue  = White
 )
 
 var (
-	kingHomeRank = [ColorArraySize]int{0, 0, 7}
+	kingHomeRank = [ColorArraySize]int{0, 7, 0}
 )
 
 // Opposite returns the reversed color.
@@ -130,25 +130,27 @@ func (c Color) KingHomeRank() int {
 type Piece uint8
 
 // Piece constants must stay in sync with ColorFigure
+// The order of pieces must match Polyglot format:
+// http://hgm.nubati.net/book_format.html
 const (
 	NoPiece Piece = iota
 	_
-	WhitePawn
 	BlackPawn
-	WhiteKnight
+	WhitePawn
 	BlackKnight
-	WhiteBishop
+	WhiteKnight
 	BlackBishop
-	WhiteRook
+	WhiteBishop
 	BlackRook
-	WhiteQueen
+	WhiteRook
 	BlackQueen
-	WhiteKing
+	WhiteQueen
 	BlackKing
+	WhiteKing
 
 	PieceArraySize = int(iota)
-	PieceMinValue  = WhitePawn
-	PieceMaxValue  = BlackKing
+	PieceMinValue  = BlackPawn
+	PieceMaxValue  = WhiteKing
 )
 
 // ColorFigure returns a piece with col and fig.
@@ -465,7 +467,7 @@ func CastlingRook(kingEnd Square) (Piece, Square, Square) {
 	// if kingEnd == C1 == b010, then rookEnd == D1 == b011
 	// if kingEnd == G1 == b110, then rookEnd == F1 == b101
 	// So bit 3 will invert bit 2. bit 1 is always set.
-	piece := Piece(Rook<<1) + Piece(kingEnd>>5)
+	piece := Piece(Rook<<1) + (1 - Piece(kingEnd>>5))
 	rookStart := kingEnd&^3 | (kingEnd & 4 >> 1) | (kingEnd & 4 >> 2)
 	rookEnd := kingEnd ^ (kingEnd & 4 >> 1) | 1
 	return piece, rookStart, rookEnd

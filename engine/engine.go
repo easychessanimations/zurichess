@@ -27,7 +27,7 @@ const (
 var (
 	// scoreMultiplier is used to compute the score from side
 	// to move POV from given the score from white POV.
-	scoreMultiplier = [ColorArraySize]int16{0, 1, -1}
+	scoreMultiplier = [ColorArraySize]int16{0, -1, 1}
 )
 
 // Options keeps engine's options.

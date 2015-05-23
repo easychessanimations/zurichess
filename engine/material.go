@@ -17,7 +17,7 @@ const (
 var (
 	// sq ^ colorMask[col] is sq from col's POV.
 	// Used with PieceSquareTables which are from White's POV.
-	colorMask = [3]Square{0x00, 0x00, 0x38}
+	colorMask = [3]Square{0x00, 0x38, 0x00}
 
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.

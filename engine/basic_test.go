@@ -59,19 +59,22 @@ func TestSquareFromString(t *testing.T) {
 
 func TestRookSquare(t *testing.T) {
 	data := []struct {
-		kingEnd, rookStart, rookEnd Square
+		kingEnd   Square
+		rook      Piece
+		rookStart Square
+		rookEnd   Square
 	}{
-		{SquareC1, SquareA1, SquareD1},
-		{SquareC8, SquareA8, SquareD8},
-		{SquareG1, SquareH1, SquareF1},
-		{SquareG8, SquareH8, SquareF8},
+		{SquareC1, WhiteRook, SquareA1, SquareD1},
+		{SquareC8, BlackRook, SquareA8, SquareD8},
+		{SquareG1, WhiteRook, SquareH1, SquareF1},
+		{SquareG8, BlackRook, SquareH8, SquareF8},
 	}
 
 	for _, d := range data {
-		_, rookStart, rookEnd := CastlingRook(d.kingEnd)
-		if rookStart != d.rookStart || rookEnd != d.rookEnd {
-			t.Errorf("for king to %v, expected rook from %v to %v, got rook from %v to %v",
-				d.kingEnd, d.rookStart, d.rookEnd, rookStart, rookEnd)
+		rook, rookStart, rookEnd := CastlingRook(d.kingEnd)
+		if rook != d.rook || rookStart != d.rookStart || rookEnd != d.rookEnd {
+			t.Errorf("for king to %v, expected rook %v from %v to %v, got rook %v from %v to %v",
+				d.kingEnd, d.rook, d.rookStart, d.rookEnd, rook, rookStart, rookEnd)
 		}
 	}
 }
@@ -128,6 +131,23 @@ func TestCastlingRook(t *testing.T) {
 		rook, _, _ := CastlingRook(d.kingEnd)
 		if rook != d.rook {
 			t.Errorf("for king to %v, expected %v, got %v", d.kingEnd, d.rook, rook)
+		}
+	}
+}
+
+func TestKingHomeRank(t *testing.T) {
+	data := []struct {
+		col  Color
+		rank int
+	}{
+		{NoColor, 0},
+		{White, 0},
+		{Black, 7},
+	}
+
+	for _, d := range data {
+		if d.rank != d.col.KingHomeRank() {
+			t.Errorf("for color %v, expected king home rank %d, got %d", d.col, d.rank, d.col.KingHomeRank())
 		}
 	}
 }
