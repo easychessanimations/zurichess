@@ -75,7 +75,6 @@ func (uci *UCI) uci(args []string) error {
 	fmt.Println()
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
-	fmt.Printf("option name MvvLva type string\n")
 	fmt.Println("uciok")
 	return nil
 }
@@ -242,8 +241,6 @@ func (uci *UCI) setoption(args []string) error {
 		} else {
 			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
 		}
-	case "MvvLva":
-		return engine.SetMvvLva(args[3])
 	default:
 		return fmt.Errorf("unhandled option %s", args[2])
 	}
