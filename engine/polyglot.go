@@ -2,6 +2,9 @@
 //
 // More information on Zobrist hashing can be found in the paper:
 // http://research.cs.wisc.edu/techreports/1970/TR88.pdf
+// For correctness testing and the posibility to add
+// book handling code later zurichess uses Polyglot hashes
+// and key computing algorithm.
 
 package engine
 
