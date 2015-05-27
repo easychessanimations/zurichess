@@ -9,7 +9,7 @@
 zurichess is a chess engine and a chess library written in
 [Go](http://golang). Its main goals are: to be a relatively
 strong chess engine and to enable chess tools writing. See
-the libray reference.
+the library reference.
 
 zurichess partially implements [UCI
 protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but

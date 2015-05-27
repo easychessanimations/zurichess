@@ -317,7 +317,7 @@ func (eng *Engine) saveKiller(m Move) {
 	}
 }
 
-// getKillers return the killers from previous positions at the same ply.
+// getKillers returns the killers from previous positions at the same ply.
 func (eng *Engine) getKillers() [2]Move {
 	if ply := eng.ply(); len(eng.killer) <= ply {
 		return [2]Move{}
@@ -387,7 +387,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	}
 
 	// Do a null move.
-	// If the null move fails high it means this position is too good,
+	// If the null move fails high then the current position is too good,
 	// so opponent will not play it.
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
@@ -415,7 +415,6 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
 	allowLateMove := !pvNode &&
 		!sideIsChecked && // dangerous position
-		// eng.evaluation.Static.Greater(int32(α)) && // ???
 		depth > LMRDepthLimit
 
 	localα := α
@@ -487,7 +486,7 @@ func sup(b int) int {
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
 func (eng *Engine) alphaBeta(maxPly, estimated int16) int16 {
-	// This method only implement aspiration windows.
+	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
