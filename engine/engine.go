@@ -354,8 +354,9 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	}
 	if int16(MateScore-ply) <= α {
 		// If an ancestor already has a mate in ply moves then
-		// the search will always fail low.
-		return -InfinityScore
+		// the search will always fail low so we return the
+		// lowest wining score.
+		return KnownWinScore
 	}
 
 	// Check the transposition table.
