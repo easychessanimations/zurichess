@@ -251,8 +251,8 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).
 // depth is the fractional depth (decreasing)
-// nullWindow indicates whether to scout first.
-// lateMove indicates this move is late and should be reduce.
+// nullWindow indicates whether to scout first. Implies non-null move.
+// lateMove indicates this move is late and should be reduce. Implies non-null move.
 // move is the move to execute
 //
 // Returns the score from the deeper search.
@@ -282,14 +282,14 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 
 	score := α + 1
 	if lateMove { // reduce late moves
-		score = -eng.negamax(-α-1, -α, depth-1, move != NullMove)
+		score = -eng.negamax(-α-1, -α, depth-1, true)
 	}
 
-	if score > α { // if late move reduction failed
+	if score > α { // if late move reduction is disabled or has failed
 		if nullWindow {
-			score = -eng.negamax(-α-1, -α, depth, move != NullMove)
+			score = -eng.negamax(-α-1, -α, depth, true)
 			if α < score && score < β {
-				score = -eng.negamax(-β, -α, depth, move != NullMove)
+				score = -eng.negamax(-β, -α, depth, true)
 			}
 		} else {
 			score = -eng.negamax(-β, -α, depth, move != NullMove)
