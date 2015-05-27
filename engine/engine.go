@@ -458,8 +458,6 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		} else {
 			bestScore = 0
 		}
-	} else {
-		eng.saveKiller(bestMove)
 	}
 
 	// Update hash and principal variation tables.
