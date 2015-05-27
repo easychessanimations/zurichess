@@ -386,12 +386,11 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		return score
 	}
 
-	// Do a null move.
-	// If the null move fails high then the current position is too good,
-	// so opponent will not play it.
-	sideIsChecked := eng.Position.IsChecked(sideToMove)
+	// Do a null move. If the null move fails high then the current
+	// position is too good, so opponent will not play it.
+	// Verification that we are not in check is done by tryMove
+	// which bails out if after the null move we are still in check.
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
-		!sideIsChecked && // not illegal move
 		depth > NullMoveDepthLimit && // not very close to leafs
 		pos.NumPieces[sideToMove][Pawn]+1 < pos.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
@@ -407,6 +406,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		}
 	}
 
+	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	pvNode := α+1 < β
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false                                          // updated once alpha is improved
