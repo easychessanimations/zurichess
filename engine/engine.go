@@ -409,6 +409,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	pvNode := α+1 < β
+	hasGoodMoves := has && len(eng.killer) > ply
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false                                          // updated once alpha is improved
 	allowNullWindow := pvNode && has && len(eng.killer) > ply && // good moves available
@@ -433,7 +434,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 			numQuiet++
 		}
 
-		lateMove := allowLateMove && quiet && numQuiet > LMRFullMoveLimit
+		lateMove := allowLateMove && quiet && (hasGoodMoves || numQuiet > LMRFullMoveLimit)
 		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
 
 		if score >= β { // Fail high, cut node.

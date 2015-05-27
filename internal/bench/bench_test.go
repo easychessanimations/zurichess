@@ -8,7 +8,7 @@ const (
 	shallowDepth = 4
 	shallowNodes = 3574654
 	deepDepth    = 5
-	deepNodes    = 11200907
+	deepNodes    = 11187425
 )
 
 func TestShallow(t *testing.T) {
