@@ -286,7 +286,7 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 	}
 
 	if score > α { // if late move reduction failed
-		if nullWindow || lateMove {
+		if nullWindow {
 			score = -eng.negamax(-α-1, -α, depth, move != NullMove)
 			if α < score && score < β {
 				score = -eng.negamax(-β, -α, depth, move != NullMove)
