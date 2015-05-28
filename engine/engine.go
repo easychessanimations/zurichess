@@ -361,7 +361,9 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Check the transposition table.
 	entry, has := eng.retrieveHash()
+	hash := entry.Move
 	if has && depth <= entry.Depth {
+		hash = entry.Move
 		if ply > 0 && entry.Kind == Exact {
 			// Simply return if the score is exact.
 			return entry.Score
@@ -409,7 +411,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	pvNode := α+1 < β
-	hasGoodMoves := has && len(eng.killer) > ply
+	hasGoodMoves := hash != NullMove || len(eng.killer) > ply
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
 	allowNullWindow := pvNode && hasGoodMoves && depth > PVSDepthLimit
@@ -420,11 +422,11 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
 
 	killer := eng.getKillers()
-	eng.stack.GenerateMoves(eng.Position, entry.Move, killer)
+	eng.stack.GenerateMoves(eng.Position, hash, killer)
 
 	numQuiet := 0
 	for move := NullMove; eng.stack.PopMove(&move); {
-		quiet := !move.IsViolent() && move != entry.Move && move != killer[0] && move != killer[1]
+		quiet := !move.IsViolent() && move != hash && move != killer[0] && move != killer[1]
 		if quiet {
 			numQuiet++
 		}
