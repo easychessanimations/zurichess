@@ -411,13 +411,10 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	pvNode := α+1 < β
 	hasGoodMoves := has && len(eng.killer) > ply
 	// Principal variation search: search with a null window if there is already a good move.
-	nullWindow := false                                          // updated once alpha is improved
-	allowNullWindow := pvNode && has && len(eng.killer) > ply && // good moves available
-		depth > PVSDepthLimit // disable PVS near leafs
+	nullWindow := false // updated once alpha is improved
+	allowNullWindow := pvNode && hasGoodMoves && depth > PVSDepthLimit
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
-	allowLateMove := !pvNode &&
-		!sideIsChecked && // dangerous position
-		depth > LMRDepthLimit
+	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
 
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
@@ -427,9 +424,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	numQuiet := 0
 	for move := NullMove; eng.stack.PopMove(&move); {
-		quiet := !move.IsViolent() && // checks handled by Engine.tryMove
-			move != entry.Move && // not best move previously
-			move != killer[0] && move != killer[1] // not killer from sibling positions
+		quiet := !move.IsViolent() && move != entry.Move && move != killer[0] && move != killer[1]
 		if quiet {
 			numQuiet++
 		}

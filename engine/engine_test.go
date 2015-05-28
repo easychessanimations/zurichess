@@ -58,29 +58,6 @@ func TestEndGamePosition(t *testing.T) {
 	}
 }
 
-func TestZugzwang(t *testing.T) {
-	data := [][2]string{
-		// These tests fail. TODO: Fix me.
-		// {"Ra2-a6", "kbK5/pp6/1P6/8/8/8/R7/8 w - - 0 1"},
-		{"Qa8-h1", "Q3r3/3r1N2/4R2b/2p2pB1/1RBk1N1q/1K4n1/p3b3/8 w - - 0 1"},
-		{"g2-g4", "r2qr3/pb1nb1pp/1p2Qnk1/2p2p2/2PP1B2/3B1N2/PP3PPP/R4RK1 w - - 0 1"},
-	}
-
-	for _, d := range data {
-		pos, _ := PositionFromFEN(d[1])
-		eng := NewEngine(pos, Options{})
-
-		tc := &FixedDepthTimeControl{MaxDepth: 5}
-		tc.Start()
-		pv := eng.Play(tc)
-		if d[0] != pv[0].LAN() {
-			t.Errorf("failed %s", d[1])
-			t.Errorf("expected move %s got pv %v", d[0], pv)
-		}
-	}
-
-}
-
 func BenchmarkStallingFENs(b *testing.B) {
 	fens := []string{
 		// Causes quiscence search to explode.
