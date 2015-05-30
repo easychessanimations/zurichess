@@ -81,11 +81,17 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 ## History
 
-### zurichess - bern (development)
+Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
+in alphabetical order.
 
-* Implement Principal Variation Search.
+### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (development)
 
-### zurichess - basel (stable)
+* Implement Principal Variation Search (PVS).
+* Reduce late quiet moves (LMR).
+* Optimize move ordering. Penalize moves threatened by pawns in quiescence search.
+* Optimize check extension. Do not extend many bad checks.
+
+### zurichess - [basel](http://en.wikipedia.org/wiki/Basel-Stadt) (stable)
 
 This release's theme is improving evaluation function.
 
@@ -97,24 +103,25 @@ This release's theme is improving evaluation function.
 * Handle three fold repetition.
 * Cache pawn structure evaluation.
 * Fix transposition table bug causing a search explosion around mates.
+* Prune based on mate score.
 
-### zurichess - appenzeller
+### zurichess - [appenzeller](http://en.wikipedia.org/wiki/Appenzeller_cheese)
 
 This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
 
-* Cleaned code and improved documentation.
-* Implemented aspiration window search with gradual widening.
-* Improved replacement strategy in transposition table.
-* Doubled the number of entries in the transposition table.
-* Developed [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
+* Clean code and improved documentation.
+* Implement aspiration window search with gradual widening.
+* Improve replacement strategy in transposition table.
+* Double the number of entries in the transposition table.
+* Develop [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
 * Fail-softly in more situations.
-* Implemented UCI commands _go movetime_ and _stop_.
-* Added a separate table for principal variation.
-* Added killer heuristic to improve move ordering.
-* Extended search when current position is in check.
-* Improved time-control. In particular zurichess uses more time when there are fewer pieces on the board.
+* Implement UCI commands _go movetime_ and _stop_.
+* Add a separate table for principal variation.
+* Add killer heuristic to improve move ordering.
+* Extend search when current position is in check.
+* Improve time-control. In particular zurichess uses more time when there are fewer pieces on the board.
 
-### zurichess - aargau
+### zurichess - [aargau](http://en.wikipedia.org/wiki/Aargau)
 
 This is the first public release. ELO is about 1727 on CCRL 40/4.
 
