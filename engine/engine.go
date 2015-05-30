@@ -73,8 +73,7 @@ type Engine struct {
 
 	evaluation Evaluation // position evaluator
 	rootPly    int        // position's ply at the start of the search
-	killer     [][2]Move  // killer stores a few killer moves per ply
-	stack      moveStack  // stack of moves
+	stack      stack      // stack of moves
 	pvTable    pvTable    // principal variation table
 }
 
@@ -224,14 +223,13 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 	}
 
 	var bestMove Move
-	eng.stack.GenerateViolentMoves(eng.Position)
-	for move := NullMove; eng.stack.PopMove(&move); {
+	eng.stack.GenerateMoves(true, NullMove)
+	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		eng.evaluation.DoMove(move)
 		score := -eng.quiescence(-β, -localα)
 		eng.evaluation.UndoMove(move)
 
 		if score >= β {
-			eng.stack.PopAll()
 			return score
 		}
 		if score > localα {
@@ -303,27 +301,6 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 // ply returns the ply from the beginning of the search.
 func (eng *Engine) ply() int {
 	return eng.Position.Ply - eng.rootPly
-}
-
-// saveKiller saves a killer move, m.
-func (eng *Engine) saveKiller(m Move) {
-	ply := eng.ply()
-	for len(eng.killer) <= ply {
-		eng.killer = append(eng.killer, [2]Move{})
-	}
-	if m.Capture() == NoPiece && m != eng.killer[ply][0] { // saves only quiet moves.
-		eng.killer[ply][1] = eng.killer[ply][0]
-		eng.killer[ply][0] = m
-	}
-}
-
-// getKillers returns the killers from previous positions at the same ply.
-func (eng *Engine) getKillers() [2]Move {
-	if ply := eng.ply(); len(eng.killer) <= ply {
-		return [2]Move{}
-	} else {
-		return eng.killer[ply]
-	}
 }
 
 // negamax implements negamax framework.
@@ -411,7 +388,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	pvNode := α+1 < β
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
-	hasGoodMoves := hash != NullMove || (len(eng.killer) > ply && eng.killer[ply][0] != NullMove)
+	hasGoodMoves := hash != NullMove || eng.stack.HasKiller()
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
 	allowNullWindow := pvNode && hasGoodMoves && depth > PVSDepthLimit
@@ -421,11 +398,11 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
 
-	killer := eng.getKillers()
-	eng.stack.GenerateMoves(eng.Position, hash, killer)
+	killer := eng.stack.GetKiller()
+	eng.stack.GenerateMoves(false, hash)
 
 	numQuiet := 0
-	for move := NullMove; eng.stack.PopMove(&move); {
+	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		quiet := move.IsQuiet() && move != hash && move != killer[0] && move != killer[1]
 		if quiet {
 			numQuiet++
@@ -435,8 +412,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
 
 		if score >= β { // Fail high, cut node.
-			eng.saveKiller(move)
-			eng.stack.PopAll()
+			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)
 			return score
 		}
@@ -534,7 +510,7 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	score := int16(0)
 	eng.Stats = Stats{Start: time.Now()}
 	eng.rootPly = eng.Position.Ply
-	eng.killer = eng.killer[:0]
+	eng.stack.Reset(eng.Position)
 
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
 		score = eng.alphaBeta(int16(maxPly), score)
@@ -543,5 +519,6 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 			eng.printInfo(int16(maxPly), score, moves)
 		}
 	}
+
 	return moves
 }

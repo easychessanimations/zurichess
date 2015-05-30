@@ -24,12 +24,20 @@ var (
 )
 
 const (
-	// Give bonus to move found in the hash table.
-	HashMoveBonus int16 = 4096
 	// Give bonus to killer move.
 	KillerMoveBonus int16 = 1024
 	// Penalize moves to squares attacked by pawns. Only in quiescence search.
 	PawnThreatPenalty int16 = 500
+)
+
+const (
+	// Move generation states.
+	msHash     = iota // return hash move
+	msGenerate        // generate all moves
+	msBest            // return only the best move
+	msSort            // sort remaining moves
+	msReturn          // return all moves
+	msDone            // all moves returned
 )
 
 // SetMvvLva sets the MVV/LVA table.
@@ -90,83 +98,192 @@ func (hs *heapSort) siftDown(start, end int) {
 	}
 }
 
-// movesStack is a double stack to store moves.
+// movesStack is a stack of moves.
 type moveStack struct {
 	moves []Move
 	order []int16
-	heads []int
+
+	violent bool    // true to generate violent moves
+	state   int     // current generation state
+	hash    Move    // hash move
+	killer  [2]Move // killer moves
 }
 
-// GenerateMoves generates all moves.
+// stack is a stack of plies (movesStack).
+type stack struct {
+	position *Position
+	moves    []moveStack
+}
+
+// Resets stack for a new position.
+func (st *stack) Reset(pos *Position) {
+	st.position = pos
+	st.moves = st.moves[:0]
+}
+
+// get returns the moveStack for current ply.
+// allocates memory if necessary.
+func (st *stack) get() *moveStack {
+	for len(st.moves) <= st.position.Ply {
+		st.moves = append(st.moves, moveStack{})
+	}
+	return &st.moves[st.position.Ply]
+}
+
+// generateMoves generates all moves.
+func (st *stack) GenerateMoves(violent bool, hash Move) {
+	ms := st.get()
+	ms.moves = ms.moves[:0]
+	ms.order = ms.order[:0]
+	ms.violent = violent
+	ms.state = msHash
+	ms.hash = hash
+	ms.killer = ms.killer // keep killers
+}
+
+// generateMoves generates all moves.
 // Called from main search tree which has hash and killer moves available.
-func (ms *moveStack) GenerateMoves(pos *Position, hash Move, killer [2]Move) {
+func (st *stack) generateMoves() {
+	ms := &st.moves[st.position.Ply]
+	if len(ms.moves) != 0 || len(ms.order) != 0 {
+		panic("expected no moves")
+	}
+
 	// Awards bonus for hash and killer moves.
-	start := len(ms.moves)
-	pos.GenerateMoves(&ms.moves)
-	for _, m := range ms.moves[start:] {
+	st.position.GenerateMoves(&ms.moves)
+	for _, m := range ms.moves {
 		var weight int16
-		if m == hash {
-			weight = HashMoveBonus
-		} else if m == killer[0] || m == killer[1] {
+		if m == ms.killer[0] || m == ms.killer[1] {
 			weight = KillerMoveBonus
 		} else {
 			weight = mvvlva(m)
 		}
 		ms.order = append(ms.order, weight)
 	}
-	ms.push()
+
+	hs := &heapSort{ms.moves, ms.order}
+	hs.sort()
 }
 
-// GenerateViolentMoves generates all violent moves.
+// generateViolentMoves generates all violent moves.
 // Called from quiescence search tree.
-func (ms *moveStack) GenerateViolentMoves(pos *Position) {
+func (st *stack) generateViolentMoves() {
+	ms := &st.moves[st.position.Ply]
+	if len(ms.moves) != 0 || len(ms.order) != 0 {
+		panic("expected no moves")
+	}
+
+	pos := st.position // shortcut
 	threats := pos.PawnThreats(pos.SideToMove.Opposite())
-	start := len(ms.moves)
 	pos.GenerateViolentMoves(&ms.moves)
-	for _, m := range ms.moves[start:] {
+	for _, m := range ms.moves {
 		weight := mvvlva(m)
 		if threats.Has(m.To()) {
 			weight -= PawnThreatPenalty
 		}
 		ms.order = append(ms.order, weight)
 	}
-	ms.push()
 }
 
-// push creates a new level of moves.
-// moves must be already inserted.
-func (ms *moveStack) push() {
-	if len(ms.heads) == 0 {
-		ms.heads = append(ms.heads, 0)
+// Pop pops a new move.
+// Returns NullMove if there are no moves.
+func (st *stack) PopMove() Move {
+	ms := &st.moves[st.position.Ply]
+	for {
+		switch ms.state {
+		case msHash:
+			// Return the hash move directly without generating the pseudo legal moves.
+			ms.state = msGenerate
+			if ms.hash != NullMove {
+				// TODO verify integrity
+				return ms.hash
+			}
+
+		case msGenerate:
+			// Generate and score the moves.
+			ms.state = msBest
+			if ms.violent {
+				st.generateViolentMoves()
+			} else {
+				st.generateMoves()
+			}
+
+		case msBest:
+			// Return the highest scoring move.
+			// Usually this one fails high so sorting can be skipped.
+			ms.state = msSort
+			bi, bm := -1, NullMove
+			for i, m := range ms.moves {
+				if m != ms.hash && (bi == -1 || ms.order[i] > ms.order[bi]) {
+					bi, bm = i, m
+				}
+			}
+
+			if bi == -1 {
+				// No move, except maybe hash move which was already returned.
+				ms.state = msDone
+				return NullMove
+			}
+
+			// Place last move instead of best move and pop the best move.
+			last := len(ms.moves) - 1
+			ms.moves[bi], ms.moves[bi] = ms.moves[last], ms.moves[last]
+			ms.moves = ms.moves[:last]
+			ms.order = ms.order[:last]
+			return bm
+
+		case msSort:
+			ms.state = msReturn
+			hs := &heapSort{ms.moves, ms.order}
+			hs.sort()
+
+		case msReturn:
+			// At this step moves are returned in order of their score.
+			if len(ms.moves) == 0 {
+				// No moves remaining, nothing to pop.
+				ms.state = msDone
+				return NullMove
+			}
+
+			last := len(ms.moves) - 1
+			move := ms.moves[last]
+			ms.moves = ms.moves[:last]
+			ms.order = ms.order[:last]
+			if move != ms.hash {
+				// hash move was already returned
+				return move
+			}
+
+		case msDone:
+			// Just in case another move is requested.
+			return NullMove
+		}
+
 	}
-	start := ms.heads[len(ms.heads)-1]
-	(&heapSort{ms.moves[start:], ms.order[start:]}).sort()
-	ms.heads = append(ms.heads, len(ms.moves))
 }
 
-// PopMove pops a single move from the stack.
-// Returns true if such move exists at current ply.
-// If current ply has no moves remainig pops the ply too.
-func (ms *moveStack) PopMove(move *Move) bool {
-	last := len(ms.heads) - 1
-	if ms.heads[last] == ms.heads[last-1] {
-		ms.PopAll()
-		return false
+// HasKiller returns true if there is a killer at this ply.
+func (st *stack) HasKiller() bool {
+	if st.position.Ply < len(st.moves) {
+		ms := &st.moves[st.position.Ply]
+		return ms.killer[0] != NullMove
 	}
-
-	ms.heads[last]--
-	head := ms.heads[last]
-	*move = ms.moves[head]
-	ms.moves = ms.moves[:head]
-	ms.order = ms.order[:head]
-	return true
+	return false
 }
 
-// PopAll pops current ply.
-func (ms *moveStack) PopAll() {
-	last := len(ms.heads) - 1
-	head := ms.heads[last-1]
-	ms.moves = ms.moves[:head]
-	ms.order = ms.order[:head]
-	ms.heads = ms.heads[:last]
+// GetKiller returns the killers (if any).
+func (st *stack) GetKiller() [2]Move {
+	if st.position.Ply < len(st.moves) {
+		return st.moves[st.position.Ply].killer
+	}
+	return [2]Move{}
+}
+
+// SaveKiller saves a killer move, m.
+func (st *stack) SaveKiller(m Move) {
+	ms := &st.moves[st.position.Ply]
+	if m.Capture() == NoPiece && m != ms.killer[0] { // saves only quiet moves.
+		ms.killer[1] = ms.killer[0]
+		ms.killer[0] = m
+	}
 }

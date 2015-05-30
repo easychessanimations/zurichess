@@ -392,7 +392,7 @@ func (m Move) IsViolent() bool {
 // IsQuiet returns true if the move is quiet.
 // In particular Castling is not quiet and not violent.
 func (m Move) IsQuiet() bool {
-        return m.MoveType() == Normal && m.Capture() == NoPiece
+	return m.MoveType() == Normal && m.Capture() == NoPiece
 }
 
 // UCI converts a move to UCI format.
