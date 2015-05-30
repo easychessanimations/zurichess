@@ -64,9 +64,10 @@ func (tc *OnClockTimeControl) Start() {
 	}
 
 	// Branch more when there are more pieces.
-	// With fewer pieces, hash table kicks in.
+	// With fewer pieces there is less mobility
+	// and hash table kicks in more often.
 	branchFactor := defaultbranchFactor
-	for np := tc.NumPieces; np > 0; np /= 4 {
+	for np := tc.NumPieces; np > 0; np /= 5 {
 		branchFactor++
 	}
 
