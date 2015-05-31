@@ -6,9 +6,9 @@ const (
 	// These constants should change only when search/evaluation is changed.
 	// Non-functional changes should not change the number of nodes.
 	shallowDepth = 4
-	shallowNodes = 2640023
+	shallowNodes = 2639069
 	deepDepth    = 5
-	deepNodes    = 5593244
+	deepNodes    = 5591983
 )
 
 func TestShallow(t *testing.T) {

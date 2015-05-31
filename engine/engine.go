@@ -409,9 +409,9 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		}
 	}
 
-	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	pvNode := α+1 < β
-	hasGoodMoves := hash != NullMove || len(eng.killer) > ply
+	sideIsChecked := eng.Position.IsChecked(sideToMove)
+	hasGoodMoves := hash != NullMove || (len(eng.killer) > ply && eng.killer[ply][0] != NullMove)
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
 	allowNullWindow := pvNode && hasGoodMoves && depth > PVSDepthLimit
