@@ -389,6 +389,12 @@ func (m Move) IsViolent() bool {
 	return m.Capture() != NoPiece || m.MoveType() == Promotion
 }
 
+// IsQuiet returns true if the move is quiet.
+// In particular Castling is not quiet and not violent.
+func (m Move) IsQuiet() bool {
+        return m.MoveType() == Normal && m.Capture() == NoPiece
+}
+
 // UCI converts a move to UCI format.
 // The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
 // incorrectly states that this is the long algebraic notation (LAN).

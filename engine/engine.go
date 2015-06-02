@@ -426,7 +426,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	numQuiet := 0
 	for move := NullMove; eng.stack.PopMove(&move); {
-		quiet := !move.IsViolent() && move != hash && move != killer[0] && move != killer[1]
+		quiet := move.IsQuiet() && move != hash && move != killer[0] && move != killer[1]
 		if quiet {
 			numQuiet++
 		}
