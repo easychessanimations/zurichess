@@ -383,8 +383,8 @@ func (m Move) Promotion() Piece {
 	return m.Target()
 }
 
-// IsViolent returns true if the move can change the position's score
-// significantly.
+// IsViolent returns true if the move can change the position's score significantly.
+// TODO: IsViolent should be in sync with GenerateViolentMoves.
 func (m Move) IsViolent() bool {
 	return m.Capture() != NoPiece || m.MoveType() == Promotion
 }
