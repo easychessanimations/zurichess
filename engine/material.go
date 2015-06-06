@@ -95,10 +95,6 @@ func (s Score) Times(t int32) Score {
 	return Score{s.M * t, s.E * t}
 }
 
-func (s Score) Greater(t int32) bool {
-	return (s.M/2 + s.E/2) > t
-}
-
 // Material stores the evaluation parameters.
 type Material struct {
 	DoublePawnPenalty Score
@@ -150,7 +146,6 @@ func MakeEvaluation(pos *Position, mat *Material) Evaluation {
 
 // DoMove executes a move and updates the static score.
 func (e *Evaluation) DoMove(m Move) {
-	e.position.DoMove(m)
 	e.Static = e.Static.Minus(e.piece[m.Capture()])
 	if m.MoveType() == Promotion {
 		e.Static = e.Static.Plus(e.promo[m.Target()])
@@ -159,7 +154,6 @@ func (e *Evaluation) DoMove(m Move) {
 
 // UndoMove takes back the latest move and updates the static score.
 func (e *Evaluation) UndoMove(m Move) {
-	e.position.UndoMove(m)
 	e.Static = e.Static.Plus(e.piece[m.Capture()])
 	if m.MoveType() == Promotion {
 		e.Static = e.Static.Minus(e.promo[m.Target()])

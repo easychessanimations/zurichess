@@ -1,3 +1,7 @@
+// move_ordering generates and orders moves for an engine.
+// Generation is done in several phases and many times
+// actual generation or sorting can be eliminated.
+
 package engine
 
 var (
@@ -55,6 +59,8 @@ func mvvlva(m Move) int16 {
 }
 
 // heapSort sorts moves by coresponding value in order.
+// heapSort is much faster than the library sort because it
+// avoids interface calls.
 type heapSort struct {
 	moves []Move
 	order []int16
@@ -115,7 +121,7 @@ type stack struct {
 	moves    []moveStack
 }
 
-// Resets stack for a new position.
+// Reset clear the stack for a new position.
 func (st *stack) Reset(pos *Position) {
 	st.position = pos
 	st.moves = st.moves[:0]

@@ -1,3 +1,6 @@
+// uci implements the UCI protocol which is described here http://wbec-ridderkerk.nl/html/UCIProtocol.html.
+// There is a hidden command, setvalue, which can be used to set the material values.
+
 package main
 
 import (

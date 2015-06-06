@@ -11,6 +11,7 @@
 //   * Null move prunning (NMP) - https://chessprogramming.wikispaces.com/Null+Move+Pruning
 //   * Principal variation search (PVS) - https://chessprogramming.wikispaces.com/Principal+Variation+Search
 //   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
+//   * Hash move heuristic
 package engine
 
 import (
@@ -101,11 +102,13 @@ func (eng *Engine) SetPosition(pos *Position) {
 
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
+	eng.Position.DoMove(move)
 	eng.evaluation.DoMove(move)
 }
 
 // UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
+	eng.Position.UndoMove(move)
 	eng.evaluation.UndoMove(move)
 }
 
@@ -202,12 +205,12 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 	})
 }
 
-// quiescence evaluates the position after solving all captures.
+// searchQuiescence evaluates the position after solving all captures.
 //
 // This is a very limited search which considers only violent moves.
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
-func (eng *Engine) quiescence(α, β int16) int16 {
+func (eng *Engine) searchQuiescence(α, β int16) int16 {
 	eng.Stats.Nodes++
 	if score, done := eng.endPosition(); done {
 		return score
@@ -225,9 +228,9 @@ func (eng *Engine) quiescence(α, β int16) int16 {
 	var bestMove Move
 	eng.stack.GenerateMoves(true, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		eng.evaluation.DoMove(move)
-		score := -eng.quiescence(-β, -localα)
-		eng.evaluation.UndoMove(move)
+		eng.DoMove(move)
+		score := -eng.searchQuiescence(-β, -localα)
+		eng.UndoMove(move)
 
 		if score >= β {
 			return score
@@ -260,10 +263,10 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 	us := pos.SideToMove
 	them := us.Opposite()
 
-	eng.evaluation.DoMove(move)
+	eng.DoMove(move)
 	if pos.IsChecked(us) {
 		// Exit early if we throw the king in check.
-		eng.evaluation.UndoMove(move)
+		eng.UndoMove(move)
 		return -InfinityScore
 	}
 	if pos.IsChecked(them) {
@@ -280,21 +283,21 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 
 	score := α + 1
 	if lateMove { // reduce late moves
-		score = -eng.negamax(-α-1, -α, depth-1, true)
+		score = -eng.searchTree(-α-1, -α, depth-1, true)
 	}
 
 	if score > α { // if late move reduction is disabled or has failed
 		if nullWindow {
-			score = -eng.negamax(-α-1, -α, depth, true)
+			score = -eng.searchTree(-α-1, -α, depth, true)
 			if α < score && score < β {
-				score = -eng.negamax(-β, -α, depth, true)
+				score = -eng.searchTree(-β, -α, depth, true)
 			}
 		} else {
-			score = -eng.negamax(-β, -α, depth, move != NullMove)
+			score = -eng.searchTree(-β, -α, depth, move != NullMove)
 		}
 	}
 
-	eng.evaluation.UndoMove(move)
+	eng.UndoMove(move)
 	return score
 }
 
@@ -303,9 +306,9 @@ func (eng *Engine) ply() int {
 	return eng.Position.Ply - eng.rootPly
 }
 
-// negamax implements negamax framework.
+// searchTree implements searchTree framework.
 //
-// negamax fails soft, i.e. the score returned can be outside the bounds.
+// searchTree fails soft, i.e. the score returned can be outside the bounds.
 //
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).
@@ -322,7 +325,7 @@ func (eng *Engine) ply() int {
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
-func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
+func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	eng.Stats.Nodes++
 	ply := eng.ply()
 	sideToMove := eng.Position.SideToMove
@@ -361,7 +364,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
-		score := eng.quiescence(α, β)
+		score := eng.searchQuiescence(α, β)
 		eng.updateHash(α, β, depth, score, NullMove)
 		return score
 	}
@@ -375,7 +378,7 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 		pos.NumPieces[sideToMove][Pawn]+1 < pos.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
-		reduction := int16(NullMoveDepthLimit)
+		reduction := int16(NullMoveDepthReduction)
 		if pos.NumPieces[sideToMove][Pawn]+3 < pos.NumPieces[sideToMove][NoPiece] {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
@@ -408,6 +411,8 @@ func (eng *Engine) negamax(α, β, depth int16, nullMoveAllowed bool) int16 {
 			numQuiet++
 		}
 
+		// We reduce most quiet moves. If we already have killers or a hash move and
+		// then all quiet moves are unlikely to raise α.
 		lateMove := allowLateMove && quiet && (hasGoodMoves || numQuiet > LMRFullMoveLimit)
 		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
 
@@ -457,10 +462,10 @@ func sup(b int) int {
 	return int(b)
 }
 
-// alphaBeta starts the search up to depth maxPly.
+// search starts the search up to depth maxPly.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) alphaBeta(maxPly, estimated int16) int16 {
+func (eng *Engine) search(maxPly, estimated int16) int16 {
 	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
@@ -472,8 +477,7 @@ func (eng *Engine) alphaBeta(maxPly, estimated int16) int16 {
 
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.negamax(int16(α), int16(β), maxPly, true)
-		// fmt.Println("info string searched", α, β, score, eng.Stats)
+		score = eng.searchTree(int16(α), int16(β), maxPly, true)
 
 		if int(score) <= α {
 			α = inf(α - δ)
@@ -513,7 +517,7 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	eng.stack.Reset(eng.Position)
 
 	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
-		score = eng.alphaBeta(int16(maxPly), score)
+		score = eng.search(int16(maxPly), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
 			eng.printInfo(int16(maxPly), score, moves)

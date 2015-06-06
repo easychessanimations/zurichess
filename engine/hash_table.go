@@ -15,10 +15,10 @@ var (
 type HashKind uint8
 
 const (
-	NoKind     HashKind = iota
-	Exact               // Exact score is known
-	FailedLow           // Search failed low, upper bound.
-	FailedHigh          // Search failed high, lower bound
+	NoKind     HashKind = iota // No entry
+	Exact                      // Exact score is known
+	FailedLow                  // Search failed low, upper bound.
+	FailedHigh                 // Search failed high, lower bound
 )
 
 // HashEntry is a value in the transposition table.

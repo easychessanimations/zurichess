@@ -13,6 +13,7 @@ func TestStaticScore(t *testing.T) {
 		moves := strings.Fields(game)
 		for i, move := range moves {
 			m := pos.UCIToMove(move)
+			pos.DoMove(m)
 			dynamic.DoMove(m)
 			static := MakeEvaluation(pos, &GlobalMaterial)
 			if static.Static != dynamic.Static {

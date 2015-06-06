@@ -11,16 +11,27 @@ import (
 )
 
 var (
-	buildVersion = "(devel)"
+	buildVersion = "bern"
 	buildTime    = "(just now)"
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	version    = flag.Bool("version", false, "only print version and exit")
 )
 
+func init() {
+	if buildTime == "(just now)" {
+		fi, err := os.Stat(os.Args[0])
+		if err != nil {
+			return
+		}
+		buildTime = fi.ModTime().Format("2006-01-02 15:04:05")
+	}
+}
+
 func main() {
-	fmt.Printf("zurichess %v, build with %v at %v, running on %v\n",
-		buildVersion, runtime.Version(), buildTime, runtime.GOARCH)
+	fmt.Printf("zurichess %v https://bitbucket.org/brtzsnr/zurichess\n", buildVersion)
+	fmt.Printf("copyright 2015 © the zurichess authors\n")
+	fmt.Printf("build with %v at %v, running on %v\n", runtime.Version(), buildTime, runtime.GOARCH)
 
 	flag.Parse()
 	if *version {

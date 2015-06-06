@@ -53,6 +53,10 @@ func NewPosition() *Position {
 	return pos
 }
 
+// PositionFromFEN parses fen and returns the position.
+//
+// fen must contain the position using Forsyth–Edwards Notation
+// http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 func PositionFromFEN(fen string) (*Position, error) {
 	// Split fen into 6 fields.
 	// Same as string.Fields() but creates much less garbage.
@@ -350,7 +354,7 @@ func (pos *Position) PrettyPrint() {
 
 }
 
-// DoMove executes a valid move.
+// DoMove executes a legal move.
 func (pos *Position) DoMove(move Move) {
 	pos.pushState()
 

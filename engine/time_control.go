@@ -9,6 +9,7 @@ const (
 	defaultbranchFactor = 2  // default branching factor
 )
 
+// TimeControl is an interface to control the clock.
 type TimeControl interface {
 	// Starts starts the watch.
 	Start()
