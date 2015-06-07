@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrQuit = fmt.Errorf("quit")
+	errQuit = fmt.Errorf("quit")
 
 	globals = map[string]interface{}{
 		"Material": &engine.GlobalMaterial,
@@ -64,7 +64,7 @@ func (uci *UCI) Execute(line string) error {
 	case "setvalue":
 		err = uci.setvalue(args)
 	case "quit":
-		err = ErrQuit
+		err = errQuit
 	default:
 		log.Println("unhandled input: ", string(line))
 	}
@@ -73,9 +73,9 @@ func (uci *UCI) Execute(line string) error {
 }
 
 func (uci *UCI) uci(args []string) error {
-	fmt.Println("id name zurichess")
-	fmt.Println("id author Alexandru Moșoi")
-	fmt.Println()
+	fmt.Printf("id name zurichess %v\n", buildVersion)
+	fmt.Printf("id author Alexandru Moșoi\n")
+	fmt.Printf("\n")
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
 	fmt.Println("uciok")

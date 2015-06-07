@@ -20,6 +20,7 @@ var (
 
 func init() {
 	if buildTime == "(just now)" {
+		// If build time is not known assume it's the modification time of the binary
 		fi, err := os.Stat(os.Args[0])
 		if err != nil {
 			return
@@ -30,7 +31,6 @@ func init() {
 
 func main() {
 	fmt.Printf("zurichess %v https://bitbucket.org/brtzsnr/zurichess\n", buildVersion)
-	fmt.Printf("copyright 2015 © the zurichess authors\n")
 	fmt.Printf("build with %v at %v, running on %v\n", runtime.Version(), buildTime, runtime.GOARCH)
 
 	flag.Parse()
@@ -59,7 +59,7 @@ func main() {
 			break
 		}
 		if err := uci.Execute(string(line)); err != nil {
-			if err != ErrQuit {
+			if err != errQuit {
 				log.Println("for line:", string(line))
 				log.Println("error:", err)
 			} else {
