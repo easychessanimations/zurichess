@@ -177,7 +177,7 @@ func (uci *UCI) go_(args []string) {
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			octc.Time, octc.Inc, octc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 0
+			octc.Time, octc.Inc, octc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 1
 			tc = octc
 		case "depth":
 			i++
