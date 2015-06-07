@@ -84,14 +84,19 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (development)
+### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
+
+This release's theme is pruning the search.
 
 * Implement Principal Variation Search (PVS).
 * Reduce late quiet moves (LMR).
 * Optimize move ordering. Penalize moves threatened by pawns in quiescence search.
 * Optimize check extension. Do not extend many bad checks.
+* Change zobrist key to be equal to polyglot key. No book support, but better hashing.
+* Add some integration tests such as mate in one and mate in two.
+* Usual code clean ups, speed ups and bug fixes.
 
-### zurichess - [basel](http://en.wikipedia.org/wiki/Basel-Stadt) (stable)
+### zurichess - [basel](http://en.wikipedia.org/wiki/Basel-Stadt)
 
 This release's theme is improving evaluation function.
 
