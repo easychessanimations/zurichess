@@ -25,7 +25,6 @@ const (
 	NullMoveDepthReduction = 1 // default null-move depth reduction. Can reduce more in some situations.
 	PVSDepthLimit          = 0 // do not do PVS below and including this limit
 	LMRDepthLimit          = 3 // do not do LMR below and including this limit
-	LMRFullMoveLimit       = 4 // do not do LMR for the first few moves
 )
 
 var (
@@ -404,16 +403,12 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	killer := eng.stack.GetKiller()
 	eng.stack.GenerateMoves(false, hash)
 
-	numQuiet := 0
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		quiet := move.IsQuiet() && move != hash && move != killer[0] && move != killer[1]
-		if quiet {
-			numQuiet++
-		}
 
 		// We reduce most quiet moves. If we already have killers or a hash move and
 		// then all quiet moves are unlikely to raise α.
-		lateMove := allowLateMove && quiet && (hasGoodMoves || numQuiet > LMRFullMoveLimit)
+		lateMove := allowLateMove && quiet
 		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
 
 		if score >= β { // Fail high, cut node.
