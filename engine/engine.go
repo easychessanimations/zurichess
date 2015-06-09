@@ -46,6 +46,8 @@ type Stats struct {
 	CacheHit  uint64    // number of times the position was found transposition table
 	CacheMiss uint64    // number of times the position was not found in the transposition table
 	Nodes     uint64    // number of nodes searched
+	Depth     int
+	SelDepth  int
 }
 
 // NPS returns nodes per second.
@@ -323,16 +325,22 @@ func (eng *Engine) ply() int {
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
 func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
+	// Update statistics.
 	eng.Stats.Nodes++
 	ply := eng.ply()
+	if ply > eng.Stats.SelDepth {
+		eng.Stats.SelDepth = eng.ply()
+	}
+
+	// Verify that this is not already an endgame.
 	sideToMove := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
 		return score
 	}
+
+	// Mate pruning: If an ancestor already has a mate in ply moves then
+	// the search will always fail low so we return the lowest wining score.
 	if int16(MateScore-ply) <= α {
-		// If an ancestor already has a mate in ply moves then
-		// the search will always fail low so we return the
-		// lowest wining score.
 		return KnownWinScore
 	}
 
@@ -455,10 +463,10 @@ func sup(b int) int {
 	return int(b)
 }
 
-// search starts the search up to depth maxPly.
+// search starts the search up to depth depth.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) search(maxPly, estimated int16) int16 {
+func (eng *Engine) search(depth, estimated int16) int16 {
 	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
@@ -470,7 +478,7 @@ func (eng *Engine) search(maxPly, estimated int16) int16 {
 
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.searchTree(int16(α), int16(β), maxPly, true)
+		score = eng.searchTree(int16(α), int16(β), depth, true)
 
 		if int(score) <= α {
 			α = inf(α - δ)
@@ -485,10 +493,20 @@ func (eng *Engine) search(maxPly, estimated int16) int16 {
 }
 
 // printInfo prints a info UCI string.
-func (eng *Engine) printInfo(maxPly, score int16, pv []Move) {
+func (eng *Engine) printInfo(score int16, pv []Move) {
 	now := time.Now()
-	fmt.Printf("info depth %d score cp %d nodes %d time %d nps %d ",
-		maxPly, score, eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
+
+	fmt.Printf("info depth %d seldepth %d ", eng.Stats.Depth, eng.Stats.SelDepth)
+
+	if score > KnownWinScore {
+		fmt.Printf("score mate %d ", (MateScore-score+1)/2)
+	} else if score < KnownLossScore {
+		fmt.Printf("score mate %d ", (MatedScore-score)/2)
+	} else {
+		fmt.Printf("score cp %d ", score)
+	}
+
+	fmt.Printf("nodes %d time %d nps %d ", eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
 
 	fmt.Printf("pv")
 	for _, m := range pv {
@@ -509,11 +527,12 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	eng.rootPly = eng.Position.Ply
 	eng.stack.Reset(eng.Position)
 
-	for maxPly := tc.NextDepth(); maxPly >= 0; maxPly = tc.NextDepth() {
-		score = eng.search(int16(maxPly), score)
+	for depth := tc.NextDepth(); depth >= 0; depth = tc.NextDepth() {
+		eng.Stats.Depth = depth
+		score = eng.search(int16(depth), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
-			eng.printInfo(int16(maxPly), score, moves)
+			eng.printInfo(score, moves)
 		}
 	}
 
