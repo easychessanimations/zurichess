@@ -102,13 +102,11 @@ func (eng *Engine) SetPosition(pos *Position) {
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
 	eng.Position.DoMove(move)
-	eng.evaluation.DoMove(move)
 }
 
 // UndoMove undoes the last move.
 func (eng *Engine) UndoMove(move Move) {
 	eng.Position.UndoMove(move)
-	eng.evaluation.UndoMove(move)
 }
 
 // Score evaluates current position from White's POV.

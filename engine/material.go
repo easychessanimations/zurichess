@@ -144,22 +144,6 @@ func MakeEvaluation(pos *Position, mat *Material) Evaluation {
 	}
 }
 
-// DoMove executes a move and updates the static score.
-func (e *Evaluation) DoMove(m Move) {
-	e.Static = e.Static.Minus(e.piece[m.Capture()])
-	if m.MoveType() == Promotion {
-		e.Static = e.Static.Plus(e.promo[m.Target()])
-	}
-}
-
-// UndoMove takes back the latest move and updates the static score.
-func (e *Evaluation) UndoMove(m Move) {
-	e.Static = e.Static.Plus(e.piece[m.Capture()])
-	if m.MoveType() == Promotion {
-		e.Static = e.Static.Minus(e.promo[m.Target()])
-	}
-}
-
 // pawns computes the pawn structure score of side.
 func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	// FigureBonus is included in the static score, and thus not added here.
@@ -170,8 +154,8 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 
 	for bb := pawns; bb != 0; {
 		sq := bb.Pop()
-		score = score.Plus(psqt[sq^mask])
 		// Award advanced pawns.
+		score = score.Plus(mat.FigureBonus[Pawn]).Plus(psqt[sq^mask])
 		// Penalize double pawns.
 		fwd := sq.Bitboard().Forward(us)
 		if fwd&pawns != 0 {
@@ -199,22 +183,26 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	for bb := pos.ByPiece(us, Knight); bb != 0; {
 		sq := bb.Pop()
 		knight := pos.KnightMobility(sq) &^ excl
+		score = score.Plus(mat.FigureBonus[Knight])
 		score = score.Plus(mat.Mobility[Knight].Times(knight.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, Bishop); bb != 0; {
 		sq := bb.Pop()
 		bishop := pos.BishopMobility(sq, all) &^ excl
+		score = score.Plus(mat.FigureBonus[Bishop])
 		score = score.Plus(mat.Mobility[Bishop].Times(bishop.Popcnt()))
 	}
 	all = pos.ByFigure[Pawn] | pos.ByFigure[Knight] | pos.ByFigure[Bishop]
 	for bb := pos.ByPiece(us, Rook); bb != 0; {
 		sq := bb.Pop()
 		rook := pos.RookMobility(sq, all) &^ excl
+		score = score.Plus(mat.FigureBonus[Rook])
 		score = score.Plus(mat.Mobility[Rook].Times(rook.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, Queen); bb != 0; {
 		sq := bb.Pop()
 		queen := pos.QueenMobility(sq, all) &^ excl
+		score = score.Plus(mat.FigureBonus[Queen])
 		score = score.Plus(mat.Mobility[Queen].Times(queen.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, King); bb != 0; {
@@ -241,9 +229,7 @@ func (e *Evaluation) evaluate() Score {
 	}
 
 	// Evaluate the remaining pieces.
-	score = score.Plus(e.evaluateSide(White)).Minus(e.evaluateSide(Black))
-	// Include the static evaluation, too
-	return score.Plus(e.Static)
+	return score.Plus(e.evaluateSide(White)).Minus(e.evaluateSide(Black))
 }
 
 // phase returns the score phase between mid game and end game.
