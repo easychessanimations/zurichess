@@ -112,7 +112,7 @@ type moveStack struct {
 	violent bool    // true to generate violent moves
 	state   int     // current generation state
 	hash    Move    // hash move
-	killer  [2]Move // killer moves
+	killer  [4]Move // killer moves
 }
 
 // stack is a stack of plies (movesStack).
@@ -159,8 +159,14 @@ func (st *stack) generateMoves() {
 	st.position.GenerateMoves(&ms.moves)
 	for _, m := range ms.moves {
 		var weight int16
-		if m == ms.killer[0] || m == ms.killer[1] {
-			weight = KillerMoveBonus
+		if m == ms.killer[0] {
+			weight = KillerMoveBonus - 0
+		} else if m == ms.killer[1] {
+			weight = KillerMoveBonus - 1
+		} else if m == ms.killer[2] {
+			weight = KillerMoveBonus - 2
+		} else if m == ms.killer[3] {
+			weight = KillerMoveBonus - 3
 		} else {
 			weight = mvvlva(m)
 		}
@@ -277,19 +283,31 @@ func (st *stack) HasKiller() bool {
 	return false
 }
 
-// GetKiller returns the killers (if any).
-func (st *stack) GetKiller() [2]Move {
-	if st.position.Ply < len(st.moves) {
-		return st.moves[st.position.Ply].killer
-	}
-	return [2]Move{}
+// IsKiller returns true if m is a killer move for currenty ply.
+func (st *stack) IsKiller(m Move) bool {
+	ms := &st.moves[st.position.Ply]
+	return m == ms.killer[0] || m == ms.killer[1] || m == ms.killer[2] || m == ms.killer[3]
 }
 
 // SaveKiller saves a killer move, m.
 func (st *stack) SaveKiller(m Move) {
 	ms := &st.moves[st.position.Ply]
-	if m.Capture() == NoPiece && m != ms.killer[0] { // saves only quiet moves.
-		ms.killer[1] = ms.killer[0]
-		ms.killer[0] = m
+	if m.Capture() == NoPiece {
+		// Move the newly found killer first.
+		if m == ms.killer[0] {
+			// do nothing
+		} else if m == ms.killer[1] {
+			ms.killer[1] = ms.killer[0]
+			ms.killer[0] = m
+		} else if m == ms.killer[2] {
+			ms.killer[2] = ms.killer[1]
+			ms.killer[1] = ms.killer[0]
+			ms.killer[0] = m
+		} else {
+			ms.killer[3] = ms.killer[2]
+			ms.killer[2] = ms.killer[1]
+			ms.killer[1] = ms.killer[0]
+			ms.killer[0] = m
+		}
 	}
 }

@@ -405,12 +405,10 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
-
-	killer := eng.stack.GetKiller()
 	eng.stack.GenerateMoves(false, hash)
 
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		quiet := move.IsQuiet() && move != hash && move != killer[0] && move != killer[1]
+		quiet := move.IsQuiet() && move != hash && !eng.stack.IsKiller(move)
 
 		// We reduce most quiet moves. If we already have killers or a hash move and
 		// then all quiet moves are unlikely to raise α.
