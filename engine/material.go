@@ -113,7 +113,6 @@ type Material struct {
 //  - a primitive static score that is incrementally updated every move.
 //  - a dynamic score, a more refined score of the position.
 type Evaluation struct {
-	Static    Score     // static score, i.e. only the figure bonus
 	position  *Position // position to evaluate
 	material  *Material // evaluation parameters
 	pawnTable pawnTable // a cache for pawn evaluation
@@ -125,18 +124,12 @@ type Evaluation struct {
 // MakeEvaluation returns a new Evaluation object which evaluates
 // pos using parameters in mat.
 func MakeEvaluation(pos *Position, mat *Material) Evaluation {
-	static := Score{}
-	for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
-		pi := pos.Get(sq)
-		static = static.Plus(pov(mat.FigureBonus[pi.Figure()], pi.Color()))
-	}
 	var piece, promo [PieceArraySize]Score
 	for pi := PieceMinValue; pi <= PieceMaxValue; pi++ {
 		piece[pi] = pov(mat.FigureBonus[pi.Figure()], pi.Color())
 		promo[pi] = pov(mat.FigureBonus[pi.Figure()].Minus(mat.FigureBonus[Pawn]), pi.Color())
 	}
 	return Evaluation{
-		Static:   static,
 		position: pos,
 		material: mat,
 		piece:    piece,
@@ -146,7 +139,6 @@ func MakeEvaluation(pos *Position, mat *Material) Evaluation {
 
 // pawns computes the pawn structure score of side.
 func (e *Evaluation) pawnStructure(us Color) (score Score) {
-	// FigureBonus is included in the static score, and thus not added here.
 	pos, mat := e.position, e.material // shortcut
 	pawns := pos.ByPiece(us, Pawn)
 	mask := colorMask[us]
