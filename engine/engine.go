@@ -474,6 +474,14 @@ func (eng *Engine) search(depth, estimated int16) int16 {
 	α, β := inf(γ-δ), sup(γ+δ)
 	score := estimated
 
+	if depth < 4 {
+		// Disable aspiration window for very low search depths.
+		// This wastes lots of time especially for depth == 0 which is
+		// used for tunning.
+		α = int(-InfinityScore)
+		β = int(+InfinityScore)
+	}
+
 	for {
 		// At root a non-null move is required, cannot prune based on null-move.
 		score = eng.searchTree(int16(α), int16(β), depth, true)
