@@ -209,7 +209,7 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 // This is a very limited search which considers only violent moves.
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
-func (eng *Engine) searchQuiescence(α, β int16) int16 {
+func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 	eng.Stats.Nodes++
 	if score, done := eng.endPosition(); done {
 		return score
@@ -227,8 +227,14 @@ func (eng *Engine) searchQuiescence(α, β int16) int16 {
 	var bestMove Move
 	eng.stack.GenerateMoves(true, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
+		if depth < -4 && (move.MoveType() == Normal && move.Piece().Figure() > move.Capture().Figure()) {
+			// Discard losing captures several plies in quiescence.
+			// TODO: Use static exchange evaluation instead.
+			continue
+		}
+
 		eng.DoMove(move)
-		score := -eng.searchQuiescence(-β, -localα)
+		score := -eng.searchQuiescence(-β, -localα, depth-1)
 		eng.UndoMove(move)
 
 		if score >= β {
@@ -369,7 +375,8 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
-		score := eng.searchQuiescence(α, β)
+		// TODO: can depth ever by < 0?
+		score := eng.searchQuiescence(α, β, depth)
 		eng.updateHash(α, β, depth, score, NullMove)
 		return score
 	}
