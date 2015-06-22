@@ -22,22 +22,24 @@ var (
 	// Bonuses and penalties have type int in order to prevent accidental
 	// overflows during computation of the position's score.
 	GlobalMaterial = Material{
-		DoublePawnPenalty: Score{24, 35},
-		PassedOnRank:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {1, 56}, {14, 88}, {54, 178}, {77, 234}, {0, 0}},
-		BishopPairBonus:   Score{26, 57},
-		Mobility:          [FigureArraySize]Score{{0, 0}, {0, 0}, {8, 8}, {4, 8}, {7, 4}, {2, 5}, {-8, -2}},
-		FigureBonus:       [FigureArraySize]Score{{0, 0}, {0, 0}, {307, 271}, {328, 294}, {413, 574}, {1045, 1030}, {0, 0}},
+		ConnectedPawn:   Score{4, 13},
+		DoublePawn:      Score{12, 14},
+		IsolatedPawn:    Score{9, -2},
+		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {20, 64}, {27, 98}, {62, 145}, {101, 192}, {0, 0}},
+		BishopPairBonus: Score{36, 38},
+		Mobility:        [FigureArraySize]Score{{0, 0}, {0, 0}, {8, 7}, {3, 8}, {7, 5}, {2, 5}, {-5, -4}},
+		FigureBonus:     [FigureArraySize]Score{{0, 0}, {0, 0}, {311, 285}, {332, 308}, {408, 581}, {1036, 1054}, {0, 0}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
 			{ // Pawn
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-				{59, 118}, {67, 128}, {56, 119}, {73, 51}, {76, 63}, {84, 114}, {92, 119}, {67, 95},
-				{54, 131}, {62, 134}, {64, 117}, {64, 102}, {75, 111}, {76, 120}, {91, 121}, {70, 114},
-				{48, 135}, {63, 133}, {60, 119}, {80, 106}, {81, 108}, {72, 113}, {66, 129}, {50, 121},
-				{40, 154}, {53, 149}, {70, 118}, {67, 107}, {73, 107}, {65, 120}, {53, 142}, {52, 134},
-				{81, 130}, {95, 114}, {72, 98}, {69, 56}, {44, 50}, {83, 104}, {99, 91}, {97, 102},
-				{55, 108}, {62, 92}, {68, 54}, {69, 65}, {75, 45}, {48, 64}, {57, 110}, {64, 92},
+				{70, 104}, {54, 118}, {56, 109}, {67, 67}, {64, 79}, {73, 107}, {75, 97}, {69, 84},
+				{59, 118}, {50, 110}, {61, 105}, {59, 96}, {66, 102}, {59, 115}, {75, 98}, {70, 102},
+				{53, 126}, {57, 118}, {61, 101}, {78, 88}, {77, 102}, {66, 92}, {50, 109}, {58, 104},
+				{52, 144}, {43, 122}, {66, 108}, {72, 91}, {77, 79}, {75, 105}, {46, 130}, {60, 121},
+				{47, 159}, {61, 131}, {53, 122}, {84, 104}, {72, 86}, {54, 107}, {84, 129}, {70, 134},
+				{64, 136}, {83, 119}, {71, 97}, {69, 77}, {105, 98}, {57, 115}, {91, 103}, {95, 120},
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
 			},
 			{}, // Knight
@@ -98,12 +100,13 @@ func (s Score) Times(t int32) Score {
 
 // Material stores the evaluation parameters.
 type Material struct {
-	DoublePawnPenalty Score
-	PassedOnRank      [8]Score // score of each passed pawn
-	BishopPairBonus   Score    // how much a pair of bishop is worth
-
-	Mobility    [FigureArraySize]Score // how much each piece's mobility is worth
-	FigureBonus [FigureArraySize]Score // how much each piece is worth
+	ConnectedPawn   Score
+	DoublePawn      Score
+	IsolatedPawn    Score
+	PassedPawn      [8]Score               // score of each passed pawn, indexed by rank
+	BishopPairBonus Score                  // how much a pair of bishop is worth
+	Mobility        [FigureArraySize]Score // how much each piece's mobility is worth
+	FigureBonus     [FigureArraySize]Score // how much each piece is worth
 
 	// Piece Square Table from White POV.
 	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
@@ -143,6 +146,10 @@ func MakeEvaluation(pos *Position, mat *Material) Evaluation {
 
 // pawns computes the pawn structure score of side.
 func (e *Evaluation) pawnStructure(us Color) (score Score) {
+	// TODO: Evaluate double pawns that are not next to each other.
+	// TODO: Evaluate opposed pawns.
+	// TODO: Evaluate larger pawn structures.
+
 	pos, mat := e.position, e.material // shortcut
 	mask := colorMask[us]
 
@@ -151,26 +158,29 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	theirs := pos.ByPiece(us.Opposite(), Pawn)
 
 	// From white's POV (P - white pawn, p - black pawn).
-	// block
-	// .......
-	// .....P.
-	// .....x.
-	// ..p..x.
-	// .xxx.x.
-	// .xxx.x.
-	// .xxx.x.
-	// .xxx.x.
+	// block   wings
+	// ....... .....
+	// .....P. .....
+	// .....x. .....
+	// ..p..x. .....
+	// .xxx.x. .xPx.
+	// .xxx.x. .....
+	// .xxx.x. .....
+	// .xxx.x. .....
 	block := East(theirs) | theirs | West(theirs)
+	wings := East(ours) | West(ours)
 	double := Bitboard(0)
 	if us == White {
 		block = SouthSpan(block) | SouthSpan(ours)
-		double = South(ours) & ours
+		double = ours & South(ours)
 	} else /* if us == Black */ {
 		block = NorthSpan(block) | NorthSpan(ours)
-		double = North(ours) & ours
+		double = ours & North(ours)
 	}
 
-	passed := ours &^ block // no pawn in front and no enemy on the adjacent files
+	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
+	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
+	passed := ours &^ block                                   // no pawn in front and no enemy on the adjacent files
 
 	for bb := ours; bb != 0; {
 		sq := bb.Pop()
@@ -178,10 +188,16 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 
 		ps := mat.PieceSquareTable[Pawn][sq^mask]
 		if passed.Has(sq) {
-			ps = ps.Plus(mat.PassedOnRank[rank])
+			ps = ps.Plus(mat.PassedPawn[rank])
+		}
+		if connected.Has(sq) { // bonus added to both pawns
+			ps = ps.Plus(mat.ConnectedPawn)
 		}
 		if double.Has(sq) {
-			ps = ps.Minus(mat.DoublePawnPenalty)
+			ps = ps.Minus(mat.DoublePawn)
+		}
+		if isolated.Has(sq) {
+			ps = ps.Minus(mat.IsolatedPawn)
 		}
 
 		score = score.Plus(ps)

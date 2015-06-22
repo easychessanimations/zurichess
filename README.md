@@ -86,7 +86,7 @@ in alphabetical order.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
 
-* Evaluate passed pawns.
+* Evaluate passed, connected and isolated pawns.
 * Ignore bad captures in the last plies of quiescence search.
 * Late move reduce of all quiet moves.
 * Increase number of killers to 4.
@@ -129,7 +129,7 @@ This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
 * Double the number of entries in the transposition table.
 * Develop [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
 * Fail-softly in more situations.
-* Implement UCI commands _go movetime_ and _stop_.
+* Implement UCI commands `go movetime` and `stop`.
 * Add a separate table for principal variation.
 * Add killer heuristic to improve move ordering.
 * Extend search when current position is in check.
@@ -155,13 +155,15 @@ A list of zurichess related links:
 
 Other sites, pages and articles with a lot of useful information:
 
+* [Chess Programming Part V: Advanced Search](http://www.gamedev.net/page/resources/_/technical/artificial-intelligence/chess-programming-part-v-advanced-search-r1197)
 * [Chess Programming WIKI](http://chessprogramming.wikispaces.com)
 * [Computer Chess Club Forum](http://talkchess.com/forum/index.php)
-* [The effect of hash collisions in a Computer Chess program](https://cis.uab.edu/hyatt/collisions.html)
-* [Computer Chess Programming Theory](http://www.frayn.net/beowulf/theory.html)
-* [Chess Programming Part V: Advanced Search](http://www.gamedev.net/page/resources/_/technical/artificial-intelligence/chess-programming-part-v-advanced-search-r1197)
 * [Computer Chess Programming](http://verhelst.home.xs4all.nl/chess/search.html)
+* [Computer Chess Programming Theory](http://www.frayn.net/beowulf/theory.html)
 * [How Stockfish Works](http://rin.io/chess-engine/)
+* [Little Chess Evaluation Compendium](https://chessprogramming.wikispaces.com/file/view/LittleChessEvaluationCompendium.pdf)
+* [The effect of hash collisions in a Computer Chess program](https://cis.uab.edu/hyatt/collisions.html)
+* [The UCI protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html)
 
 ## Disclaimer
 

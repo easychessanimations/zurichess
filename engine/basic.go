@@ -214,6 +214,11 @@ func West(bb Bitboard) Bitboard {
 	return bb &^ BbFileA >> 1
 }
 
+// Fill returns a bitboard with all files with squares filled.
+func Fill(bb Bitboard) Bitboard {
+	return NorthFill(bb) | SouthFill(bb)
+}
+
 // NorthFill returns a bitboard with all north bits set.
 func NorthFill(bb Bitboard) Bitboard {
 	bb |= (bb << 8)
