@@ -7,7 +7,7 @@
 [![Build Status](https://drone.io/bitbucket.org/brtzsnr/zurichess/status.png)](https://drone.io/bitbucket.org/brtzsnr/zurichess/latest)
 
 zurichess is a chess engine and a chess library written in
-[Go](http://golang). Its main goals are: to be a relatively
+[Go](http://www.golang.org). Its main goals are: to be a relatively
 strong chess engine and to enable chess tools writing. See
 the library reference.
 
@@ -83,6 +83,13 @@ depth        nodes   captures enpassant castles   promotions eval  KNps   elapse
 
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
+
+### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
+
+* Evaluate passed pawns.
+* Ignore bad captures in the last plies of quiescence search.
+* Late move reduce of all quiet moves.
+* Increased killers to 4.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
 
