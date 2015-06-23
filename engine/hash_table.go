@@ -102,6 +102,13 @@ func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
 	return HashEntry{}, false
 }
 
+// Clear removes all entries from hash.
+func (ht *HashTable) Clear() {
+	for i := range ht.table {
+		ht.table[i] = HashEntry{}
+	}
+}
+
 func init() {
 	GlobalHashTable = NewHashTable(DefaultHashTableSizeMB)
 }

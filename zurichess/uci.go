@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,42 +38,45 @@ func NewUCI() *UCI {
 	}
 }
 
+var reCmd = regexp.MustCompile(`^[[:word:]]+\b`)
+
 func (uci *UCI) Execute(line string) error {
-	uci.Ready.Wait()
-	cmd := strings.Fields(line)
-	if len(cmd) == 0 {
+	line = strings.TrimSpace(line)
+	if line == "" {
 		return nil
 	}
 
-	fun, args := cmd[0], cmd[1:]
-	var err error
-	switch fun {
-	case "uci":
-		uci.uci(args)
-	case "isready":
-		uci.isready(args)
-	case "ucinewgame":
-		uci.ucinewgame(args)
-	case "position":
-		err = uci.position(args)
-	case "go":
-		uci.go_(args)
-	case "stop":
-		uci.stop(args)
-	case "setoption":
-		err = uci.setoption(args)
-	case "setvalue":
-		err = uci.setvalue(args)
-	case "quit":
-		err = errQuit
-	default:
-		log.Println("unhandled input: ", string(line))
+	uci.Ready.Wait()
+	cmd := reCmd.FindString(line)
+	if cmd == "" {
+		return fmt.Errorf("invalid command line")
 	}
 
-	return err
+	switch cmd {
+	case "uci":
+		return uci.uci(line)
+	case "isready":
+		return uci.isready(line)
+	case "ucinewgame":
+		return uci.ucinewgame(line)
+	case "position":
+		return uci.position(line)
+	case "go":
+		return uci.go_(line)
+	case "stop":
+		return uci.stop(line)
+	case "setoption":
+		return uci.setoption(line)
+	case "setvalue":
+		return uci.setvalue(line)
+	case "quit":
+		return errQuit
+	default:
+		return fmt.Errorf("unhandled command %s", cmd)
+	}
 }
 
-func (uci *UCI) uci(args []string) error {
+func (uci *UCI) uci(line string) error {
 	fmt.Printf("id name zurichess %v\n", buildVersion)
 	fmt.Printf("id author Alexandru Moșoi\n")
 	fmt.Printf("\n")
@@ -82,17 +86,20 @@ func (uci *UCI) uci(args []string) error {
 	return nil
 }
 
-func (uci *UCI) isready(args []string) error {
+func (uci *UCI) isready(line string) error {
 	uci.Ready.Wait()
 	fmt.Println("readyok")
 	return nil
 }
 
-func (uci *UCI) ucinewgame(args []string) error {
+func (uci *UCI) ucinewgame(line string) error {
+	// Clear the hash at the beginning of each game.
+	engine.GlobalHashTable.Clear()
 	return nil
 }
 
-func (uci *UCI) position(args []string) error {
+func (uci *UCI) position(line string) error {
+	args := strings.Fields(line)[1:]
 	if len(args) == 0 {
 		return fmt.Errorf("expected argument for 'position'")
 	}
@@ -130,7 +137,8 @@ func (uci *UCI) position(args []string) error {
 	return nil
 }
 
-func (uci *UCI) go_(args []string) {
+func (uci *UCI) go_(line string) error {
+	args := strings.Fields(line)[1:]
 	var tc engine.TimeControl
 	fdtc := &engine.FixedDepthTimeControl{}
 	octc := &engine.OnClockTimeControl{NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure])}
@@ -210,9 +218,10 @@ func (uci *UCI) go_(args []string) {
 			fmt.Printf("bestmove %v\n", moves[0].UCI())
 		}
 	}()
+	return nil
 }
 
-func (uci *UCI) stop(args []string) error {
+func (uci *UCI) stop(line string) error {
 	select {
 	case uci.Stop <- struct{}{}:
 	default: // There is another stop event on the line.
@@ -220,35 +229,46 @@ func (uci *UCI) stop(args []string) error {
 	return nil
 }
 
-func (uci *UCI) setoption(args []string) error {
-	if args[0] != "name" {
-		return fmt.Errorf("expected first field 'name', got %s", args[0])
+var reOption = regexp.MustCompile(`^setoption\s+name\s+(.+?)(\s+value\s+(.*))?$`)
+
+func (uci *UCI) setoption(line string) error {
+	option := reOption.FindStringSubmatch(line)
+	if option == nil {
+		return fmt.Errorf("invalid setoption arguments")
 	}
-	if args[2] != "value" {
-		return fmt.Errorf("expected third field 'value', got %s", args[0])
+
+	// Handle buttons which don't have a value.
+	if len(option) < 1 {
+		return fmt.Errorf("missing setoption name")
 	}
-	if len(args) <= 3 || args[3] == "" {
+	switch option[1] {
+	case "Clear Hash":
+		engine.GlobalHashTable.Clear()
 		return nil
 	}
 
-	switch args[1] {
+	// Handle remaining values.
+	if len(option) < 3 {
+		return fmt.Errorf("missing setoption value")
+	}
+	switch option[1] {
 	case "UCI_AnalyseMode":
-		if mode, err := strconv.ParseBool(args[3]); err != nil {
+		if mode, err := strconv.ParseBool(option[3]); err != nil {
 			return err
 		} else {
 			uci.Engine.Options.AnalyseMode = mode
 		}
+		return nil
 	case "Hash":
-		if hashSizeMB, err := strconv.ParseInt(args[3], 10, 64); err != nil {
+		if hashSizeMB, err := strconv.ParseInt(option[3], 10, 64); err != nil {
 			return err
 		} else {
 			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
 		}
+		return nil
 	default:
-		return fmt.Errorf("unhandled option %s", args[2])
+		return fmt.Errorf("unhandled option %s", option[1])
 	}
-
-	return nil
 }
 
 func setvalueHelper(v reflect.Value, fields string, n int) error {
@@ -324,7 +344,8 @@ func setvalueHelper(v reflect.Value, fields string, n int) error {
 
 // setvalue will fatal in case of error because otherwise
 // an error will make tunning useless.
-func (uci *UCI) setvalue(args []string) error {
+func (uci *UCI) setvalue(line string) error {
+	args := strings.Fields(line)[1:]
 	if len(args) != 2 {
 		log.Fatalf("expected 2 arguments, got %d", len(args))
 	}

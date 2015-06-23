@@ -89,7 +89,9 @@ in alphabetical order.
 * Evaluate passed pawns.
 * Ignore bad captures in the last plies of quiescence search.
 * Late move reduce of all quiet moves.
-* Increased killers to 4.
+* Increase number of killers to 4.
+* Implement `setoption Clear Hash`.
+* Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
 

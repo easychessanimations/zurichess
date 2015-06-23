@@ -60,8 +60,7 @@ func main() {
 		}
 		if err := uci.Execute(string(line)); err != nil {
 			if err != errQuit {
-				log.Println("for line:", string(line))
-				log.Println("error:", err)
+				log.Println(err)
 			} else {
 				break
 			}
