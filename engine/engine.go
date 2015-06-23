@@ -145,8 +145,8 @@ func (eng *Engine) endPosition() (int16, bool) {
 }
 
 // retrieveHash gets from GlobalHashTable the current position.
-func (eng *Engine) retrieveHash() (HashEntry, bool) {
-	entry, ok := GlobalHashTable.Get(eng.Position)
+func (eng *Engine) retrieveHash() (hashEntry, bool) {
+	entry, ok := GlobalHashTable.get(eng.Position)
 	if ok {
 		eng.Stats.CacheHit++
 		// Return mate score relative to root.
@@ -196,7 +196,7 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 		}
 	}
 
-	GlobalHashTable.Put(eng.Position, HashEntry{
+	GlobalHashTable.put(eng.Position, hashEntry{
 		Score: score,
 		Depth: depth,
 		Kind:  kind,

@@ -21,10 +21,10 @@ const (
 	FailedHigh                 // Search failed high, lower bound
 )
 
-// HashEntry is a value in the transposition table.
+// hashEntry is a value in the transposition table.
 //
 // TODO: store full move and age.
-type HashEntry struct {
+type hashEntry struct {
 	// lock is used to handle hashing conflicts.
 	// Normally, lock is derived from the position's Zobrist key.
 	lock uint32
@@ -40,21 +40,21 @@ type HashEntry struct {
 // Engine uses this table to cache position scores so
 // it doesn't have to research them again.
 type HashTable struct {
-	table []HashEntry // len(table) is a power of two and equals mask+1
+	table []hashEntry // len(table) is a power of two and equals mask+1
 	mask  uint32      // mask is used to determine the index in the table.
 }
 
 // NewHashTable builds transposition table that takes up to hashSizeMB megabytes.
 func NewHashTable(hashSizeMB int) *HashTable {
 	// Choose hashSize such that it is a power of two.
-	hashEntrySize := uint64(unsafe.Sizeof(HashEntry{}))
+	hashEntrySize := uint64(unsafe.Sizeof(hashEntry{}))
 	hashSize := uint64(hashSizeMB) << 20 / hashEntrySize
 
 	for hashSize&(hashSize-1) != 0 {
 		hashSize &= hashSize - 1
 	}
 	return &HashTable{
-		table: make([]HashEntry, hashSize),
+		table: make([]hashEntry, hashSize),
 		mask:  uint32(hashSize - 1),
 	}
 }
@@ -74,8 +74,8 @@ func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
 	return hi, h0, h1
 }
 
-// Put puts a new entry in the database.
-func (ht *HashTable) Put(pos *Position, entry HashEntry) {
+// put puts a new entry in the database.
+func (ht *HashTable) put(pos *Position, entry hashEntry) {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	entry.lock = lock
 
@@ -86,12 +86,12 @@ func (ht *HashTable) Put(pos *Position, entry HashEntry) {
 	}
 }
 
-// Get returns the hash entry for position.
+// get returns the hash entry for position.
 //
-// Observation: due to collision errors, the HashEntry returned might be
+// Observation: due to collision errors, the hashEntry returned might be
 // from a different table. However, these errors are not common because
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
-func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
+func (ht *HashTable) get(pos *Position) (hashEntry, bool) {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	if ht.table[key0].lock == lock && ht.table[key0].Kind != NoKind {
 		return ht.table[key0], true
@@ -99,13 +99,13 @@ func (ht *HashTable) Get(pos *Position) (HashEntry, bool) {
 	if ht.table[key1].lock == lock && ht.table[key1].Kind != NoKind {
 		return ht.table[key1], true
 	}
-	return HashEntry{}, false
+	return hashEntry{}, false
 }
 
 // Clear removes all entries from hash.
 func (ht *HashTable) Clear() {
 	for i := range ht.table {
-		ht.table[i] = HashEntry{}
+		ht.table[i] = hashEntry{}
 	}
 }
 
