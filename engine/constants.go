@@ -81,6 +81,17 @@ const (
 	BbWhiteSquares   Bitboard = 0xd5aa55aad5aa55aa
 )
 
+const (
+	BbFileA Bitboard = 0x101010101010101 << iota
+	BbFileB
+	BbFileC
+	BbFileD
+	BbFileE
+	BbFileF
+	BbFileG
+	BbFileH
+)
+
 var (
 	// Some positions commonly used for testing.
 	FENStartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

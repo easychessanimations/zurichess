@@ -172,9 +172,6 @@ func (st *stack) generateMoves() {
 		}
 		ms.order = append(ms.order, weight)
 	}
-
-	hs := &heapSort{ms.moves, ms.order}
-	hs.sort()
 }
 
 // generateViolentMoves generates all violent moves.

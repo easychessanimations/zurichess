@@ -179,8 +179,7 @@ func RankBb(rank int) Bitboard {
 
 // FileBb returns a bitboard with all bits on file set.
 func FileBb(file int) Bitboard {
-	fileA := Bitboard(0x0101010101010101)
-	return fileA << uint(file)
+	return BbFileA << uint(file)
 }
 
 // AdjacentFilesBb returns a bitboard with all bits set on adjacent files.
@@ -207,12 +206,12 @@ func South(bb Bitboard) Bitboard {
 
 // East shifts all squares one file right.
 func East(bb Bitboard) Bitboard {
-	return bb &^ FileBb(7) << 1
+	return bb &^ BbFileH << 1
 }
 
 // West shifts all squares one file left.
 func West(bb Bitboard) Bitboard {
-	return bb &^ FileBb(0) >> 1
+	return bb &^ BbFileA >> 1
 }
 
 // NorthFill returns a bitboard with all north bits set.
