@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"bitbucket.org/brtzsnr/zurichess/engine"
@@ -24,17 +23,19 @@ var (
 	}
 )
 
+// UCI implements uci protocol.
 type UCI struct {
-	Engine *engine.Engine
-	Stop   chan struct{}
-	Ready  sync.WaitGroup
+	Engine      *engine.Engine
+	timeControl engine.TimeControl
+	ready       chan struct{} // buffer of 1, empty means engine is available
 }
 
 func NewUCI() *UCI {
 	options := engine.Options{AnalyseMode: true}
 	return &UCI{
-		Engine: engine.NewEngine(nil, options),
-		Stop:   make(chan struct{}, 1),
+		Engine:      engine.NewEngine(nil, options),
+		timeControl: &engine.FixedDepthTimeControl{MaxDepth: 100000},
+		ready:       make(chan struct{}, 1),
 	}
 }
 
@@ -46,31 +47,43 @@ func (uci *UCI) Execute(line string) error {
 		return nil
 	}
 
-	uci.Ready.Wait()
 	cmd := reCmd.FindString(line)
 	if cmd == "" {
 		return fmt.Errorf("invalid command line")
 	}
 
+	// These commands do not expect the engine to be ready.
 	switch cmd {
-	case "uci":
-		return uci.uci(line)
 	case "isready":
 		return uci.isready(line)
+	case "quit":
+		return errQuit
+	case "stop":
+		return uci.stop(line)
+	case "uci":
+		return uci.uci(line)
+	}
+
+	// Make sure that the engine is ready.
+	select {
+	case uci.ready <- struct{}{}:
+		<-uci.ready
+	default:
+		return fmt.Errorf("not ready")
+	}
+
+	// These commands expect engine to be ready.
+	switch cmd {
 	case "ucinewgame":
 		return uci.ucinewgame(line)
 	case "position":
 		return uci.position(line)
 	case "go":
 		return uci.go_(line)
-	case "stop":
-		return uci.stop(line)
 	case "setoption":
 		return uci.setoption(line)
 	case "setvalue":
 		return uci.setvalue(line)
-	case "quit":
-		return errQuit
 	default:
 		return fmt.Errorf("unhandled command %s", cmd)
 	}
@@ -87,7 +100,8 @@ func (uci *UCI) uci(line string) error {
 }
 
 func (uci *UCI) isready(line string) error {
-	uci.Ready.Wait()
+	uci.ready <- struct{}{}
+	<-uci.ready
 	fmt.Println("readyok")
 	return nil
 }
@@ -139,7 +153,6 @@ func (uci *UCI) position(line string) error {
 
 func (uci *UCI) go_(line string) error {
 	args := strings.Fields(line)[1:]
-	var tc engine.TimeControl
 	fdtc := &engine.FixedDepthTimeControl{}
 	octc := &engine.OnClockTimeControl{NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure])}
 
@@ -147,67 +160,61 @@ func (uci *UCI) go_(line string) error {
 		switch args[i] {
 		case "infinite":
 			i++
-			octc.Time = 1000000 * time.Hour
-			tc = octc
+			fdtc.MaxDepth = 100000
+			uci.timeControl = fdtc
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
 				octc.Time = time.Duration(t) * time.Millisecond
 			}
-			tc = octc
+			uci.timeControl = octc
 		case "winc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.White {
 				octc.Inc = time.Duration(t) * time.Millisecond
 			}
-			tc = octc
+			uci.timeControl = octc
 		case "btime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
 				octc.Time = time.Duration(t) * time.Millisecond
 			}
-			tc = octc
+			uci.timeControl = octc
 		case "binc":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			if uci.Engine.Position.SideToMove == engine.Black {
 				octc.Inc = time.Duration(t) * time.Millisecond
 			}
-			tc = octc
+			uci.timeControl = octc
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			octc.MovesToGo = t
-			tc = octc
+			uci.timeControl = octc
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])
 			octc.Time, octc.Inc, octc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 1
-			tc = octc
+			uci.timeControl = octc
 		case "depth":
 			i++
 			d, _ := strconv.Atoi(args[i])
 			fdtc.MaxDepth = d
-			tc = fdtc
+			uci.timeControl = fdtc
 		}
 	}
 
-	uci.Ready.Add(1)
+	uci.ready <- struct{}{}
+	uci.timeControl.Start()
+
 	go func() {
-		defer uci.Ready.Done()
+		defer func() { <-uci.ready }()
 
-		select {
-		case <-uci.Stop: // Clear the channel if there is a stop command pending.
-		default:
-		}
-
-		octc.Stop = uci.Stop
-		tc.Start()
-
-		moves := uci.Engine.Play(tc)
+		moves := uci.Engine.Play(uci.timeControl)
 		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
 		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
 			engine.GlobalHashTable.Size(), hit, miss,
@@ -222,9 +229,8 @@ func (uci *UCI) go_(line string) error {
 }
 
 func (uci *UCI) stop(line string) error {
-	select {
-	case uci.Stop <- struct{}{}:
-	default: // There is another stop event on the line.
+	if uci.timeControl != nil {
+		uci.timeControl.Stop()
 	}
 	return nil
 }
@@ -269,6 +275,24 @@ func (uci *UCI) setoption(line string) error {
 	default:
 		return fmt.Errorf("unhandled option %s", option[1])
 	}
+}
+
+// setvalue will fatal in case of error because otherwise
+// an error will make tunning useless.
+func (uci *UCI) setvalue(line string) error {
+	args := strings.Fields(line)[1:]
+	if len(args) != 2 {
+		log.Fatalf("expected 2 arguments, got %d", len(args))
+	}
+	n, err := strconv.Atoi(args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = setvalueHelper(reflect.ValueOf(globals), args[0], n)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nil
 }
 
 func setvalueHelper(v reflect.Value, fields string, n int) error {
@@ -339,23 +363,5 @@ func setvalueHelper(v reflect.Value, fields string, n int) error {
 		fmt.Println("unhandled v.Kind() ==", v.Kind())
 	}
 
-	return nil
-}
-
-// setvalue will fatal in case of error because otherwise
-// an error will make tunning useless.
-func (uci *UCI) setvalue(line string) error {
-	args := strings.Fields(line)[1:]
-	if len(args) != 2 {
-		log.Fatalf("expected 2 arguments, got %d", len(args))
-	}
-	n, err := strconv.Atoi(args[1])
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = setvalueHelper(reflect.ValueOf(globals), args[0], n)
-	if err != nil {
-		log.Fatal(err)
-	}
 	return nil
 }

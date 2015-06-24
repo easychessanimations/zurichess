@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"sync"
 	"time"
 )
 
@@ -9,30 +10,66 @@ const (
 	defaultbranchFactor = 2  // default branching factor
 )
 
+// atomicFlag is an atomic bool that can only be set.
+type atomicFlag struct {
+	lock sync.Mutex
+	flag bool
+}
+
+func (af *atomicFlag) set() {
+	af.lock.Lock()
+	af.flag = true
+	af.lock.Unlock()
+}
+
+func (af *atomicFlag) get() bool {
+	af.lock.Lock()
+	tmp := af.flag
+	af.lock.Unlock()
+	return tmp
+}
+
 // TimeControl is an interface to control the clock.
 type TimeControl interface {
-	// Starts starts the watch.
+	// Start starts the watch.
 	Start()
 	// NextDepth returns next depth to run. -1 means stop.
 	NextDepth() int
+	// Stop stops the search as soon as possible.
+	Stop()
+	// IsStopped returns true if Stop was called.
+	IsStopped() bool
 }
 
 // FixedDepthTimeControl searches all depths up to MaxDepth.
 type FixedDepthTimeControl struct {
 	MaxDepth  int // maximum depth to search to
 	currDepth int // current depth
+	stopped   atomicFlag
 }
 
 func (tc *FixedDepthTimeControl) Start() {
+	tc.stopped = atomicFlag{}
 	tc.currDepth = -1
 }
 
 func (tc *FixedDepthTimeControl) NextDepth() int {
+	if tc.IsStopped() {
+		return -1
+	}
 	tc.currDepth++
 	if tc.currDepth <= tc.MaxDepth {
 		return tc.currDepth
 	}
 	return -1
+}
+
+func (tc *FixedDepthTimeControl) Stop() {
+	tc.stopped.set()
+}
+
+func (tc *FixedDepthTimeControl) IsStopped() bool {
+	return tc.stopped.get()
 }
 
 // OnClockTimeControl is a time control that tries to split the
@@ -49,13 +86,10 @@ type OnClockTimeControl struct {
 	// 1 when solving puzzles.
 	// n when there is a time refresh.
 	MovesToGo int
-	// When time is up, Stop should be closed.
-	Stop <-chan struct{}
 
-	// Latest moment when to start next depth.
+	stopped   atomicFlag // When time is up, stop should be closed.
+	currDepth int        // Current depth.
 	timeLimit time.Time
-	// Current depth.
-	currDepth int
 }
 
 func (tc *OnClockTimeControl) Start() {
@@ -89,20 +123,26 @@ func (tc *OnClockTimeControl) Start() {
 		thinkTime = tc.Time
 	}
 
-	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
+	tc.stopped = atomicFlag{}
 	tc.currDepth = 0
+	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 }
 
 func (tc *OnClockTimeControl) NextDepth() int {
-	select {
-	case <-tc.Stop: // Stop was requested.
+	if tc.IsStopped() && tc.currDepth > 0 {
 		return -1
-	default:
 	}
-
-	if tc.currDepth < 64 && (tc.currDepth < 1 || time.Now().Before(tc.timeLimit)) {
+	if tc.currDepth < 64 {
 		tc.currDepth++
 		return tc.currDepth
 	}
 	return -1
+}
+
+func (tc *OnClockTimeControl) Stop() {
+	tc.stopped.set()
+}
+
+func (tc *OnClockTimeControl) IsStopped() bool {
+	return tc.stopped.get() || time.Now().After(tc.timeLimit)
 }
