@@ -6,6 +6,7 @@ const (
 	pvTableMask      = pvTableSize - 1
 )
 
+// TODO: Unexport pvEntry fields.
 type pvEntry struct {
 	// Lock is used to handled hash conflicts.
 	// Normally set to position's Zobrist key.
@@ -38,8 +39,12 @@ func newPvTable() pvTable {
 	}
 }
 
-// Put inserts a new entry.
+// Put inserts a new entry.  Ignores NullMoves.
 func (pv *pvTable) Put(pos *Position, move Move) {
+	if move == NullMove {
+		return
+	}
+
 	// Based on pos.Zobrist() two entries are looked up.
 	// If any of the two entries in the table matches
 	// current position, then that one is replaced.

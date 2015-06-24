@@ -246,7 +246,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 		}
 	}
 
-	if α < localα && localα < β && bestMove.MoveType() != NoMove {
+	if α < localα && localα < β {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 	return localα
@@ -331,10 +331,12 @@ func (eng *Engine) ply() int {
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
 func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
+	ply := eng.ply()
+	pvNode := α+1 < β
+
 	// Update statistics.
 	eng.Stats.Nodes++
-	ply := eng.ply()
-	if ply > eng.Stats.SelDepth {
+	if pvNode && ply > eng.Stats.SelDepth {
 		eng.Stats.SelDepth = eng.ply()
 	}
 
@@ -357,6 +359,10 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 		hash = entry.Move
 		if ply > 0 && entry.Kind == Exact {
 			// Simply return if the score is exact.
+			// Update principal variation table if possible.
+			if α < entry.Score && entry.Score < β {
+				eng.pvTable.Put(eng.Position, hash)
+			}
 			return entry.Score
 		}
 		if entry.Kind == FailedLow && entry.Score <= α {
@@ -401,7 +407,6 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 		}
 	}
 
-	pvNode := α+1 < β
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 	hasGoodMoves := hash != NullMove || eng.stack.HasKiller()
 	// Principal variation search: search with a null window if there is already a good move.
@@ -447,7 +452,7 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Update hash and principal variation tables.
 	eng.updateHash(α, β, depth, bestScore, bestMove)
-	if α < bestScore && bestScore < β && bestMove != NullMove {
+	if α < bestScore && bestScore < β {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
 
@@ -557,6 +562,5 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 			eng.printInfo(score, moves)
 		}
 	}
-
 	return moves
 }
