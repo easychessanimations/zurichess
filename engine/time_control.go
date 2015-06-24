@@ -33,8 +33,8 @@ func (af *atomicFlag) get() bool {
 type TimeControl interface {
 	// Start starts the watch.
 	Start()
-	// NextDepth returns next depth to run. -1 means stop.
-	NextDepth() int
+	// NextDepth returns bool if the search should start for depth.
+	NextDepth(depth int) bool
 	// Stop stops the search as soon as possible.
 	Stop()
 	// IsStopped returns true if Stop was called.
@@ -43,25 +43,16 @@ type TimeControl interface {
 
 // FixedDepthTimeControl searches all depths up to MaxDepth.
 type FixedDepthTimeControl struct {
-	MaxDepth  int // maximum depth to search to
-	currDepth int // current depth
-	stopped   atomicFlag
+	MaxDepth int // maximum depth to search to
+	stopped  atomicFlag
 }
 
 func (tc *FixedDepthTimeControl) Start() {
 	tc.stopped = atomicFlag{}
-	tc.currDepth = -1
 }
 
-func (tc *FixedDepthTimeControl) NextDepth() int {
-	if tc.IsStopped() {
-		return -1
-	}
-	tc.currDepth++
-	if tc.currDepth <= tc.MaxDepth {
-		return tc.currDepth
-	}
-	return -1
+func (tc *FixedDepthTimeControl) NextDepth(depth int) bool {
+	return !tc.IsStopped() && depth <= tc.MaxDepth
 }
 
 func (tc *FixedDepthTimeControl) Stop() {
@@ -128,15 +119,8 @@ func (tc *OnClockTimeControl) Start() {
 	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 }
 
-func (tc *OnClockTimeControl) NextDepth() int {
-	if tc.IsStopped() && tc.currDepth > 0 {
-		return -1
-	}
-	if tc.currDepth < 64 {
-		tc.currDepth++
-		return tc.currDepth
-	}
-	return -1
+func (tc *OnClockTimeControl) NextDepth(depth int) bool {
+	return !tc.IsStopped()
 }
 
 func (tc *OnClockTimeControl) Stop() {

@@ -530,8 +530,12 @@ func (eng *Engine) printInfo(score int16, pv []Move) {
 
 // Play evaluates current position.
 //
-// Returns principal variation, i.e. moves[0] is the best move found.
-// If no move was found (e.g. position is already a mate) an empty pv is returned.
+// Returns the principal variation, that is
+//	moves[0] is the best move found and
+//	moves[1] is the pondering move.
+//
+// If no move was found because the game has finished
+// then an empty pv is returned.
 //
 // Time control, tc, should already be started.
 func (eng *Engine) Play(tc TimeControl) (moves []Move) {
@@ -540,8 +544,13 @@ func (eng *Engine) Play(tc TimeControl) (moves []Move) {
 	eng.rootPly = eng.Position.Ply
 	eng.stack.Reset(eng.Position)
 
-	for depth := tc.NextDepth(); depth >= 0; depth = tc.NextDepth() {
-		eng.Stats.Depth = depth
+	for depth := 0; depth < 64; depth++ {
+		if depth > 1 && !tc.NextDepth(depth) {
+			// Stop if time control says we are done.
+			// Search at least one depth, otherwise a move cannot be returned.
+			break
+		}
+
 		score = eng.search(int16(depth), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
