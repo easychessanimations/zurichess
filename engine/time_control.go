@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"math"
 	"sync"
 	"time"
 )
@@ -29,104 +30,95 @@ func (af *atomicFlag) get() bool {
 	return tmp
 }
 
-// TimeControl is an interface to control the clock.
-type TimeControl interface {
-	// Start starts the watch.
-	Start()
-	// NextDepth returns bool if the search should start for depth.
-	NextDepth(depth int) bool
-	// Stop stops the search as soon as possible.
-	Stop()
-	// IsStopped returns true if Stop was called.
-	IsStopped() bool
-}
-
-// FixedDepthTimeControl searches all depths up to MaxDepth.
-type FixedDepthTimeControl struct {
-	MaxDepth int // maximum depth to search to
-	stopped  atomicFlag
-}
-
-func (tc *FixedDepthTimeControl) Start() {
-	tc.stopped = atomicFlag{}
-}
-
-func (tc *FixedDepthTimeControl) NextDepth(depth int) bool {
-	return !tc.IsStopped() && depth <= tc.MaxDepth
-}
-
-func (tc *FixedDepthTimeControl) Stop() {
-	tc.stopped.set()
-}
-
-func (tc *FixedDepthTimeControl) IsStopped() bool {
-	return tc.stopped.get()
-}
-
-// OnClockTimeControl is a time control that tries to split the
+// TimeControl is a time control that tries to split the
 // remaining time over MovesToGo.
-type OnClockTimeControl struct {
-	// Number of remaining pieces on the board.
-	NumPieces int
-	// Remaining time.
-	Time time.Duration
-	// Time increment after each move.
-	Inc time.Duration
-	// Number of moves left. Recommended values
-	// 0 when there is no time refresh.
-	// 1 when solving puzzles.
-	// n when there is a time refresh.
-	MovesToGo int
+type TimeControl struct {
+	WTime, WInc time.Duration // time and increment for white.
+	BTime, BInc time.Duration // time and increment for black
+	Depth       int           // maximum depth search (including)
+	MovesToGo   int           // number of remaining moves
 
 	stopped   atomicFlag // When time is up, stop should be closed.
-	currDepth int        // Current depth.
 	timeLimit time.Time
 }
 
-func (tc *OnClockTimeControl) Start() {
-	movesToGo := defaultMovesToGo
-	if tc.MovesToGo != 0 {
-		movesToGo = tc.MovesToGo
+// NewTimeControl returns a new time control with no time limit,
+// no depth limit, zero time increment and one move to go.
+func NewTimeControl() *TimeControl {
+	inf := time.Duration(math.MaxInt64)
+	return &TimeControl{
+		WTime:     inf,
+		WInc:      0,
+		BTime:     inf,
+		BInc:      0,
+		Depth:     64,
+		MovesToGo: 1,
 	}
+}
 
+func NewFixedDepthTimeControl(depth int) *TimeControl {
+	tc := NewTimeControl()
+	tc.Depth = depth
+	return tc
+}
+
+func NewDeadlineTimeControl(deadline time.Duration) *TimeControl {
+	tc := NewTimeControl()
+	tc.WTime = deadline
+	tc.BTime = deadline
+	return tc
+}
+
+// Start starts the timer.
+func (tc *TimeControl) Start(pos *Position) {
 	// Branch more when there are more pieces.
 	// With fewer pieces there is less mobility
 	// and hash table kicks in more often.
 	branchFactor := defaultbranchFactor
-	for np := tc.NumPieces; np > 0; np /= 5 {
+	for np := pos.NumPieces[NoColor][NoFigure]; np > 0; np /= 5 {
 		branchFactor++
 	}
 
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
 	for i := 4; i > 0; i /= 2 {
-		if movesToGo <= i {
+		if tc.MovesToGo <= i {
 			branchFactor++
 		}
+	}
+
+	time_, inc := tc.WTime, tc.WInc
+	if pos.SideToMove == Black {
+		time_, inc = tc.BTime, tc.BInc
 	}
 
 	// Compute how much time to think according to the formula below.
 	// The formula allows engine to use more of time.Left in the begining
 	// and rely more on the inc time later.
-	thinkTime := (tc.Time + time.Duration(movesToGo-1)*tc.Inc) / time.Duration(movesToGo)
-	if thinkTime > tc.Time {
-		// Do not allocate more than we have.
-		thinkTime = tc.Time
+	thinkTime := (time_ + time.Duration(tc.MovesToGo-1)*inc) / time.Duration(tc.MovesToGo)
+	if thinkTime > time_ {
+		// Do not allocate more time than available.
+		thinkTime = time_
 	}
 
 	tc.stopped = atomicFlag{}
-	tc.currDepth = 0
 	tc.timeLimit = time.Now().Add(thinkTime / time.Duration(branchFactor))
 }
 
-func (tc *OnClockTimeControl) NextDepth(depth int) bool {
-	return !tc.IsStopped()
+// NextDepth returns true if search can start at depth.
+func (tc *TimeControl) NextDepth(depth int) bool {
+	// If maximum search is not reached then at least one ply is searched.
+	// This avoid an issue when, under the clock, engine doesn't return any move
+	// because it stops at depth 0.
+	return depth <= tc.Depth && (depth <= 1 || !tc.IsStopped())
 }
 
-func (tc *OnClockTimeControl) Stop() {
+// Stop marks the search as stopped.
+func (tc *TimeControl) Stop() {
 	tc.stopped.set()
 }
 
-func (tc *OnClockTimeControl) IsStopped() bool {
+// IsStopped returns true if the search has stopped.
+func (tc *TimeControl) IsStopped() bool {
 	return tc.stopped.get() || time.Now().After(tc.timeLimit)
 }

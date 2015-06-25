@@ -26,7 +26,7 @@ var (
 // UCI implements uci protocol.
 type UCI struct {
 	Engine      *engine.Engine
-	timeControl engine.TimeControl
+	timeControl *engine.TimeControl
 	ready       chan struct{} // buffer of 1, empty means engine is available
 }
 
@@ -34,7 +34,7 @@ func NewUCI() *UCI {
 	options := engine.Options{AnalyseMode: true}
 	return &UCI{
 		Engine:      engine.NewEngine(nil, options),
-		timeControl: &engine.FixedDepthTimeControl{MaxDepth: 100000},
+		timeControl: engine.NewTimeControl(),
 		ready:       make(chan struct{}, 1),
 	}
 }
@@ -152,64 +152,50 @@ func (uci *UCI) position(line string) error {
 }
 
 func (uci *UCI) go_(line string) error {
+	// TODO: Handle panic for `go depth`
 	args := strings.Fields(line)[1:]
-	fdtc := &engine.FixedDepthTimeControl{}
-	octc := &engine.OnClockTimeControl{NumPieces: int(uci.Engine.Position.NumPieces[engine.NoColor][engine.NoFigure])}
+	uci.timeControl = engine.NewTimeControl()
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "infinite":
-			i++
-			fdtc.MaxDepth = 100000
-			uci.timeControl = fdtc
+			uci.timeControl = engine.NewTimeControl()
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			if uci.Engine.Position.SideToMove == engine.White {
-				octc.Time = time.Duration(t) * time.Millisecond
-			}
-			uci.timeControl = octc
+			uci.timeControl.WTime = time.Duration(t) * time.Millisecond
 		case "winc":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			if uci.Engine.Position.SideToMove == engine.White {
-				octc.Inc = time.Duration(t) * time.Millisecond
-			}
-			uci.timeControl = octc
+			uci.timeControl.WInc = time.Duration(t) * time.Millisecond
 		case "btime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			if uci.Engine.Position.SideToMove == engine.Black {
-				octc.Time = time.Duration(t) * time.Millisecond
-			}
-			uci.timeControl = octc
+			uci.timeControl.BTime = time.Duration(t) * time.Millisecond
 		case "binc":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			if uci.Engine.Position.SideToMove == engine.Black {
-				octc.Inc = time.Duration(t) * time.Millisecond
-			}
-			uci.timeControl = octc
+			uci.timeControl.BInc = time.Duration(t) * time.Millisecond
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			octc.MovesToGo = t
-			uci.timeControl = octc
+			uci.timeControl.MovesToGo = t
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			octc.Time, octc.Inc, octc.MovesToGo = time.Duration(t)*time.Millisecond, 0, 1
-			uci.timeControl = octc
+			uci.timeControl.WTime = time.Duration(t) * time.Millisecond
+			uci.timeControl.BTime = time.Duration(t) * time.Millisecond
 		case "depth":
 			i++
 			d, _ := strconv.Atoi(args[i])
-			fdtc.MaxDepth = d
-			uci.timeControl = fdtc
+			uci.timeControl.Depth = d
 		}
 	}
 
+	// Mark the engine as busy.
 	uci.ready <- struct{}{}
-	uci.timeControl.Start()
+	// Starts the timer.
+	uci.timeControl.Start(uci.Engine.Position)
 
 	go func() {
 		defer func() { <-uci.ready }()

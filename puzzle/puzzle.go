@@ -69,17 +69,11 @@ func main() {
 	buf := bufio.NewReader(fin)
 	for i, o := 0, 0; ; i++ {
 		// Builds time control.
-		var timeControl engine.TimeControl
+		var timeControl *engine.TimeControl
 		if *deadline != 0 {
-			timeControl = &engine.OnClockTimeControl{
-				Time:      *deadline,
-				Inc:       0,
-				MovesToGo: 1,
-			}
+			timeControl = engine.NewDeadlineTimeControl(*deadline)
 		} else if *depth != 0 {
-			timeControl = &engine.FixedDepthTimeControl{
-				MaxDepth: *depth,
-			}
+			timeControl = engine.NewFixedDepthTimeControl(*depth)
 		} else {
 			log.Fatal("--deadline or --depth must be specified")
 		}
@@ -109,7 +103,7 @@ func main() {
 		}
 
 		// Evaluate position.
-		timeControl.Start()
+		timeControl.Start(epd.Position)
 		ai := engine.NewEngine(nil, engine.Options{})
 		ai.SetPosition(epd.Position)
 		actual := ai.Play(timeControl)

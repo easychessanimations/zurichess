@@ -543,19 +543,20 @@ func (eng *Engine) printInfo(score int16, pv []Move) {
 // then an empty pv is returned.
 //
 // Time control, tc, should already be started.
-func (eng *Engine) Play(tc TimeControl) (moves []Move) {
+func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	score := int16(0)
-	eng.Stats = Stats{Start: time.Now()}
+	eng.Stats = Stats{Start: time.Now(), Depth: -1}
 	eng.rootPly = eng.Position.Ply
 	eng.stack.Reset(eng.Position)
 
 	for depth := 0; depth < 64; depth++ {
-		if depth > 1 && !tc.NextDepth(depth) {
+		if !tc.NextDepth(depth) {
 			// Stop if time control says we are done.
 			// Search at least one depth, otherwise a move cannot be returned.
 			break
 		}
 
+		eng.Stats.Depth = depth
 		score = eng.search(int16(depth), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
