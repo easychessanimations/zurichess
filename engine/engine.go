@@ -476,7 +476,7 @@ func sup(b int) int {
 // search starts the search up to depth depth.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) search(depth, estimated int16) int16 {
+func (eng *Engine) search(tc *TimeControl, depth, estimated int16) int16 {
 	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
@@ -494,7 +494,7 @@ func (eng *Engine) search(depth, estimated int16) int16 {
 		β = int(+InfinityScore)
 	}
 
-	for {
+	for !tc.Aborted() {
 		// At root a non-null move is required, cannot prune based on null-move.
 		score = eng.searchTree(int16(α), int16(β), depth, true)
 
@@ -508,6 +508,8 @@ func (eng *Engine) search(depth, estimated int16) int16 {
 			return score
 		}
 	}
+
+	return score
 }
 
 // printInfo prints a info UCI string.
@@ -557,7 +559,7 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		}
 
 		eng.Stats.Depth = depth
-		score = eng.search(int16(depth), score)
+		score = eng.search(tc, int16(depth), score)
 		moves = eng.pvTable.Get(eng.Position)
 		if eng.Options.AnalyseMode {
 			eng.printInfo(score, moves)

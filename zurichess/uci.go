@@ -27,15 +27,20 @@ var (
 type UCI struct {
 	Engine      *engine.Engine
 	timeControl *engine.TimeControl
-	ready       chan struct{} // buffer of 1, empty means engine is available
+
+	// buffer of 1, if empty then the engine is available
+	ready chan struct{}
+	// buffer of 1, if filled then the engine is pondering
+	ponder chan struct{}
 }
 
 func NewUCI() *UCI {
 	options := engine.Options{AnalyseMode: true}
 	return &UCI{
 		Engine:      engine.NewEngine(nil, options),
-		timeControl: engine.NewTimeControl(),
+		timeControl: nil,
 		ready:       make(chan struct{}, 1),
+		ponder:      make(chan struct{}, 1),
 	}
 }
 
@@ -62,6 +67,8 @@ func (uci *UCI) Execute(line string) error {
 		return uci.stop(line)
 	case "uci":
 		return uci.uci(line)
+	case "ponderhit":
+		return uci.ponderhit(line)
 	}
 
 	// Make sure that the engine is ready.
@@ -69,7 +76,7 @@ func (uci *UCI) Execute(line string) error {
 	case uci.ready <- struct{}{}:
 		<-uci.ready
 	default:
-		return fmt.Errorf("not ready")
+		return fmt.Errorf("not ready for %s", line)
 	}
 
 	// These commands expect engine to be ready.
@@ -95,6 +102,7 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("\n")
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
+	fmt.Printf("option name Ponder type check default true\n")
 	fmt.Println("uciok")
 	return nil
 }
@@ -154,13 +162,16 @@ func (uci *UCI) position(line string) error {
 func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
 	args := strings.Fields(line)[1:]
-	uci.timeControl = engine.NewTimeControl()
+	uci.timeControl = engine.NewTimeControl(uci.Engine.Position)
 	uci.timeControl.MovesToGo = 30 // in case there is not time refresh
+	ponder := false
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
+		case "ponder":
+			ponder = true
 		case "infinite":
-			uci.timeControl = engine.NewTimeControl()
+			uci.timeControl = engine.NewTimeControl(uci.Engine.Position)
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
@@ -193,33 +204,66 @@ func (uci *UCI) go_(line string) error {
 		}
 	}
 
-	// Mark the engine as busy.
+	if ponder {
+		// Ponder was requested, so fill the channel.
+		// Next write to uci.ponder will block.
+		uci.ponder <- struct{}{}
+	}
+
+	uci.timeControl.Start(ponder)
 	uci.ready <- struct{}{}
-	// Starts the timer.
-	uci.timeControl.Start(uci.Engine.Position)
+	go uci.play()
+	return nil
+}
 
-	go func() {
-		defer func() { <-uci.ready }()
-
-		moves := uci.Engine.Play(uci.timeControl)
-		hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
-		log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-			engine.GlobalHashTable.Size(), hit, miss,
-			float32(hit)/float32(hit+miss)*100)
-		if len(moves) == 0 {
-			fmt.Printf("bestmove %v\n", "(none)")
-		} else {
-			fmt.Printf("bestmove %v\n", moves[0].UCI())
-		}
-	}()
+func (uci *UCI) ponderhit(line string) error {
+	uci.timeControl.PonderHit()
+	<-uci.ponder
 	return nil
 }
 
 func (uci *UCI) stop(line string) error {
+	// Stop the timer if not already stopped.
 	if uci.timeControl != nil {
 		uci.timeControl.Stop()
 	}
+	// No longer pondering.
+	select {
+	case <-uci.ponder:
+	default:
+	}
+	// Waits until the engine becomes ready.
+	uci.ready <- struct{}{}
+	<-uci.ready
+
 	return nil
+}
+
+// play starts the engine.
+// Should run in its own separate goroutine.
+func (uci *UCI) play() {
+	moves := uci.Engine.Play(uci.timeControl)
+	hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
+	log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
+		engine.GlobalHashTable.Size(), hit, miss,
+		float32(hit)/float32(hit+miss)*100)
+
+	// If pondering was requested it will block because the channel is full.
+	uci.ponder <- struct{}{}
+	<-uci.ponder
+
+	// Marks engine ready before showing the best move,
+	// otherwise there is a race if GUI sees bestmove but engine
+	// is not ready.
+	<-uci.ready
+
+	if len(moves) == 0 {
+		fmt.Printf("bestmove (none)\n")
+	} else if len(moves) == 1 {
+		fmt.Printf("bestmove %v\n", moves[0].UCI())
+	} else {
+		fmt.Printf("bestmove %v ponder %v\n", moves[0].UCI(), moves[1].UCI())
+	}
 }
 
 var reOption = regexp.MustCompile(`^setoption\s+name\s+(.+?)(\s+value\s+(.*))?$`)
