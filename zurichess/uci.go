@@ -155,6 +155,7 @@ func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
 	args := strings.Fields(line)[1:]
 	uci.timeControl = engine.NewTimeControl()
+	uci.timeControl.MovesToGo = 30 // in case there is not time refresh
 
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
