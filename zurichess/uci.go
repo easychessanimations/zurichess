@@ -196,7 +196,10 @@ func (uci *UCI) go_(line string) error {
 			i++
 			t, _ := strconv.Atoi(args[i])
 			uci.timeControl.WTime = time.Duration(t) * time.Millisecond
+			uci.timeControl.WInc = 0
 			uci.timeControl.BTime = time.Duration(t) * time.Millisecond
+			uci.timeControl.BInc = 0
+			uci.timeControl.MovesToGo = 1
 		case "depth":
 			i++
 			d, _ := strconv.Atoi(args[i])

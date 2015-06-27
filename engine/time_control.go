@@ -68,6 +68,7 @@ func NewTimeControl(pos *Position) *TimeControl {
 func NewFixedDepthTimeControl(pos *Position, depth int) *TimeControl {
 	tc := NewTimeControl(pos)
 	tc.Depth = depth
+	tc.MovesToGo = 1
 	return tc
 }
 
@@ -75,6 +76,7 @@ func NewDeadlineTimeControl(pos *Position, deadline time.Duration) *TimeControl 
 	tc := NewTimeControl(pos)
 	tc.WTime = deadline
 	tc.BTime = deadline
+	tc.MovesToGo = 1
 	return tc
 }
 
