@@ -303,6 +303,104 @@ func (e *Evaluation) Evaluate() int16 {
 	return int16(eval)
 }
 
+// SEE returns the static exchange evaluation for m.
+//
+// https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
+// https://chessprogramming.wikispaces.com/SEE+-+The+Swap+Algorithm
+//
+// The implementation here is optimized for the common case when there
+// isn't any capture following the move.
+func (e *Evaluation) SEE(m Move) int32 {
+	var occ [ColorArraySize]Bitboard
+	exec := make([]Move, 0, 8)
+	swap := make([]int32, 0, 8)
+
+	sq := m.To()
+	bb := sq.Bitboard()
+
+	pos := e.position
+	us := pos.SideToMove
+	them := us.Opposite()
+	all := (pos.ByColor[White] | pos.ByColor[Black]) &^ bb
+	occ[White] = pos.ByColor[White] &^ bb
+	occ[Black] = pos.ByColor[Black] &^ bb
+
+	for {
+		exec = append(exec, m)
+		swap = append(swap, e.material.FigureBonus[m.Capture().Figure()].M)
+
+		// Update occupancy tables for executing the move.
+		occ[us] = occ[us] &^ m.From().Bitboard()
+		all = all &^ m.From().Bitboard()
+
+		// Switch sides.
+		us, them = them, us
+		ours := occ[us]
+
+		var fig Figure                  // attacking figure
+		var att Bitboard                // attackers
+		var pawn, bishop, rook Bitboard // mobilies for our figures
+
+		// Try every piece in order of value.
+
+		pawn = Backward(us, West(bb)|East(bb))
+		fig, att = fig, pawn&ours&pos.ByFigure[Pawn]
+		if att != 0 {
+			goto makeMove
+		}
+
+		fig, att = Knight, bbKnightAttack[sq]&ours&pos.ByFigure[Knight]
+		if att != 0 {
+			goto makeMove
+		}
+
+		if bbSuperAttack[sq]&ours == 0 {
+			// No other can attack sq so we give up early.
+			break
+		}
+
+		bishop = pos.BishopMobility(sq, all)
+		fig, att = Bishop, bishop&ours&pos.ByFigure[Bishop]
+		if att != 0 {
+			goto makeMove
+		}
+
+		rook = pos.RookMobility(sq, all)
+		fig, att = Rook, rook&ours&pos.ByFigure[Rook]
+		if att != 0 {
+			goto makeMove
+		}
+
+		fig, att = Queen, (rook|bishop)&ours&pos.ByFigure[Queen]
+		if att != 0 {
+			goto makeMove
+		}
+
+		fig, att = King, bbKingAttack[sq]&ours&pos.ByFigure[King]
+		if att != 0 {
+			goto makeMove
+		}
+
+	makeMove:
+		if att != 0 {
+			from := att.Pop()
+			m = MakeMove(Normal, from, sq, m.Piece(), ColorFigure(us, fig))
+		} else {
+			break
+		}
+	}
+
+	// Iterative linear minimax.
+	tmp := swap[len(swap)-1]
+	for i := len(swap) - 2; i >= 0; i-- {
+		tmp = swap[i] - tmp
+		if i > 0 && tmp < 0 {
+			tmp = 0
+		}
+	}
+	return tmp
+}
+
 // SetMaterialValue parses str and updates array.
 //
 // str has format "value0,value1,...,valuen-1" (no spaces and no quotes).
