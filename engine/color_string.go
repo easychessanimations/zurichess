@@ -4,7 +4,7 @@ package engine
 
 import "fmt"
 
-const _Color_name = "NoColorWhiteBlack"
+const _Color_name = "NoColorBlackWhite"
 
 var _Color_index = [...]uint8{7, 12, 17}
 
