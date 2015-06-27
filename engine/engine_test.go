@@ -21,8 +21,8 @@ func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	eng := NewEngine(pos, Options{})
 	for i := 0; i < 1; i++ {
-		tc := NewFixedDepthTimeControl(3)
-		tc.Start(pos)
+		tc := NewFixedDepthTimeControl(pos, 3)
+		tc.Start(false)
 		move := eng.Play(tc)
 		eng.DoMove(move[0])
 	}
@@ -49,8 +49,8 @@ func TestScore(t *testing.T) {
 
 func TestEndGamePosition(t *testing.T) {
 	pos, _ := PositionFromFEN("6k1/5p1p/4p1p1/3p4/5P1P/8/3r2q1/6K1 w - - 2 55")
-	tc := NewFixedDepthTimeControl(3)
-	tc.Start(pos)
+	tc := NewFixedDepthTimeControl(pos, 3)
+	tc.Start(false)
 	eng := NewEngine(pos, Options{})
 	moves := eng.Play(tc)
 	if 0 != len(moves) {
@@ -70,8 +70,8 @@ func BenchmarkStallingFENs(b *testing.B) {
 		for _, fen := range fens {
 			pos, _ := PositionFromFEN(fen)
 			eng := NewEngine(pos, Options{})
-			tc := NewFixedDepthTimeControl(5)
-			tc.Start(pos)
+			tc := NewFixedDepthTimeControl(pos, 5)
+			tc.Start(false)
 			eng.Play(tc)
 		}
 	}
@@ -82,8 +82,8 @@ func BenchmarkGame(b *testing.B) {
 		pos, _ := PositionFromFEN(FENStartPos)
 		eng := NewEngine(pos, Options{})
 		for j := 0; j < 20; j++ {
-			tc := NewFixedDepthTimeControl(4)
-			tc.Start(pos)
+			tc := NewFixedDepthTimeControl(pos, 4)
+			tc.Start(false)
 			move := eng.Play(tc)
 			eng.DoMove(move[0])
 		}

@@ -68,16 +68,6 @@ func main() {
 	solvedTests, numTests := 0, 0
 	buf := bufio.NewReader(fin)
 	for i, o := 0, 0; ; i++ {
-		// Builds time control.
-		var timeControl *engine.TimeControl
-		if *deadline != 0 {
-			timeControl = engine.NewDeadlineTimeControl(*deadline)
-		} else if *depth != 0 {
-			timeControl = engine.NewFixedDepthTimeControl(*depth)
-		} else {
-			log.Fatal("--deadline or --depth must be specified")
-		}
-
 		// Read EPD line.
 		line, err := buf.ReadString('\n')
 		if err != nil {
@@ -102,8 +92,18 @@ func main() {
 			continue
 		}
 
+		// Builds time control.
+		var timeControl *engine.TimeControl
+		if *deadline != 0 {
+			timeControl = engine.NewDeadlineTimeControl(epd.Position, *deadline)
+		} else if *depth != 0 {
+			timeControl = engine.NewFixedDepthTimeControl(epd.Position, *depth)
+		} else {
+			log.Fatal("--deadline or --depth must be specified")
+		}
+
 		// Evaluate position.
-		timeControl.Start(epd.Position)
+		timeControl.Start(false)
 		ai := engine.NewEngine(nil, engine.Options{})
 		ai.SetPosition(epd.Position)
 		actual := ai.Play(timeControl)

@@ -45,8 +45,8 @@ func helper(t *testing.T, path string, depth, failures int) {
 		}
 
 		// Starts engine to play up to depth.
-		tc := engine.NewFixedDepthTimeControl(depth)
-		tc.Start(epd.Position)
+		tc := engine.NewFixedDepthTimeControl(epd.Position, depth)
+		tc.Start(false)
 		eng := engine.NewEngine(nil, engine.Options{})
 		eng.SetPosition(epd.Position)
 		pv := eng.Play(tc)

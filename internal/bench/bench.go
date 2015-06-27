@@ -49,8 +49,8 @@ func (g *gameInfo) eval(depth int) uint64 {
 
 	var nodes uint64
 	for _, mstr := range g.moves {
-		tc := engine.NewFixedDepthTimeControl(depth)
-		tc.Start(pos)
+		tc := engine.NewFixedDepthTimeControl(pos, depth)
+		tc.Start(false)
 		eng.Play(tc)
 		nodes += eng.Stats.Nodes
 		eng.DoMove(pos.UCIToMove(mstr))
