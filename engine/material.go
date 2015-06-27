@@ -303,6 +303,15 @@ func (e *Evaluation) Evaluate() int16 {
 	return int16(eval)
 }
 
+// SEESign return true if SEE(m) < 0.
+func (e *Evaluation) SEESign(m Move) bool {
+	if m.Piece().Figure() <= m.Capture().Figure() {
+		// Even if m.Piece() is captured, we are still positive.
+		return false
+	}
+	return e.SEE(m) < 0
+}
+
 // SEE returns the static exchange evaluation for m.
 //
 // https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation

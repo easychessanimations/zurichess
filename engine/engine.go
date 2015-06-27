@@ -227,10 +227,8 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 	var bestMove Move
 	eng.stack.GenerateMoves(true, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		if depth < -4 && (move.MoveType() == Normal && move.Piece().Figure() > move.Capture().Figure()) {
-			// Discard losing captures several plies in quiescence.
-			// TODO: Use static exchange evaluation instead.
-			continue
+		if move.MoveType() == Normal && eng.evaluation.SEESign(move) {
+			continue // Discard losing captures.
 		}
 
 		eng.DoMove(move)
