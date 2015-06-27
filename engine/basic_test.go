@@ -34,6 +34,25 @@ func TestBitboardNSWE(t *testing.T) {
 	}
 }
 
+func TestBitboardFB(t *testing.T) {
+	data := []struct {
+		f    func(c Color, bb Bitboard) Bitboard
+		c    Color
+		i, o Bitboard
+	}{
+		{Forward, White, RankBb(4), RankBb(5)},
+		{Forward, Black, RankBb(4), RankBb(3)},
+		{Backward, White, RankBb(4), RankBb(3)},
+		{Backward, Black, RankBb(4), RankBb(5)},
+	}
+
+	for i, d := range data {
+		if d.o != d.f(d.c, d.i) {
+			t.Errorf("#%d expected 0x%08x, got 0x%08x", i, d.o, d.f(d.c, d.i))
+		}
+	}
+}
+
 func TestSquareFromString(t *testing.T) {
 	data := []struct {
 		sq  Square

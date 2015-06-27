@@ -416,7 +416,7 @@ func (pos *Position) UndoMove(move Move) {
 
 // PawnThreats returns the set of squares threatened by side's pawns.
 func (pos *Position) PawnThreats(side Color) Bitboard {
-	pawns := pos.ByPiece(side, Pawn).Forward(side)
+	pawns := Forward(side, pos.ByPiece(side, Pawn))
 	return West(pawns) | East(pawns)
 }
 

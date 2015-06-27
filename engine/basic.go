@@ -214,6 +214,28 @@ func West(bb Bitboard) Bitboard {
 	return bb &^ BbFileA >> 1
 }
 
+// Forward returns bb shifted one rank forward wrt color.
+func Forward(col Color, bb Bitboard) Bitboard {
+	if col == White {
+		return bb << 8
+	}
+	if col == Black {
+		return bb >> 8
+	}
+	return bb
+}
+
+// Forward returns bb shifted one rank backward wrt color.
+func Backward(col Color, bb Bitboard) Bitboard {
+	if col == White {
+		return bb >> 8
+	}
+	if col == Black {
+		return bb << 8
+	}
+	return bb
+}
+
 // Fill returns a bitboard with all files with squares filled.
 func Fill(bb Bitboard) Bitboard {
 	return NorthFill(bb) | SouthFill(bb)
@@ -261,18 +283,6 @@ func (bb Bitboard) AsSquare() Square {
 // Returns empty board for empty board.
 func (bb Bitboard) LSB() Bitboard {
 	return bb & (-bb)
-}
-
-// Forward shifts the bitboard forward one rank.
-func (bb Bitboard) Forward(col Color) Bitboard {
-	switch col {
-	case White:
-		return North(bb)
-	case Black:
-		return South(bb)
-	default:
-		return bb
-	}
 }
 
 // Popcnt counts number of squares set in bb.
