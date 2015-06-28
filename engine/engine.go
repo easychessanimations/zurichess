@@ -421,11 +421,8 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	eng.stack.GenerateMoves(false, hash)
 
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		quiet := move.IsQuiet() && move != hash && !eng.stack.IsKiller(move)
-
-		// We reduce most quiet moves. If we already have killers or a hash move and
-		// then all quiet moves are unlikely to raise α.
-		lateMove := allowLateMove && quiet
+		// Reduce most quiet moves and bad captures.
+		lateMove := allowLateMove && move != hash && !eng.stack.IsKiller(move) && (move.IsQuiet() || eng.evaluation.SEESign(move))
 		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
 
 		if score >= β { // Fail high, cut node.
