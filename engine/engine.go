@@ -15,7 +15,9 @@
 package engine
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -77,6 +79,7 @@ type Engine struct {
 	rootPly    int        // position's ply at the start of the search
 	stack      stack      // stack of moves
 	pvTable    pvTable    // principal variation table
+	buffer     bytes.Buffer
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -512,25 +515,30 @@ func (eng *Engine) search(tc *TimeControl, depth, estimated int16) int16 {
 
 // printInfo prints a info UCI string.
 func (eng *Engine) printInfo(score int16, pv []Move) {
+	buf := &eng.buffer // shortcut
+
+	// Write depth.
 	now := time.Now()
+	fmt.Fprintf(buf, "info depth %d seldepth %d ", eng.Stats.Depth, eng.Stats.SelDepth)
 
-	fmt.Printf("info depth %d seldepth %d ", eng.Stats.Depth, eng.Stats.SelDepth)
-
+	// Write score.
 	if score > KnownWinScore {
-		fmt.Printf("score mate %d ", (MateScore-score+1)/2)
+		fmt.Fprintf(buf, "score mate %d ", (MateScore-score+1)/2)
 	} else if score < KnownLossScore {
-		fmt.Printf("score mate %d ", (MatedScore-score)/2)
+		fmt.Fprintf(buf, "score mate %d ", (MatedScore-score)/2)
 	} else {
-		fmt.Printf("score cp %d ", score)
+		fmt.Fprintf(buf, "score cp %d ", score)
 	}
 
-	fmt.Printf("nodes %d time %d nps %d ", eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
+	// Write stats.
+	fmt.Fprintf(buf, "nodes %d time %d nps %d ", eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
 
-	fmt.Printf("pv")
+	// Write principal variation.
+	fmt.Fprintf(buf, "pv")
 	for _, m := range pv {
-		fmt.Printf(" %v", m.UCI())
+		fmt.Fprintf(buf, " %v", m.UCI())
 	}
-	fmt.Printf("\n")
+	fmt.Fprintf(buf, "\n")
 }
 
 // Play evaluates current position.
@@ -544,11 +552,14 @@ func (eng *Engine) printInfo(score int16, pv []Move) {
 //
 // Time control, tc, should already be started.
 func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
-	score := int16(0)
-	eng.Stats = Stats{Start: time.Now(), Depth: -1}
+	now := time.Now()
+	eng.Stats = Stats{Start: now, Depth: -1}
 	eng.rootPly = eng.Position.Ply
 	eng.stack.Reset(eng.Position)
+	eng.buffer.Reset()
 
+	silent := true
+	score := int16(0)
 	for depth := 0; depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
 			// Stop if time control says we are done.
@@ -562,6 +573,21 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		if eng.Options.AnalyseMode {
 			eng.printInfo(score, moves)
 		}
+
+		if !silent || now.Add(2*time.Second).After(time.Now()) {
+			// Delay first output because first plies produce a lot of noise.
+			silent = false
+			eng.flush()
+		}
 	}
+
+	eng.flush()
 	return moves
+}
+
+// Flush writes the buffer to stdout.
+func (eng *Engine) flush() {
+	os.Stdout.Write(eng.buffer.Bytes())
+	os.Stdout.Sync()
+	eng.buffer.Reset()
 }

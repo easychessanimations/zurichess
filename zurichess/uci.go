@@ -72,12 +72,8 @@ func (uci *UCI) Execute(line string) error {
 	}
 
 	// Make sure that the engine is ready.
-	select {
-	case uci.ready <- struct{}{}:
-		<-uci.ready
-	default:
-		return fmt.Errorf("not ready for %s", line)
-	}
+	uci.ready <- struct{}{}
+	<-uci.ready
 
 	// These commands expect engine to be ready.
 	switch cmd {
@@ -255,9 +251,7 @@ func (uci *UCI) play() {
 	uci.ponder <- struct{}{}
 	<-uci.ponder
 
-	// Marks engine ready before showing the best move,
-	// otherwise there is a race if GUI sees bestmove but engine
-	// is not ready.
+	// Marks the engine as ready.
 	<-uci.ready
 
 	if len(moves) == 0 {
