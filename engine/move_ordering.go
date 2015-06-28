@@ -30,8 +30,6 @@ var (
 const (
 	// Give bonus to killer move.
 	KillerMoveBonus int16 = 1024
-	// Penalize moves to squares attacked by pawns. Only in quiescence search.
-	PawnThreatPenalty int16 = 500
 )
 
 const (
@@ -183,13 +181,9 @@ func (st *stack) generateViolentMoves() {
 	}
 
 	pos := st.position // shortcut
-	threats := pos.PawnThreats(pos.SideToMove.Opposite())
 	pos.GenerateViolentMoves(&ms.moves)
 	for _, m := range ms.moves {
 		weight := mvvlva(m)
-		if threats.Has(m.To()) {
-			weight -= PawnThreatPenalty
-		}
 		ms.order = append(ms.order, weight)
 	}
 }
