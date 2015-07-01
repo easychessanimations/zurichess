@@ -161,9 +161,9 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 	// Loop through all moves and find out one that matches.
 	var moves []Move
 	if moveType == Promotion {
-		pos.GenerateFigureMoves(Pawn, &moves)
+		pos.GenerateFigureMoves(Pawn, All, &moves)
 	} else {
-		pos.GenerateFigureMoves(target.Figure(), &moves)
+		pos.GenerateFigureMoves(target.Figure(), All, &moves)
 	}
 	for _, pm := range moves {
 		if pm.MoveType() != moveType || pm.Capture() != capture {

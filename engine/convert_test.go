@@ -5,13 +5,7 @@ import (
 )
 
 func TestPositionFromFENAndBack(t *testing.T) {
-	data := []string{
-		FENKiwipete,
-		FENStartPos,
-		FENDuplain,
-	}
-
-	for _, d := range data {
+	for _, d := range testFENs {
 		pos, err := PositionFromFEN(d)
 		if err != nil {
 			t.Errorf("%s failed with %v", d, err)
@@ -22,14 +16,8 @@ func TestPositionFromFENAndBack(t *testing.T) {
 }
 
 func BenchmarkPositionFromFEN(b *testing.B) {
-	data := []string{
-		FENKiwipete,
-		FENStartPos,
-		FENDuplain,
-	}
-
 	for i := 0; i < b.N; i++ {
-		for _, d := range data {
+		for _, d := range testFENs {
 			PositionFromFEN(d)
 		}
 	}

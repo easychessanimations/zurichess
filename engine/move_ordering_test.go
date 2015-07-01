@@ -6,14 +6,16 @@ import (
 )
 
 func TestStack(t *testing.T) {
-	for _, fen := range []string{FENStartPos, FENKiwipete, FENDuplain} {
+	for _, fen := range testFENs {
 		pos, _ := PositionFromFEN(fen)
 		st := &stack{} // no killer, no hash
 		st.Reset(pos)
-		st.GenerateMoves(false, NullMove)
+		st.GenerateMoves(All, NullMove)
 
+		t.Log("fen ", fen)
 		limit := int16(math.MaxInt16)
 		for move := st.PopMove(); move != NullMove; move = st.PopMove() {
+			t.Log(move, " ", mvvlva(move))
 			if curr := mvvlva(move); curr > limit {
 				t.Errorf("moves not sorted")
 			} else {
@@ -30,7 +32,7 @@ func TestReturnsHashMove(t *testing.T) {
 		hash := pos.UCIToMove(str)
 		st := &stack{}
 		st.Reset(pos)
-		st.GenerateMoves(false, hash)
+		st.GenerateMoves(All, hash)
 		if move := st.PopMove(); hash != move {
 			t.Errorf("#%d expected move %v, got %v", i, hash, move)
 		}
@@ -42,14 +44,14 @@ func TestReturnsMoves(t *testing.T) {
 	seen := make(map[Move]int)
 
 	var moves []Move
-	pos.GenerateMoves(&moves)
+	pos.GenerateMoves(All, &moves)
 	for _, m := range moves {
 		seen[m] |= 1
 	}
 
 	st := &stack{}
 	st.Reset(pos)
-	st.GenerateMoves(false, NullMove)
+	st.GenerateMoves(All, NullMove)
 	for m := st.PopMove(); m != NullMove; m = st.PopMove() {
 		if seen[m]&2 != 0 {
 			t.Errorf("move %v not expected", m)

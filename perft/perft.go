@@ -162,7 +162,7 @@ func perft(pos *engine.Position, depth int, hashTable []hashEntry, moves *[]engi
 
 	r := counters{}
 	start := len(*moves)
-	pos.GenerateMoves(moves)
+	pos.GenerateMoves(engine.All, moves)
 	for start < len(*moves) {
 		last := len(*moves) - 1
 		move := (*moves)[last]
@@ -211,7 +211,7 @@ func split(pos *engine.Position, depth, splitDepth int) counters {
 		r = perft(pos, depth, hashTable, &moves)
 	} else {
 		var moves []engine.Move
-		pos.GenerateMoves(&moves)
+		pos.GenerateMoves(engine.All, &moves)
 		for _, move := range moves {
 			pos.DoMove(move)
 			if !pos.IsChecked(pos.SideToMove.Opposite()) {

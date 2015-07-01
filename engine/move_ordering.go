@@ -107,10 +107,10 @@ type moveStack struct {
 	moves []Move
 	order []int16
 
-	violent bool    // true to generate violent moves
-	state   int     // current generation state
-	hash    Move    // hash move
-	killer  [4]Move // killer moves
+	kind   int     // violent or all
+	state  int     // current generation state
+	hash   Move    // hash move
+	killer [4]Move // killer moves
 }
 
 // stack is a stack of plies (movesStack).
@@ -135,11 +135,11 @@ func (st *stack) get() *moveStack {
 }
 
 // generateMoves generates all moves.
-func (st *stack) GenerateMoves(violent bool, hash Move) {
+func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms := st.get()
 	ms.moves = ms.moves[:0]
 	ms.order = ms.order[:0]
-	ms.violent = violent
+	ms.kind = kind
 	ms.state = msHash
 	ms.hash = hash
 	ms.killer = ms.killer // keep killers
@@ -154,7 +154,7 @@ func (st *stack) generateMoves() {
 	}
 
 	// Awards bonus for hash and killer moves.
-	st.position.GenerateMoves(&ms.moves)
+	st.position.GenerateMoves(ms.kind, &ms.moves)
 	for _, m := range ms.moves {
 		var weight int16
 		if m == ms.killer[0] {
@@ -168,22 +168,6 @@ func (st *stack) generateMoves() {
 		} else {
 			weight = mvvlva(m)
 		}
-		ms.order = append(ms.order, weight)
-	}
-}
-
-// generateViolentMoves generates all violent moves.
-// Called from quiescence search tree.
-func (st *stack) generateViolentMoves() {
-	ms := &st.moves[st.position.Ply]
-	if len(ms.moves) != 0 || len(ms.order) != 0 {
-		panic("expected no moves")
-	}
-
-	pos := st.position // shortcut
-	pos.GenerateViolentMoves(&ms.moves)
-	for _, m := range ms.moves {
-		weight := mvvlva(m)
 		ms.order = append(ms.order, weight)
 	}
 }
@@ -205,11 +189,7 @@ func (st *stack) PopMove() Move {
 		case msGenerate:
 			// Generate and score the moves.
 			ms.state = msBest
-			if ms.violent {
-				st.generateViolentMoves()
-			} else {
-				st.generateMoves()
-			}
+			st.generateMoves()
 
 		case msBest:
 			// Return the highest scoring move.
@@ -231,6 +211,7 @@ func (st *stack) PopMove() Move {
 			// Place last move instead of best move and pop the best move.
 			last := len(ms.moves) - 1
 			ms.moves[bi], ms.moves[bi] = ms.moves[last], ms.moves[last]
+			ms.order[bi], ms.order[bi] = ms.order[last], ms.order[last]
 			ms.moves = ms.moves[:last]
 			ms.order = ms.order[:last]
 			return bm

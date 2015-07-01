@@ -228,7 +228,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 	}
 
 	var bestMove Move
-	eng.stack.GenerateMoves(true, NullMove)
+	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		if move.MoveType() == Normal && eng.evaluation.SEESign(move) {
 			continue // Discard losing captures.
@@ -418,7 +418,7 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
-	eng.stack.GenerateMoves(false, hash)
+	eng.stack.GenerateMoves(All, hash)
 
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Reduce most quiet moves and bad captures.

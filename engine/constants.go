@@ -92,6 +92,17 @@ const (
 	BbFileH
 )
 
+const (
+	BbRank1 Bitboard = 0x0000000000000FF << (8 * iota)
+	BbRank2
+	BbRank3
+	BbRank4
+	BbRank5
+	BbRank6
+	BbRank7
+	BbRank8
+)
+
 var (
 	// Some positions commonly used for testing.
 	FENStartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

@@ -58,7 +58,7 @@ func (te *testEngine) Piece(sq Square, expected Piece) {
 func (te *testEngine) Pawn(sq Square, expected []string) {
 	end := 0
 	var actual []Move
-	te.Pos.GenerateFigureMoves(Pawn, &actual)
+	te.Pos.GenerateFigureMoves(Pawn, All, &actual)
 	for i := range actual {
 		if actual[i].From() == sq {
 			actual[end] = actual[i]
@@ -70,33 +70,33 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 
 func (te *testEngine) Knight(expected []string) {
 	var actual []Move
-	te.Pos.genKnightMoves(false, &actual)
+	te.Pos.genKnightMoves(All, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Bishop(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Bishop, false, &actual)
+	te.Pos.genBishopMoves(Bishop, All, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Rook(expected []string) {
 	var actual []Move
-	te.Pos.genRookMoves(Rook, false, &actual)
+	te.Pos.genRookMoves(Rook, All, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Queen(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Queen, false, &actual)
-	te.Pos.genRookMoves(Queen, false, &actual)
+	te.Pos.genBishopMoves(Queen, All, &actual)
+	te.Pos.genRookMoves(Queen, All, &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) King(expected []string) {
 	var actual []Move
-	te.Pos.genKingMovesNear(false, &actual)
-	te.Pos.genKingCastles(&actual)
+	te.Pos.genKingMovesNear(All, &actual)
+	te.Pos.genKingCastles(All, &actual)
 	testMoves(te.T, actual, expected)
 }
 
@@ -405,11 +405,11 @@ func TestgenPawnAdvanceMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.SideToMove = White
-	pos.genPawnAdvanceMoves(false, &moves)
+	pos.genPawnAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
 	pos.SideToMove = Black
-	pos.genPawnAdvanceMoves(false, &moves)
+	pos.genPawnAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
 
@@ -418,11 +418,11 @@ func TestgenPawnDoubleAdvanceMoves(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 
 	pos.SideToMove = White
-	pos.genPawnDoubleAdvanceMoves(&moves)
+	pos.genPawnDoubleAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d2d4", "e2e4"})
 
 	pos.SideToMove = Black
-	pos.genPawnDoubleAdvanceMoves(&moves)
+	pos.genPawnDoubleAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d7d5", "f7f5"})
 }
 
@@ -431,12 +431,12 @@ func TestGenPawnAttackMoves1(t *testing.T) {
 
 	var moves []Move
 	pos.SideToMove = White
-	pos.genPawnAttackMoves(false, &moves)
+	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
 	moves = moves[:0]
 	pos.SideToMove = Black
-	pos.genPawnAttackMoves(false, &moves)
+	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
 
@@ -445,12 +445,12 @@ func TestGenPawnAttackMoves2(t *testing.T) {
 
 	var moves []Move
 	pos.SideToMove = White
-	pos.genPawnAttackMoves(false, &moves)
+	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
 	moves = moves[:0]
 	pos.SideToMove = Black
-	pos.genPawnAttackMoves(false, &moves)
+	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
 
@@ -475,7 +475,7 @@ func TestGenPawnEnpassant(t *testing.T) {
 	}
 
 	var moves []Move
-	pos.GenerateFigureMoves(Pawn, &moves)
+	pos.GenerateFigureMoves(Pawn, All, &moves)
 	if 2 != len(moves) {
 		t.Fatalf("expected 2 moves, got %d", len(moves))
 	}
@@ -673,7 +673,7 @@ func TestPanicPosition(t *testing.T) {
 	var moves []Move
 	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
 	pos, _ := PositionFromFEN(fen)
-	pos.GenerateMoves(&moves)
+	pos.GenerateMoves(All, &moves)
 	for _, m := range moves {
 		pos.DoMove(m)
 		pos.UndoMove(m)
@@ -800,5 +800,80 @@ func TestNullMoveCastlingAbility(t *testing.T) {
 	}
 	if AnyCastle != pos.CastlingAbility() {
 		t.Fatalf("bad nullmove CastlingAbility. expected %v, got %v", AnyCastle, pos.CastlingAbility())
+	}
+}
+
+func TestGenerateMovesKind(t *testing.T) {
+	for _, fen := range testFENs {
+		pos, _ := PositionFromFEN(fen)
+
+		v := make(map[Move]int)
+		for _, k := range []int{Violent, Tactical, Quiet} {
+			var moves []Move
+			pos.GenerateMoves(k, &moves)
+			for _, m := range moves {
+				v[m] |= k
+			}
+		}
+
+		for m, k := range v {
+			if k != Violent && k != Tactical && k != Quiet {
+				t.Errorf("invalid kind for move %v, fen %s", m, fen)
+			}
+		}
+
+		var all []Move
+		pos.GenerateMoves(All, &all)
+		if len(all) != len(v) {
+			t.Errorf("Expected %d moves, got %d", len(all), len(v))
+		}
+	}
+}
+
+func TestGenerateMovesQuiet(t *testing.T) {
+	for _, fen := range testFENs {
+		var all []Move
+		pos, _ := PositionFromFEN(fen)
+		pos.GenerateMoves(Quiet, &all)
+		for _, m := range all {
+			if m.MoveType() != Normal || m.Capture() != NoPiece {
+				t.Errorf("Expected quiet move, got %v", m)
+			}
+		}
+	}
+}
+
+func TestGenerateMovesTactical(t *testing.T) {
+	for _, fen := range testFENs {
+		var all []Move
+		pos, _ := PositionFromFEN(fen)
+		pos.GenerateMoves(Tactical, &all)
+		for _, m := range all {
+			if m.MoveType() != Castling && (m.MoveType() != Promotion || m.Target().Figure() == Queen) {
+				t.Errorf("Expected tactical move, got %v", m)
+			}
+		}
+	}
+}
+
+func TestGenerateMovesColor(t *testing.T) {
+	for _, fen := range testFENs {
+		var all []Move
+		pos, _ := PositionFromFEN(fen)
+		pos.GenerateMoves(All, &all)
+		for _, m := range all {
+			if m.Piece().Color() != pos.SideToMove {
+				t.Errorf("for move %v and fen %v", m, fen)
+				t.Errorf("expected piece color %v, got %v", pos.SideToMove, m.Piece().Color())
+			}
+			if m.Target().Color() != pos.SideToMove {
+				t.Errorf("for move %v and fen %v", m, fen)
+				t.Errorf("expected target color %v, got %v", pos.SideToMove, m.Piece().Color())
+			}
+			if m.MoveType() == Promotion && m.Promotion().Color() != pos.SideToMove {
+				t.Errorf("for move %v and fen %v", m, fen)
+				t.Errorf("expected target color %v, got %v", pos.SideToMove, m.Piece().Color())
+			}
+		}
 	}
 }
