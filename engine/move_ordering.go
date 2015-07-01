@@ -34,12 +34,20 @@ const (
 
 const (
 	// Move generation states.
-	msHash     = iota // return hash move
-	msGenerate        // generate all moves
-	msBest            // return only the best move
-	msSort            // sort remaining moves
-	msReturn          // return all moves
-	msDone            // all moves returned
+
+	msHash = iota // return hash move
+
+	msGenViolent    // generate moves
+	msBestViolent   // return best
+	msSortViolent   // sort
+	msReturnViolent // return in order
+
+	msGenRest    // generate moves
+	msBestRest   // return best
+	msSortRest   // sort
+	msReturnRest // return in order
+
+	msDone // all moves returned
 )
 
 // SetMvvLva sets the MVV/LVA table.
@@ -147,14 +155,17 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 
 // generateMoves generates all moves.
 // Called from main search tree which has hash and killer moves available.
-func (st *stack) generateMoves() {
+func (st *stack) generateMoves(kind int) {
 	ms := &st.moves[st.position.Ply]
 	if len(ms.moves) != 0 || len(ms.order) != 0 {
 		panic("expected no moves")
 	}
+	if ms.kind&kind == 0 {
+		return
+	}
 
 	// Awards bonus for hash and killer moves.
-	st.position.GenerateMoves(ms.kind, &ms.moves)
+	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
 	for _, m := range ms.moves {
 		var weight int16
 		if m == ms.killer[0] {
@@ -172,71 +183,91 @@ func (st *stack) generateMoves() {
 	}
 }
 
+// pushBest moves best move to front.
+func (st *stack) moveBest() {
+	ms := &st.moves[st.position.Ply]
+	bi := -1
+	for i, m := range ms.moves {
+		if m != ms.hash && (bi == -1 || ms.order[i] > ms.order[bi]) {
+			bi = i
+		}
+	}
+
+	if bi != -1 {
+		last := len(ms.moves) - 1
+		ms.moves[bi], ms.moves[last] = ms.moves[last], ms.moves[bi]
+		ms.order[bi], ms.order[last] = ms.order[last], ms.order[bi]
+	}
+}
+
+// popFront pops the move from the front
+func (st *stack) popFront() Move {
+	ms := &st.moves[st.position.Ply]
+	if len(ms.moves) == 0 {
+		return NullMove
+	}
+
+	last := len(ms.moves) - 1
+	move := ms.moves[last]
+	ms.moves = ms.moves[:last]
+	ms.order = ms.order[:last]
+
+	if move == ms.hash {
+		// If the front move is the hash move, then try next move.
+		return st.popFront()
+	}
+	return move
+}
+
 // Pop pops a new move.
 // Returns NullMove if there are no moves.
+// Moves are generated in several phases:
+//	first hash move, then violent moves, then tactical and quiet moves.
+// Each phase has several subphases:
+//	generate moves, pick the best, sort&return the remaining
 func (st *stack) PopMove() Move {
 	ms := &st.moves[st.position.Ply]
 	for {
 		switch ms.state {
 		case msHash:
 			// Return the hash move directly without generating the pseudo legal moves.
-			ms.state = msGenerate
+			ms.state = msGenViolent
 			if ms.hash != NullMove {
 				// TODO verify integrity
 				return ms.hash
 			}
 
-		case msGenerate:
-			// Generate and score the moves.
-			ms.state = msBest
-			st.generateMoves()
+		case msGenViolent:
+			ms.state++
+			st.generateMoves(Violent)
+		case msGenRest:
+			ms.state++
+			st.generateMoves(Tactical | Quiet)
 
-		case msBest:
-			// Return the highest scoring move.
-			// Usually this one fails high so sorting can be skipped.
-			ms.state = msSort
-			bi, bm := -1, NullMove
-			for i, m := range ms.moves {
-				if m != ms.hash && (bi == -1 || ms.order[i] > ms.order[bi]) {
-					bi, bm = i, m
-				}
+		case msBestViolent:
+			fallthrough
+		case msBestRest:
+			ms.state++
+			st.moveBest()
+			if m := st.popFront(); m != NullMove {
+				return m
 			}
 
-			if bi == -1 {
-				// No move, except maybe hash move which was already returned.
-				ms.state = msDone
-				return NullMove
-			}
-
-			// Place last move instead of best move and pop the best move.
-			last := len(ms.moves) - 1
-			ms.moves[bi], ms.moves[bi] = ms.moves[last], ms.moves[last]
-			ms.order[bi], ms.order[bi] = ms.order[last], ms.order[last]
-			ms.moves = ms.moves[:last]
-			ms.order = ms.order[:last]
-			return bm
-
-		case msSort:
-			ms.state = msReturn
+		case msSortViolent:
+			fallthrough
+		case msSortRest:
+			ms.state++
 			hs := &heapSort{ms.moves, ms.order}
 			hs.sort()
 
-		case msReturn:
-			// At this step moves are returned in order of their score.
-			if len(ms.moves) == 0 {
-				// No moves remaining, nothing to pop.
-				ms.state = msDone
-				return NullMove
+		case msReturnViolent:
+			fallthrough
+		case msReturnRest:
+			if m := st.popFront(); m != NullMove {
+				return m
 			}
-
-			last := len(ms.moves) - 1
-			move := ms.moves[last]
-			ms.moves = ms.moves[:last]
-			ms.order = ms.order[:last]
-			if move != ms.hash {
-				// hash move was already returned
-				return move
-			}
+			// Update the state only when there are no moves left.
+			ms.state++
 
 		case msDone:
 			// Just in case another move is requested.

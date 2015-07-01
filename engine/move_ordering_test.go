@@ -1,23 +1,20 @@
 package engine
 
 import (
-	"math"
 	"testing"
 )
 
-func TestStack(t *testing.T) {
+func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 	for _, fen := range testFENs {
 		pos, _ := PositionFromFEN(fen)
 		st := &stack{} // no killer, no hash
 		st.Reset(pos)
-		st.GenerateMoves(All, NullMove)
+		st.GenerateMoves(Violent, NullMove)
 
-		t.Log("fen ", fen)
-		limit := int16(math.MaxInt16)
+		limit := int16(0x7fff)
 		for move := st.PopMove(); move != NullMove; move = st.PopMove() {
-			t.Log(move, " ", mvvlva(move))
 			if curr := mvvlva(move); curr > limit {
-				t.Errorf("moves not sorted")
+				t.Errorf("moves not sorted: %v", move)
 			} else {
 				limit = curr
 			}
