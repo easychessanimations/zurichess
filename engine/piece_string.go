@@ -6,7 +6,7 @@ import "fmt"
 
 const (
 	_Piece_name_0 = "NoPiece"
-	_Piece_name_1 = "WhitePawnBlackPawnWhiteKnightBlackKnightWhiteBishopBlackBishopWhiteRookBlackRookWhiteQueenBlackQueenWhiteKingBlackKing"
+	_Piece_name_1 = "BlackPawnWhitePawnBlackKnightWhiteKnightBlackBishopWhiteBishopBlackRookWhiteRookBlackQueenWhiteQueenBlackKingWhiteKing"
 )
 
 var (
