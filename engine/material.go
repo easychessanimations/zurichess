@@ -19,27 +19,26 @@ var (
 	// Used with PieceSquareTables which are from White's POV.
 	colorMask = [3]Square{0x00, 0x38, 0x00}
 
-	// Bonuses and penalties have type int in order to prevent accidental
-	// overflows during computation of the position's score.
+	// GlobalMaterial is the shared material values.
 	GlobalMaterial = Material{
-		ConnectedPawn:   Score{4, 13},
-		DoublePawn:      Score{12, 14},
-		IsolatedPawn:    Score{9, -2},
-		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {20, 64}, {27, 98}, {62, 145}, {101, 192}, {0, 0}},
-		BishopPairBonus: Score{36, 38},
-		Mobility:        [FigureArraySize]Score{{0, 0}, {0, 0}, {8, 7}, {3, 8}, {7, 5}, {2, 5}, {-5, -4}},
-		FigureBonus:     [FigureArraySize]Score{{0, 0}, {0, 0}, {311, 285}, {332, 308}, {408, 581}, {1036, 1054}, {20000, 20000}},
+		ConnectedPawn:   Score{11, 2},
+		DoublePawn:      Score{3, 19},
+		IsolatedPawn:    Score{5, 3},
+		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}},
+		BishopPairBonus: Score{28, 45},
+		Mobility:        [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}},
+		FigureBonus:     [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
 			{ // Pawn
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-				{70, 104}, {54, 118}, {56, 109}, {67, 67}, {64, 79}, {73, 107}, {75, 97}, {69, 84},
-				{59, 118}, {50, 110}, {61, 105}, {59, 96}, {66, 102}, {59, 115}, {75, 98}, {70, 102},
-				{53, 126}, {57, 118}, {61, 101}, {78, 88}, {77, 102}, {66, 92}, {50, 109}, {58, 104},
-				{52, 144}, {43, 122}, {66, 108}, {72, 91}, {77, 79}, {75, 105}, {46, 130}, {60, 121},
-				{47, 159}, {61, 131}, {53, 122}, {84, 104}, {72, 86}, {54, 107}, {84, 129}, {70, 134},
-				{64, 136}, {83, 119}, {71, 97}, {69, 77}, {105, 98}, {57, 115}, {91, 103}, {95, 120},
+				{1, 10}, {4, 7}, {2, -1}, {3, 1}, {-5, 5}, {16, 18}, {14, 11}, {17, -2},
+				{2, 11}, {0, 7}, {0, -1}, {-2, 7}, {7, 11}, {3, 9}, {12, 8}, {5, 7},
+				{0, 33}, {1, 13}, {11, 19}, {17, 7}, {15, 4}, {-2, 10}, {-2, 20}, {4, 19},
+				{4, 47}, {5, 33}, {4, 11}, {21, 9}, {14, 4}, {19, 5}, {3, 28}, {-1, 29},
+				{17, 71}, {4, 45}, {52, 24}, {17, 48}, {27, 29}, {15, 37}, {37, 33}, {15, 40},
+				{30, 69}, {47, 66}, {26, 30}, {3, 20}, {40, 45}, {22, 53}, {25, 67}, {12, 70},
 				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
 			},
 			{}, // Knight
@@ -157,6 +156,8 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(us.Opposite(), Pawn)
 
+	score = mat.FigureBonus[Pawn].Times(ours.Popcnt())
+
 	// From white's POV (P - white pawn, p - black pawn).
 	// block   wings
 	// ....... .....
@@ -219,6 +220,17 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	// Award connected bishops.
 	score := mat.BishopPairBonus.Times(int32(pos.NumPieces[us][Bishop] / 2))
 
+	// Award pawn forward mobility.
+	// Forward mobility is important especially in the end game to
+	// allow pawns to promote.
+	// Pawn psqt and figure bonus are computed by pawnStructure.
+	mobility := Bitboard(0)
+	ours := pos.ByPiece(us, Pawn)
+	mobility = Forward(us, ours) &^ (pos.ByColor[White] | pos.ByColor[Black])
+	score = score.Plus(mat.Mobility[Pawn].Times(mobility.Popcnt()))
+
+	// Knight and bishop mobility considers only pawns.
+	// We exclude minors and majors because they enable tactics.
 	all := pos.ByFigure[Pawn]
 	for bb := pos.ByPiece(us, Knight); bb != 0; {
 		sq := bb.Pop()
@@ -232,6 +244,9 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 		score = score.Plus(mat.FigureBonus[Bishop])
 		score = score.Plus(mat.Mobility[Bishop].Times(bishop.Popcnt()))
 	}
+
+	// Rook and Queen mobility considers only pawns and minor pieces.
+	// We exclude majors because they enable tactics.
 	all = pos.ByFigure[Pawn] | pos.ByFigure[Knight] | pos.ByFigure[Bishop]
 	for bb := pos.ByPiece(us, Rook); bb != 0; {
 		sq := bb.Pop()
