@@ -37,11 +37,11 @@ const (
 
 	msHash = iota // return hash move
 
+	// Generate violent and return one by one in order.
 	msGenViolent    // generate moves
-	msBestViolent   // return best
-	msSortViolent   // sort
-	msReturnViolent // return in order
+	msReturnViolent // return best moves in order
 
+	// Generate tactical&quiet, return best, sort, return one by one.
 	msGenRest    // generate moves
 	msBestRest   // return best
 	msSortRest   // sort
@@ -183,7 +183,7 @@ func (st *stack) generateMoves(kind int) {
 	}
 }
 
-// pushBest moves best move to front.
+// moveBest moves best move to front.
 func (st *stack) moveBest() {
 	ms := &st.moves[st.position.Ply]
 	bi := -1
@@ -213,7 +213,7 @@ func (st *stack) popFront() Move {
 	ms.order = ms.order[:last]
 
 	if move == ms.hash {
-		// If the front move is the hash move, then try next move.
+		// If the front move is the hash move, then the try next move.
 		return st.popFront()
 	}
 	return move
@@ -222,13 +222,14 @@ func (st *stack) popFront() Move {
 // Pop pops a new move.
 // Returns NullMove if there are no moves.
 // Moves are generated in several phases:
-//	first hash move, then violent moves, then tactical and quiet moves.
-// Each phase has several subphases:
-//	generate moves, pick the best, sort&return the remaining
+//	first the hash move,
+//      then the violent moves,
+//      then the tactical and quiet moves.
 func (st *stack) PopMove() Move {
 	ms := &st.moves[st.position.Ply]
 	for {
 		switch ms.state {
+		// Return the hash move.
 		case msHash:
 			// Return the hash move directly without generating the pseudo legal moves.
 			ms.state = msGenViolent
@@ -237,37 +238,50 @@ func (st *stack) PopMove() Move {
 				return ms.hash
 			}
 
+		// Return the violent moves.
 		case msGenViolent:
-			ms.state++
+			ms.state = msReturnViolent
 			st.generateMoves(Violent)
+
+		case msReturnViolent:
+			// Most positions have only very violent moves so
+			// it doesn't make sense to sort given that captures have a high
+			// chance to fail high. We just pop the moves in order of score.
+			st.moveBest()
+			if m := st.popFront(); m != NullMove {
+				return m
+			}
+			if ms.kind&(Tactical|Quiet) == 0 {
+				// Optimization: skip remaining steps if no Tactical or Quiet moves
+				// were requested (e.g. in quiescence search).
+				ms.state = msDone
+			} else {
+				ms.state = msGenRest
+			}
+
+		// Return the quiet and tactical moves.
 		case msGenRest:
-			ms.state++
+			ms.state = msBestRest
 			st.generateMoves(Tactical | Quiet)
 
-		case msBestViolent:
-			fallthrough
 		case msBestRest:
-			ms.state++
+			ms.state = msSortRest
 			st.moveBest()
 			if m := st.popFront(); m != NullMove {
 				return m
 			}
 
-		case msSortViolent:
-			fallthrough
 		case msSortRest:
-			ms.state++
+			ms.state = msReturnRest
 			hs := &heapSort{ms.moves, ms.order}
 			hs.sort()
 
-		case msReturnViolent:
-			fallthrough
 		case msReturnRest:
 			if m := st.popFront(); m != NullMove {
 				return m
 			}
 			// Update the state only when there are no moves left.
-			ms.state++
+			ms.state = msDone
 
 		case msDone:
 			// Just in case another move is requested.
