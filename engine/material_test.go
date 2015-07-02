@@ -19,14 +19,23 @@ func (e *Evaluation) seeSlow(m Move, root bool) int32 {
 		if n.To() != m.To() {
 			continue
 		}
-		pi, sq := n.Piece().Figure(), n.From()
-		if next == NullMove || pi < next.Piece().Figure() || (pi == next.Piece().Figure() && sq < next.From()) {
+
+		// If the move is a promotion, consider the attacker to be a queen.
+		fig, sq := n.Target().Figure(), n.From()
+		if next == NullMove || fig < next.Piece().Figure() || (fig == next.Piece().Figure() && sq < next.From()) {
 			next = n
 		}
 	}
 
+	// Compute the score change.
+	bonus := e.material.FigureBonus[m.Capture().Figure()].M
+	if m.MoveType() == Promotion {
+		bonus -= e.material.FigureBonus[Pawn].M
+		bonus += e.material.FigureBonus[m.Target().Figure()].M
+	}
+
 	// Recursively compute the see.
-	see := e.material.FigureBonus[m.Capture().Figure()].M - e.seeSlow(next, false)
+	see := bonus - e.seeSlow(next, false)
 	e.position.UndoMove(m)
 
 	if root || see > 0 {

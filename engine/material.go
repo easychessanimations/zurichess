@@ -312,6 +312,10 @@ func (e *Evaluation) SEESign(m Move) bool {
 	return e.SEE(m) < 0
 }
 
+func (e *Evaluation) bonus(fig Figure) int32 {
+	return e.material.FigureBonus[fig].M
+}
+
 // SEE returns the static exchange evaluation for m.
 //
 // https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
@@ -326,6 +330,8 @@ func (e *Evaluation) SEE(m Move) int32 {
 
 	sq := m.To()
 	bb := sq.Bitboard()
+	bb26 := bb &^ (BbRank1 | BbRank7)
+	bb17 := bb & (BbRank1 | BbRank7)
 
 	pos := e.position
 	us := pos.SideToMove
@@ -335,8 +341,16 @@ func (e *Evaluation) SEE(m Move) int32 {
 	occ[Black] = pos.ByColor[Black] &^ bb
 
 	for {
+		// bonus is how much the score is adjusted.
+		bonus := e.bonus(m.Capture().Figure())
+		if m.MoveType() == Promotion {
+			bonus -= e.bonus(Pawn)
+			bonus += e.bonus(m.Target().Figure())
+		}
+
+		// m is the last move executed.
 		exec = append(exec, m)
-		swap = append(swap, e.material.FigureBonus[m.Capture().Figure()].M)
+		swap = append(swap, bonus)
 
 		// Update occupancy tables for executing the move.
 		occ[us] = occ[us] &^ m.From().Bitboard()
@@ -350,10 +364,12 @@ func (e *Evaluation) SEE(m Move) int32 {
 		var att Bitboard                // attackers
 		var pawn, bishop, rook Bitboard // mobilies for our figures
 
-		// Try every piece in order of value.
+		// Try every figure in order of value.
+		mt := Normal
 
-		pawn = Backward(us, West(bb)|East(bb))
-		fig, att = fig, pawn&ours&pos.ByFigure[Pawn]
+		// Pawn attacks.
+		pawn = Backward(us, West(bb26)|East(bb26))
+		fig, att = Pawn, pawn&ours&pos.ByFigure[Pawn]
 		if att != 0 {
 			goto makeMove
 		}
@@ -380,6 +396,14 @@ func (e *Evaluation) SEE(m Move) int32 {
 			goto makeMove
 		}
 
+		// Pawn promotions are considered queens minus the pawn.
+		pawn = Backward(us, West(bb17)|East(bb17))
+		fig, att = Queen, pawn&ours&pos.ByFigure[Pawn]
+		if att != 0 {
+			mt = Promotion
+			goto makeMove
+		}
+
 		fig, att = Queen, (rook|bishop)&ours&pos.ByFigure[Queen]
 		if att != 0 {
 			goto makeMove
@@ -392,8 +416,8 @@ func (e *Evaluation) SEE(m Move) int32 {
 
 	makeMove:
 		if att != 0 {
-			from := att.Pop()
-			m = MakeMove(Normal, from, sq, m.Piece(), ColorFigure(us, fig))
+			// Make a new pseudo-legal move of the smallest attacker.
+			m = MakeMove(mt, att.Pop(), sq, m.Target(), ColorFigure(us, fig))
 		} else {
 			break
 		}
