@@ -4,9 +4,16 @@ import (
 	"testing"
 )
 
-func (e *Evaluation) seeSlow(m Move, root bool) int32 {
-	if m == NullMove {
-		return 0
+func (e *Evaluation) seeSlow(m Move, score int32) int32 {
+	if m == NullMove || score > 0 {
+		return score
+	}
+
+	// Compute the score change.
+	score += e.bonus(m.Capture().Figure())
+	if m.MoveType() == Promotion {
+		score -= e.bonus(Pawn)
+		score += e.bonus(m.Target().Figure())
 	}
 
 	e.position.DoMove(m)
@@ -27,21 +34,14 @@ func (e *Evaluation) seeSlow(m Move, root bool) int32 {
 		}
 	}
 
-	// Compute the score change.
-	bonus := e.material.FigureBonus[m.Capture().Figure()].M
-	if m.MoveType() == Promotion {
-		bonus -= e.material.FigureBonus[Pawn].M
-		bonus += e.material.FigureBonus[m.Target().Figure()].M
-	}
-
 	// Recursively compute the see.
-	see := bonus - e.seeSlow(next, false)
+	see := -e.seeSlow(next, -score)
 	e.position.UndoMove(m)
 
-	if root || see > 0 {
-		return see
+	if see > score {
+		return score
 	}
-	return 0
+	return see
 }
 
 func TestSEE(t *testing.T) {
@@ -53,7 +53,7 @@ func TestSEE(t *testing.T) {
 		e.position.GenerateMoves(All, &moves)
 		for _, m := range moves {
 			actual := e.SEE(m)
-			expected := e.seeSlow(m, true)
+			expected := e.seeSlow(m, 0)
 			if expected != actual {
 				t.Errorf("#%d expected %d, got %d\nfor %v on %v", i, expected, actual, m, fen)
 				bad++
@@ -78,7 +78,7 @@ func BenchmarkSEESlow(b *testing.B) {
 	e.position.GenerateMoves(All, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
-			e.seeSlow(m, true)
+			e.seeSlow(m, 0)
 		}
 	}
 }

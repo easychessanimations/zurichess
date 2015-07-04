@@ -324,9 +324,6 @@ func (e *Evaluation) bonus(fig Figure) int32 {
 // The implementation here is optimized for the common case when there
 // isn't any capture following the move.
 func (e *Evaluation) SEE(m Move) int32 {
-	var occ [ColorArraySize]Bitboard
-	swap := make([]int32, 0, 8)
-
 	sq := m.To()
 	bb := sq.Bitboard()
 	bb26 := bb &^ (BbRank1 | BbRank7)
@@ -335,19 +332,24 @@ func (e *Evaluation) SEE(m Move) int32 {
 	pos := e.position
 	us := pos.SideToMove
 	them := us.Opposite()
-	all := (pos.ByColor[White] | pos.ByColor[Black]) &^ bb
+
+	// Occupancy tables as if moves are executed.
+	var occ [ColorArraySize]Bitboard
 	occ[White] = pos.ByColor[White] &^ bb
 	occ[Black] = pos.ByColor[Black] &^ bb
+	all := occ[White] | occ[Black]
 
-	for {
+	gain := make([]int32, 0, 4)
+	for score := int32(0); score >= 0; {
 		// m is the last move executed.
-		// bonus is how much the score is adjusted.
-		bonus := e.bonus(m.Capture().Figure())
+		// Adjust score for current player.
+		score = -score
+		score += e.bonus(m.Capture().Figure())
 		if m.MoveType() == Promotion {
-			bonus -= e.bonus(Pawn)
-			bonus += e.bonus(m.Target().Figure())
+			score -= e.bonus(Pawn)
+			score += e.bonus(m.Target().Figure())
 		}
-		swap = append(swap, bonus)
+		gain = append(gain, score)
 
 		// Update occupancy tables for executing the move.
 		occ[us] = occ[us] &^ m.From().Bitboard()
@@ -420,15 +422,12 @@ func (e *Evaluation) SEE(m Move) int32 {
 		}
 	}
 
-	// Iterative linear minimax.
-	tmp := swap[len(swap)-1]
-	for i := len(swap) - 2; i >= 0; i-- {
-		tmp = swap[i] - tmp
-		if i > 0 && tmp < 0 {
-			tmp = 0
+	for i := len(gain) - 2; i >= 0; i-- {
+		if -gain[i+1] < gain[i] {
+			gain[i] = -gain[i+1]
 		}
 	}
-	return tmp
+	return gain[0]
 }
 
 // SetMaterialValue parses str and updates array.
