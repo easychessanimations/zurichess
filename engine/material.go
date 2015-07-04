@@ -325,7 +325,6 @@ func (e *Evaluation) bonus(fig Figure) int32 {
 // isn't any capture following the move.
 func (e *Evaluation) SEE(m Move) int32 {
 	var occ [ColorArraySize]Bitboard
-	exec := make([]Move, 0, 8)
 	swap := make([]int32, 0, 8)
 
 	sq := m.To()
@@ -341,15 +340,13 @@ func (e *Evaluation) SEE(m Move) int32 {
 	occ[Black] = pos.ByColor[Black] &^ bb
 
 	for {
+		// m is the last move executed.
 		// bonus is how much the score is adjusted.
 		bonus := e.bonus(m.Capture().Figure())
 		if m.MoveType() == Promotion {
 			bonus -= e.bonus(Pawn)
 			bonus += e.bonus(m.Target().Figure())
 		}
-
-		// m is the last move executed.
-		exec = append(exec, m)
 		swap = append(swap, bonus)
 
 		// Update occupancy tables for executing the move.
