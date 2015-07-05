@@ -28,7 +28,7 @@ var (
 		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {20, 64}, {27, 98}, {62, 145}, {101, 192}, {0, 0}},
 		BishopPairBonus: Score{36, 38},
 		Mobility:        [FigureArraySize]Score{{0, 0}, {0, 0}, {8, 7}, {3, 8}, {7, 5}, {2, 5}, {-5, -4}},
-		FigureBonus:     [FigureArraySize]Score{{0, 0}, {0, 0}, {311, 285}, {332, 308}, {408, 581}, {1036, 1054}, {0, 0}},
+		FigureBonus:     [FigureArraySize]Score{{0, 0}, {0, 0}, {311, 285}, {332, 308}, {408, 581}, {1036, 1054}, {20000, 20000}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
@@ -326,8 +326,8 @@ func (e *Evaluation) bonus(fig Figure) int32 {
 func (e *Evaluation) SEE(m Move) int32 {
 	sq := m.To()
 	bb := sq.Bitboard()
-	bb26 := bb &^ (BbRank1 | BbRank7)
-	bb17 := bb & (BbRank1 | BbRank7)
+	bb27 := bb &^ (BbRank1 | BbRank8)
+	bb18 := bb & (BbRank1 | BbRank8)
 
 	pos := e.position
 	us := pos.SideToMove
@@ -367,7 +367,7 @@ func (e *Evaluation) SEE(m Move) int32 {
 		mt := Normal
 
 		// Pawn attacks.
-		pawn = Backward(us, West(bb26)|East(bb26))
+		pawn = Backward(us, West(bb27)|East(bb27))
 		fig, att = Pawn, pawn&ours&pos.ByFigure[Pawn]
 		if att != 0 {
 			goto makeMove
@@ -396,7 +396,7 @@ func (e *Evaluation) SEE(m Move) int32 {
 		}
 
 		// Pawn promotions are considered queens minus the pawn.
-		pawn = Backward(us, West(bb17)|East(bb17))
+		pawn = Backward(us, West(bb18)|East(bb18))
 		fig, att = Queen, pawn&ours&pos.ByFigure[Pawn]
 		if att != 0 {
 			mt = Promotion

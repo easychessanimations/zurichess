@@ -29,7 +29,7 @@ func (e *Evaluation) seeSlow(m Move, score int32) int32 {
 
 		// If the move is a promotion, consider the attacker to be a queen.
 		fig, sq := n.Target().Figure(), n.From()
-		if next == NullMove || fig < next.Piece().Figure() || (fig == next.Piece().Figure() && sq < next.From()) {
+		if next == NullMove || fig < next.Target().Figure() || (fig == next.Piece().Figure() && sq < next.From()) {
 			next = n
 		}
 	}
