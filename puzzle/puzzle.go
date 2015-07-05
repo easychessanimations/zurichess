@@ -19,7 +19,7 @@ var (
 	input      = flag.String("input", "", "file with EPD lines")
 	output     = flag.String("output", "", "file to write EPD with solutions")
 	deadline   = flag.Duration("deadline", 0, "how much time to spend for each move")
-	depth      = flag.Int("depth", 0, "search up to max_depth plies")
+	depth      = flag.Int("depth", -1, "search up to max_depth plies")
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	quiet      = flag.Bool("quiet", false, "don't print individual tests")
 
@@ -96,7 +96,7 @@ func main() {
 		var timeControl *engine.TimeControl
 		if *deadline != 0 {
 			timeControl = engine.NewDeadlineTimeControl(epd.Position, *deadline)
-		} else if *depth != 0 {
+		} else if *depth != -1 {
 			timeControl = engine.NewFixedDepthTimeControl(epd.Position, *depth)
 		} else {
 			log.Fatal("--deadline or --depth must be specified")
@@ -135,7 +135,9 @@ func main() {
 		}
 
 		if fout != nil {
-			epd.BestMove = []engine.Move{actual[0]}
+			if len(actual) != 0 {
+				epd.BestMove = []engine.Move{actual[0]}
+			}
 			fmt.Fprintln(fout, epd.String())
 		}
 
