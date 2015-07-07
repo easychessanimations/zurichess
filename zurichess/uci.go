@@ -242,17 +242,10 @@ func (uci *UCI) stop(line string) error {
 // Should run in its own separate goroutine.
 func (uci *UCI) play() {
 	moves := uci.Engine.Play(uci.timeControl)
-	hit, miss := uci.Engine.Stats.CacheHit, uci.Engine.Stats.CacheMiss
-	log.Printf("hash: size %d, hit %d, miss %d, ratio %.2f%%",
-		engine.GlobalHashTable.Size(), hit, miss,
-		float32(hit)/float32(hit+miss)*100)
 
 	// If pondering was requested it will block because the channel is full.
 	uci.ponder <- struct{}{}
 	<-uci.ponder
-
-	// Marks the engine as ready.
-	<-uci.ready
 
 	if len(moves) == 0 {
 		fmt.Printf("bestmove (none)\n")
@@ -261,6 +254,13 @@ func (uci *UCI) play() {
 	} else {
 		fmt.Printf("bestmove %v ponder %v\n", moves[0].UCI(), moves[1].UCI())
 	}
+
+	// Marks the engine as ready.
+	// If the engine is made ready before best move is shown
+	// then sometimes (at very high rate of commands position / go)
+	// there is a race info / bestmove lines are intermixed wrongly.
+	// This confuses the tuner, at least.
+	<-uci.ready
 }
 
 var reOption = regexp.MustCompile(`^setoption\s+name\s+(.+?)(\s+value\s+(.*))?$`)
