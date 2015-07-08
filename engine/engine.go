@@ -259,11 +259,11 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 // ply is the move number (increasing).
 // depth is the fractional depth (decreasing)
 // nullWindow indicates whether to scout first. Implies non-null move.
-// lateMove indicates this move is late and should be reduce. Implies non-null move.
+// lmr is how much to reduce a late move. Implies non-null move.
 // move is the move to execute
 //
 // Returns the score from the deeper search.
-func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, move Move) int16 {
+func (eng *Engine) tryMove(α, β, depth, lmr int16, nullWindow bool, move Move) int16 {
 	depth--
 	pos := eng.Position // shortcut
 	us := pos.SideToMove
@@ -276,7 +276,7 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 		return -InfinityScore
 	}
 	if pos.IsChecked(them) {
-		lateMove = false // tactical, dangerous
+		lmr = 0 // tactical, dangerous
 
 		// Extend the search when our move gives check.
 		// However do not extend if we can just take the undefended piece.
@@ -288,8 +288,8 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 	}
 
 	score := α + 1
-	if lateMove { // reduce late moves
-		score = -eng.searchTree(-α-1, -α, depth-1, true)
+	if lmr > 0 { // reduce late moves
+		score = -eng.searchTree(-α-1, -α, depth-lmr, true)
 	}
 
 	if score > α { // if late move reduction is disabled or has failed
@@ -310,6 +310,13 @@ func (eng *Engine) tryMove(α, β, depth int16, nullWindow bool, lateMove bool, 
 // ply returns the ply from the beginning of the search.
 func (eng *Engine) ply() int {
 	return eng.Position.Ply - eng.rootPly
+}
+
+func min(a, b int16) int16 {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 // searchTree implements searchTree framework.
@@ -402,7 +409,7 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
 		}
-		score := eng.tryMove(β-1, β, depth-reduction, false, false, NullMove)
+		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β {
 			return score
 		}
@@ -416,15 +423,37 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
 	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
 
+	numQuiet := int16(0)
 	localα := α
 	bestMove, bestScore := NullMove, int16(-InfinityScore)
 	eng.stack.GenerateMoves(All, hash)
 
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Reduce most quiet moves and bad captures.
-		lateMove := allowLateMove && move != hash && !eng.stack.IsKiller(move) && (move.IsQuiet() || eng.evaluation.SEESign(move))
-		score := eng.tryMove(localα, β, depth, nullWindow, lateMove, move)
+		lmr := int16(0)
+		if allowLateMove && move != hash && !eng.stack.IsKiller(move) {
+			if move.IsQuiet() { // At low depths only reduce the quiet moves.
+				numQuiet++
+				lmr = 1
+			}
 
+			// Moves that are suspected to result in material loss
+			// (SEE<0) can be reduced more.
+			const step = 5
+			if see := eng.evaluation.SEE(move); see < 0 {
+				if move.IsQuiet() {
+					// Reduce quiet moves more at high depths and after many quiet moves.
+					// Large numQuiet means it's likely not a CUT node.
+					// Large depth means reductions are less risky.
+					lmr = 1 + min(depth, numQuiet)/step
+				} else {
+					// Always reduce bad captures by one, higher reductions miss lots of tactics.
+					lmr = 1
+				}
+			}
+		}
+
+		score := eng.tryMove(localα, β, depth, lmr, nullWindow, move)
 		if score >= β { // Fail high, cut node.
 			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)
