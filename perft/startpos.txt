@@ -1,9 +1,0 @@
-Searching FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-depth        nodes captures enpassant castles
------+------------+--------+---------+-------
-    1           20        0         0       0 good 21.69µs
-    2          400        0         0       0 good 91.621µs
-    3         8902       34         0       0 good 1.9152ms
-    4       197281     1576         0       0 good 42.449614ms
-    5      4865609    82719       258       0 good 979.525305ms
-    6    119060324  2812008      5248       0 good 24.247478219s

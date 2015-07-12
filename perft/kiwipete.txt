@@ -1,8 +1,0 @@
-Searching FEN "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
-depth        nodes captures enpassant castles
------+------------+--------+---------+-------
-    1           48        8         0       2 good 29.24µs
-    2         2039      351         1      91 good 414.227µs
-    3        97862    17102        45    3162 good 19.682992ms
-    4      4085603   757163      1929  128013 good 826.027931ms
-    5    193690690 35043416     73365 4993637 good 39.344076235s
