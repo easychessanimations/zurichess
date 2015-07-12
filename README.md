@@ -17,6 +17,11 @@ the available commands are enough for most purposes.  zurichess was
 successfully tested under Linux AMD64 and Linux ARM and other people
 have tested zurichess under Windows AMD64.
 
+zurichess plays on [FICS](http://freechess.org) under handle
+[zurichess](http://ficsgames.org/cgi-bin/search.cgi?player=zurichess&action=Statistics).
+Usually it runs code at tip (master) which is a bit stronger
+than the latest stable version.
+
 ## Build and Compile
 
 First you need to get the latest version of Go (currently 1.4). For
@@ -50,31 +55,6 @@ Latest Linux AMD64 binaries can be downloaded from
 binaries should be stable for any kind of testing.
 
 
-## Perft
-
-A [perft](https://chessprogramming.wikispaces.com/Perft) tool
-is included.  The tool supports any starting position and can do
-splits up to several levels which is very helpful for debugging a move
-generator.  You can find more positions, results and external links on the
-[documentation](https://godoc.org/bitbucket.org/brtzsnr/zurichess/perft)
-page.
-
-```
-#!bash
-$ go get -u bitbucket.org/brtzsnr/zurichess/perft
-$ $GOPATH/bin/perft --fen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-Searching FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-depth        nodes   captures enpassant castles   promotions eval  KNps   elapsed
------+------------+----------+---------+---------+----------+-----+------+-------
-    1           20          0         0         0          0 good    154 129.948µs
-    2          400          0         0         0          0 good    158 2.531444ms
-    3         8902         34         0         0          0 good    266 33.494604ms
-    4       197281       1576         0         0          0 good   3454 57.114844ms
-    5      4865609      82719       258         0          0 good  12141 400.762477ms
-    6    119060324    2812008      5248         0          0 good  24027 4.955285846s
-    7   3195901860  108329926    319617    883453          0 good  40040 1m19.817376124s
-```
-
 ## Testing
 
 [zuritest](https://bitbucket.org/brtzsnr/zuritest) is the framework used to test zurichess.
@@ -86,16 +66,22 @@ in alphabetical order.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
 
-* Evaluate passed, connected and isolated pawns.
-* Ignore bad captures in the last plies of quiescence search.
-* Late move reduce of all quiet moves.
+* Evaluate passed, connected and isolated pawns. Tuning was done using Texel's tuning method
+implemented using [txt](https://bitbucket.org/brtzsnr/zuritest).
+* Add Static Exchange Evalution (SEE).
+* Ignore bad captures (SEE < 0) in quiescence search.
+* Late move reduce of all quiet moves. Aggresively reduce bad quiet (SEE < 0)
+moves at higher depths.
 * Increase number of killers to 4.
+* Improve move generation speed. Add phased move generation: hash, captures, quiet
+allows the engine to skip generation or sorting of the moves in many cases.
 * Implement `setoption Clear Hash`.
+* Implement pondering.
 * Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
 
-This release's theme is pruning the search.
+This release's theme is pruning the search. ELO is about 2234 on CCRL 40/4.
 
 * Implement Principal Variation Search (PVS).
 * Reduce late quiet moves (LMR).
@@ -152,6 +138,7 @@ A list of zurichess related links:
 
 * [Chess Programming WIKI](http://chessprogramming.wikispaces.com/Zurichess)
 * [CCRL 40/4](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details+%28text%29&eng=Zurichess%20Appenzeller%2064-bit)
+* [FICS Games](http://ficsgames.org/cgi-bin/search.cgi?player=zurichess&action=Statistics)
 
 Other sites, pages and articles with a lot of useful information:
 
