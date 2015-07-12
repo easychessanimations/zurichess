@@ -66,7 +66,7 @@ in alphabetical order.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
 
-* Moved to new page http://bitbucket/zurichess/zurichess.
+* Moved to new page http://bitbucket.org/zurichess/zurichess.
 * Evaluate passed, connected and isolated pawns. Tuning was done using Texel's tuning method
 implemented using [txt](https://bitbucket.org/brtzsnr/txt).
 * Add Static Exchange Evalution (SEE).
@@ -77,7 +77,7 @@ moves at higher depths.
 * Improve move generation speed. Add phased move generation: hash, captures, quiet
 allows the engine to skip generation or sorting of the moves in many cases.
 * Implement `setoption Clear Hash`.
-* Implement pondering.
+* Implement pondering. Should give some ELO boost for online competitions.
 * Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
