@@ -1,10 +1,10 @@
 # zurichess: a chess engine
 
-[Website](https://bitbucket.org/brtzsnr/zurichess) |
+[Website](https://bitbucket.org/zurichess/zurichess) |
 [CCRL](http://www.computerchess.org.uk/ccrl/404/cgi/engine_details.cgi?print=Details+%28text%29&eng=Zurichess%20Appenzeller%2064-bit) |
 [Wiki](http://chessprogramming.wikispaces.com/Zurichess) |
-[![Reference](https://godoc.org/bitbucket.org/brtzsnr/zurichess?status.svg)](https://godoc.org/bitbucket.org/brtzsnr/zurichess)
-[![Build Status](https://drone.io/bitbucket.org/brtzsnr/zurichess/status.png)](https://drone.io/bitbucket.org/brtzsnr/zurichess/latest)
+[![Reference](https://godoc.org/bitbucket.org/zurichess/zurichess?status.svg)](https://godoc.org/bitbucket.org/zurichess/zurichess)
+[![Build Status](https://drone.io/bitbucket.org/zurichess/zurichess/status.png)](https://drone.io/bitbucket.org/zurichess/zurichess/latest)
 
 zurichess is a chess engine and a chess library written in
 [Go](http://www.golang.org). Its main goals are: to be a relatively
@@ -39,7 +39,7 @@ After the workspace is created cloning and compiling zurichess is easy:
 
 ```
 #!bash
-$ go get -u bitbucket.org/brtzsnr/zurichess/zurichess
+$ go get -u bitbucket.org/zurichess/zurichess/zurichess
 $ $GOPATH/bin/zurichess --version
 zurichess (devel), build with go1.4 at (just now), running on amd64
 ```
@@ -47,17 +47,17 @@ zurichess (devel), build with go1.4 at (just now), running on amd64
 ## Download
 
 Precompiled binaries for several platforms and architectures can be found
-on the [downloads](https://bitbucket.org/brtzsnr/zurichess/downloads)
+on the [downloads](https://bitbucket.org/zurichess/zurichess/downloads)
 page.
 
 Latest Linux AMD64 binaries can be downloaded from
-[drone.io](https://drone.io/bitbucket.org/brtzsnr/zurichess/files). These
+[drone.io](https://drone.io/bitbucket.org/zurichess/zurichess/files). These
 binaries should be stable for any kind of testing.
 
 
 ## Testing
 
-[zuritest](https://bitbucket.org/brtzsnr/zuritest) is the framework used to test zurichess.
+[zuritest](https://bitbucket.org/zurichess/zuritest) is the framework used to test zurichess.
 
 ## History
 
@@ -66,8 +66,9 @@ in alphabetical order.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
 
+* Moved to new page http://bitbucket/zurichess/zurichess.
 * Evaluate passed, connected and isolated pawns. Tuning was done using Texel's tuning method
-implemented using [txt](https://bitbucket.org/brtzsnr/zuritest).
+implemented using [txt](https://bitbucket.org/brtzsnr/txt).
 * Add Static Exchange Evalution (SEE).
 * Ignore bad captures (SEE < 0) in quiescence search.
 * Late move reduce of all quiet moves. Aggresively reduce bad quiet (SEE < 0)
