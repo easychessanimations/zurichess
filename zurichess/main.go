@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
 	"runtime/pprof"
 )
@@ -20,8 +21,12 @@ var (
 
 func init() {
 	if buildTime == "(just now)" {
-		// If build time is not known assume it's the modification time of the binary
-		fi, err := os.Stat(os.Args[0])
+		// If build time is not known assume it is the modification time of the binary.
+		path, err := exec.LookPath(os.Args[0])
+		if err != nil {
+			return
+		}
+		fi, err := os.Stat(path)
 		if err != nil {
 			return
 		}
@@ -30,7 +35,7 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("zurichess %v https://bitbucket.org/brtzsnr/zurichess\n", buildVersion)
+	fmt.Printf("zurichess %v https://bitbucket.org/zurichess/zurichess\n", buildVersion)
 	fmt.Printf("build with %v at %v, running on %v\n", runtime.Version(), buildTime, runtime.GOARCH)
 
 	flag.Parse()
