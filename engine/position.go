@@ -171,6 +171,11 @@ func (pos *Position) Zobrist() uint64 {
 	return pos.curr.Zobrist
 }
 
+// Sides return current color to move, and the next color to move.
+func (pos *Position) Sides() (Color, Color) {
+	return pos.SideToMove, pos.SideToMove.Opposite()
+}
+
 // Verify check the validity of the position.
 // Mostly used for debugging purposes.
 func (pos *Position) Verify() error {

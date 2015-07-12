@@ -121,6 +121,20 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 	}
 }
 
+func TestSides(t *testing.T) {
+	pos, _ := PositionFromFEN(FENStartPos)
+	us, them := pos.Sides()
+	if us != White || them != Black {
+		t.Errorf("Expected %v and %v, got %v and %v", White, Black, us, them)
+	}
+
+	pos.DoMove(NullMove)
+	us, them = pos.Sides()
+	if us != Black || them != White {
+		t.Errorf("Expected %v and %v, got %v and %v", Black, White, us, them)
+	}
+}
+
 func TestPutGetRemove(t *testing.T) {
 	pos := NewPosition()
 	te := &testEngine{T: t, Pos: pos}
@@ -366,7 +380,7 @@ func TestCannotCastleAfterRookCapture(t *testing.T) {
 	te.King([]string{"e1d1", "e1f1"})
 }
 
-func TestgenBishopMoves(t *testing.T) {
+func TestGenBishopMoves(t *testing.T) {
 	pos := NewPosition()
 	pos.SetSideToMove(White)
 	pos.Put(SquareB1, BlackRook)
@@ -383,7 +397,7 @@ func TestgenBishopMoves(t *testing.T) {
 	te.Bishop([]string{"f3e2", "f3e4", "f3d5", "f3g2", "f3h1", "f3g4", "f3h5"})
 }
 
-func TestgenQueenMoves(t *testing.T) {
+func TestGenQueenMoves(t *testing.T) {
 	pos := NewPosition()
 	pos.SetSideToMove(White)
 	pos.Put(SquareB1, BlackRook)
@@ -400,56 +414,50 @@ func TestgenQueenMoves(t *testing.T) {
 	te.Queen([]string{"d1b1", "d1c1", "d1d2", "d1d3", "d1d4", "d1d5", "d1e2"})
 }
 
-func TestgenPawnAdvanceMoves(t *testing.T) {
+func TestGenPawnAdvanceMoves(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
-
-	pos.SideToMove = White
 	pos.genPawnAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
-	pos.SideToMove = Black
+	moves = moves[:0]
+	pos.DoMove(NullMove)
 	pos.genPawnAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
 
-func TestgenPawnDoubleAdvanceMoves(t *testing.T) {
+func TestGenPawnDoubleAdvanceMoves(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
-
-	pos.SideToMove = White
 	pos.genPawnDoubleAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d2d4", "e2e4"})
 
-	pos.SideToMove = Black
+	moves = moves[:0]
+	pos.DoMove(NullMove)
 	pos.genPawnDoubleAdvanceMoves(All, &moves)
 	testMoves(t, moves, []string{"d7d5", "f7f5"})
 }
 
 func TestGenPawnAttackMoves1(t *testing.T) {
-	pos, _ := PositionFromFEN(testBoard1)
-
 	var moves []Move
-	pos.SideToMove = White
+	pos, _ := PositionFromFEN(testBoard1)
 	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
 	moves = moves[:0]
-	pos.SideToMove = Black
+	pos.DoMove(NullMove)
 	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
 
 func TestGenPawnAttackMoves2(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
-
 	var moves []Move
-	pos.SideToMove = White
+	pos, _ := PositionFromFEN(FENKiwipete)
 	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
 	moves = moves[:0]
-	pos.SideToMove = Black
+	pos.DoMove(NullMove)
 	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
