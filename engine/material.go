@@ -26,6 +26,7 @@ var (
 		IsolatedPawn:    Score{5, 3},
 		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}},
 		BishopPairBonus: Score{28, 45},
+		KingShelter:     Score{20, -10},
 		Mobility:        [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}},
 		FigureBonus:     [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}},
 
@@ -104,6 +105,7 @@ type Material struct {
 	IsolatedPawn    Score
 	PassedPawn      [8]Score               // score of each passed pawn, indexed by rank
 	BishopPairBonus Score                  // how much a pair of bishop is worth
+	KingShelter     Score                  // award pawn shelter in front of the king
 	Mobility        [FigureArraySize]Score // how much each piece's mobility is worth
 	FigureBonus     [FigureArraySize]Score // how much each piece is worth
 
@@ -265,6 +267,32 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 		king := pos.KingMobility(sq) &^ excl
 		score = score.Plus(mat.Mobility[King].Times(king.Popcnt()))
 		score = score.Plus(mat.PieceSquareTable[King][sq^mask])
+	}
+
+	// Penalize broken shield in front of the king.
+	// Ignore shelter if we entered late game.
+	them := us.Opposite()
+	if pos.NumPieces[them][Queen] > 0 {
+		pawns := pos.ByPiece(us, Pawn)
+		king := pos.ByPiece(us, King)
+		file := king.AsSquare().File()
+
+		// TODO: Should we include adjacent pawns in the computation?
+		if us == White {
+			king = NorthSpan(king)
+		} else /* if us == Black */ {
+			king = SouthSpan(king)
+		}
+
+		if file > 0 && West(king)&pawns == 0 {
+			score = score.Minus(mat.KingShelter)
+		}
+		if king&pawns == 0 {
+			score = score.Minus(mat.KingShelter.Times(2))
+		}
+		if file < 7 && East(king)&pawns == 0 {
+			score = score.Minus(mat.KingShelter)
+		}
 	}
 
 	return score
