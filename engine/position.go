@@ -233,6 +233,12 @@ func (pos *Position) SetSideToMove(col Color) {
 
 // SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
+	if sq == pos.curr.EnpassantSquare[1] {
+		// In the trivial case both values are SquareA1
+		// and zobrist value doesn't change.
+		return
+	}
+
 	pos.curr.Zobrist ^= zobristEnpassant[pos.curr.EnpassantSquare[0]]
 	pos.curr.EnpassantSquare[0] = sq
 	pos.curr.EnpassantSquare[1] = sq
