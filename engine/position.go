@@ -373,7 +373,7 @@ func (pos *Position) IsThreeFoldRepetition() bool {
 // IsChecked returns true if side's king is checked.
 func (pos *Position) IsChecked(side Color) bool {
 	kingSq := pos.ByPiece(side, King).AsSquare()
-	return pos.IsAttackedBy(kingSq, side.Opposite())
+	return pos.GetAttacker(kingSq, side.Opposite()) != NoFigure
 }
 
 // PrettyPrint pretty prints the current position to log.
@@ -708,9 +708,9 @@ func (pos *Position) genKingCastles(kind int, moves *[]Move) {
 
 		r4 := RankFile(rank, 4)
 		other := pos.SideToMove.Opposite()
-		if pos.IsAttackedBy(r4, other) ||
-			pos.IsAttackedBy(r5, other) ||
-			pos.IsAttackedBy(r6, other) {
+		if pos.GetAttacker(r4, other) != NoFigure ||
+			pos.GetAttacker(r5, other) != NoFigure ||
+			pos.GetAttacker(r6, other) != NoFigure {
 			goto EndCastleOO
 		}
 
@@ -729,9 +729,9 @@ EndCastleOO:
 
 		r4 := RankFile(rank, 4)
 		other := pos.SideToMove.Opposite()
-		if pos.IsAttackedBy(r4, other) ||
-			pos.IsAttackedBy(r3, other) ||
-			pos.IsAttackedBy(r2, other) {
+		if pos.GetAttacker(r4, other) != NoFigure ||
+			pos.GetAttacker(r3, other) != NoFigure ||
+			pos.GetAttacker(r2, other) != NoFigure {
 			goto EndCastleOOO
 		}
 
@@ -740,44 +740,43 @@ EndCastleOO:
 EndCastleOOO:
 }
 
-// IsAttackedBy returns true if sq is under attacked by side.
-func (pos *Position) IsAttackedBy(sq Square, side Color) bool {
-	enemy := pos.ByColor[side]
-	if bbPawnAttack[sq]&enemy&pos.ByFigure[Pawn] != 0 {
-		if att := sq.Bitboard() & pos.PawnThreats(side); att != 0 {
-			return true
+// GetAttacker returns the smallest figure of color them that attacks sq.
+func (pos *Position) GetAttacker(sq Square, them Color) Figure {
+	enemy := pos.ByColor[them]
+	if enemy&bbPawnAttack[sq]&pos.ByFigure[Pawn] != 0 {
+		if att := sq.Bitboard() & pos.PawnThreats(them); att != 0 {
+			return Pawn
 		}
 	}
 
 	// Knight
-	if bbKnightAttack[sq]&enemy&pos.ByFigure[Knight] != 0 {
-		return true
+	if enemy&bbKnightAttack[sq]&pos.ByFigure[Knight] != 0 {
+		return Knight
 	}
-
 	// Quick test of queen's attack on an empty board.
-	if bbSuperAttack[sq]&(enemy&^pos.ByFigure[Pawn]) == 0 {
-		return false
+	if enemy&bbSuperAttack[sq]&^pos.ByFigure[Pawn] == 0 {
+		return NoFigure
 	}
-
-	// King.
-	if bbKingAttack[sq]&enemy&pos.ByFigure[King] != 0 {
-		return true
-	}
-
-	// Bishop&Queen
+	// Bishop
 	all := pos.ByColor[White] | pos.ByColor[Black]
-	bishops := enemy & (pos.ByFigure[Bishop] | pos.ByFigure[Queen])
-	if bishops != 0 && bishops&pos.BishopMobility(sq, all) != 0 {
-		return true
+	bishop := pos.BishopMobility(sq, all)
+	if enemy&pos.ByFigure[Bishop]&bishop != 0 {
+		return Bishop
 	}
-
-	// Rook&Queen
-	rooks := enemy & (pos.ByFigure[Rook] | pos.ByFigure[Queen])
-	if rooks != 0 && rooks&pos.RookMobility(sq, all) != 0 {
-		return true
+	// Rook
+	rook := pos.RookMobility(sq, all)
+	if enemy&pos.ByFigure[Rook]&rook != 0 {
+		return Rook
 	}
-
-	return false
+	// Queen
+	if enemy&pos.ByFigure[Queen]&(bishop|rook) != 0 {
+		return Queen
+	}
+	// King.
+	if enemy&bbKingAttack[sq]&pos.ByFigure[King] != 0 {
+		return King
+	}
+	return NoFigure
 }
 
 // GenerateMoves appends to moves all moves valid from pos.

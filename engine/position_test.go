@@ -9,6 +9,7 @@ var (
 	_          = log.Println
 	testBoard1 = "r3k2r/3ppp2/1BB3B1/pp2P1pp/PP4PP/5b2/3PPP2/R3K2R w KQkq - 0 1"
 	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w - - 0 1"
+	testBoard3 = "4K3/8/3n4/8/4N3/3n4/8/4k3 w - - 0 1"
 )
 
 // testEngine is an simple engine to simplify move testing.
@@ -39,12 +40,9 @@ func (te *testEngine) Undo() {
 	te.moves = te.moves[:l]
 }
 
-func (te *testEngine) Attacked(sq Square, co Color, is bool) {
-	if is && !te.Pos.IsAttackedBy(sq, co) {
-		te.T.Errorf("expected %v to be attacked by %v", sq, co)
-	}
-	if !is && te.Pos.IsAttackedBy(sq, co) {
-		te.T.Errorf("expected %v not to be attacked by %v", sq, co)
+func (te *testEngine) Attacked(sq Square, co Color, fig Figure) {
+	if actual := te.Pos.GetAttacker(sq, co); fig != actual {
+		te.T.Errorf("expected %v to be attacked by %v; got %v", sq, co, fig, actual)
 	}
 }
 
@@ -511,27 +509,27 @@ func TestPawnAttacks(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard2)
 	te := &testEngine{T: t, Pos: pos}
 
-	te.Attacked(SquareA4, White, true)
-	te.Attacked(SquareB4, White, true)
-	te.Attacked(SquareC4, White, true)
-	te.Attacked(SquareD4, White, true)
-	te.Attacked(SquareE4, White, false)
-	te.Attacked(SquareF4, White, true)
-	te.Attacked(SquareG4, White, false)
-	te.Attacked(SquareB6, White, true)
-	te.Attacked(SquareC6, White, false)
-	te.Attacked(SquareD6, White, true)
+	te.Attacked(SquareA4, White, Pawn)
+	te.Attacked(SquareB4, White, Pawn)
+	te.Attacked(SquareC4, White, Pawn)
+	te.Attacked(SquareD4, White, Pawn)
+	te.Attacked(SquareE4, White, NoFigure)
+	te.Attacked(SquareF4, White, Pawn)
+	te.Attacked(SquareG4, White, NoFigure)
+	te.Attacked(SquareB6, White, Pawn)
+	te.Attacked(SquareC6, White, NoFigure)
+	te.Attacked(SquareD6, White, Pawn)
 
-	te.Attacked(SquareA1, Black, false)
-	te.Attacked(SquareB1, Black, false)
-	te.Attacked(SquareC1, Black, false)
-	te.Attacked(SquareD1, Black, false)
-	te.Attacked(SquareE1, Black, true)
-	te.Attacked(SquareF1, Black, true)
-	te.Attacked(SquareG1, Black, true)
-	te.Attacked(SquareH1, Black, true)
-	te.Attacked(SquareE4, Black, true)
-	te.Attacked(SquareG4, Black, true)
+	te.Attacked(SquareA1, Black, NoFigure)
+	te.Attacked(SquareB1, Black, NoFigure)
+	te.Attacked(SquareC1, Black, NoFigure)
+	te.Attacked(SquareD1, Black, NoFigure)
+	te.Attacked(SquareE1, Black, Pawn)
+	te.Attacked(SquareF1, Black, Pawn)
+	te.Attacked(SquareG1, Black, Pawn)
+	te.Attacked(SquareH1, Black, Pawn)
+	te.Attacked(SquareE4, Black, Pawn)
+	te.Attacked(SquareG4, Black, Pawn)
 }
 
 func TestPawnPromotions(t *testing.T) {
@@ -632,14 +630,13 @@ func TestPawnTakesEnpassant(t *testing.T) {
 }
 
 func TestSquareIsAttackedByKnight(t *testing.T) {
-	testBoard2 := "4K3/8/3n4/8/4N3/3n4/8/4k3 w - - 0 1"
-	pos, _ := PositionFromFEN(testBoard2)
+	pos, _ := PositionFromFEN(testBoard3)
 	te := &testEngine{T: t, Pos: pos}
 
-	te.Attacked(SquareE8, Black, true)
-	te.Attacked(SquareC4, Black, true)
-	te.Attacked(SquareE1, Black, true)
-	te.Attacked(SquareH8, Black, false)
+	te.Attacked(SquareE8, Black, Knight)
+	te.Attacked(SquareC4, Black, Knight)
+	te.Attacked(SquareE1, Black, Knight)
+	te.Attacked(SquareH8, Black, NoFigure)
 }
 
 func TestIsAttackedByBishop(t *testing.T) {
@@ -649,15 +646,15 @@ func TestIsAttackedByBishop(t *testing.T) {
 	te.Move("e2e4")
 	te.Move("d7d5")
 	te.Move("f1b5")
-	te.Attacked(SquareE8, White, true)
+	te.Attacked(SquareE8, White, Bishop)
 
 	te.Move("e8d7")
-	te.Attacked(SquareD7, White, true)
+	te.Attacked(SquareD7, White, Bishop)
 	te.Undo()
 
 	te.Move("c7c6")
-	te.Attacked(SquareE8, White, false)
-	te.Attacked(SquareC6, White, true)
+	te.Attacked(SquareE8, White, NoFigure)
+	te.Attacked(SquareC6, White, Bishop)
 }
 
 func TestIsAttackedByKing(t *testing.T) {
@@ -670,11 +667,11 @@ func TestIsAttackedByKing(t *testing.T) {
 	pos.Put(SquareE2, BlackPawn)
 	pos.Put(SquareF2, BlackPawn)
 
-	te.Attacked(SquareD1, White, true)
-	te.Attacked(SquareD2, White, true)
-	te.Attacked(SquareE2, White, true)
-	te.Attacked(SquareF2, White, true)
-	te.Attacked(SquareF1, White, true)
+	te.Attacked(SquareD1, White, King)
+	te.Attacked(SquareD2, White, King)
+	te.Attacked(SquareE2, White, King)
+	te.Attacked(SquareF2, White, King)
+	te.Attacked(SquareF1, White, King)
 }
 
 func TestPanicPosition(t *testing.T) {

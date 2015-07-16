@@ -281,8 +281,7 @@ func (eng *Engine) tryMove(α, β, depth, lmr int16, nullWindow bool, move Move)
 		// Extend the search when our move gives check.
 		// However do not extend if we can just take the undefended piece.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
-		// TODO: This is a very crude form of SEE.
-		if !pos.IsAttackedBy(move.To(), them) || pos.IsAttackedBy(move.To(), us) {
+		if pos.GetAttacker(move.To(), them) == NoFigure || pos.GetAttacker(move.To(), us) != NoFigure {
 			depth += CheckDepthExtension
 		}
 	}
