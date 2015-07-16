@@ -1,3 +1,5 @@
+// basic.go defines basic types.
+//
 //go:generate stringer -type Figure
 //go:generate stringer -type Color
 //go:generate stringer -type Piece
@@ -173,8 +175,7 @@ type Bitboard uint64
 
 // RankBb returns a bitboard with all bits on rank set.
 func RankBb(rank int) Bitboard {
-	rank1 := Bitboard(0x00000000000000ff)
-	return rank1 << uint(8*rank)
+	return BbRank1 << uint(8*rank)
 }
 
 // FileBb returns a bitboard with all bits on file set.

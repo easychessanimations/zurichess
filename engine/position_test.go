@@ -40,9 +40,9 @@ func (te *testEngine) Undo() {
 	te.moves = te.moves[:l]
 }
 
-func (te *testEngine) Attacked(sq Square, co Color, fig Figure) {
-	if actual := te.Pos.GetAttacker(sq, co); fig != actual {
-		te.T.Errorf("expected %v to be attacked by %v; got %v", sq, co, fig, actual)
+func (te *testEngine) Attacked(sq Square, col Color, fig Figure) {
+	if actual := te.Pos.GetAttacker(sq, col); fig != actual {
+		te.T.Errorf("expected %v to be attacked by %v; got %v", sq, ColorFigure(col, fig), actual)
 	}
 }
 

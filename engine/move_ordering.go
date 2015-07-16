@@ -150,7 +150,7 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms.kind = kind
 	ms.state = msHash
 	ms.hash = hash
-	ms.killer = ms.killer // keep killers
+	// ms.killer = ms.killer // keep killers
 }
 
 // generateMoves generates all moves.

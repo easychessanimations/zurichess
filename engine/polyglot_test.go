@@ -47,7 +47,7 @@ func TestPolyglotKey(t *testing.T) {
 }
 
 func TestZobristUndo(t *testing.T) {
-	for _, game := range games {
+	for g, game := range games {
 		moves := strings.Fields(game)
 		pos, _ := PositionFromFEN(FENStartPos)
 
@@ -64,7 +64,7 @@ func TestZobristUndo(t *testing.T) {
 		for i := len(moves) - 1; i >= 0; i-- {
 			pos.UndoMove(tmp[i])
 			if zob[i] != pos.Zobrist() {
-				t.Errorf("#%d expected zobrist key 0x%x got 0x%x", zob[i], pos.Zobrist())
+				t.Errorf("#%d expected zobrist key 0x%x got 0x%x", g, zob[i], pos.Zobrist())
 			}
 		}
 	}

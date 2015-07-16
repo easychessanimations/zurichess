@@ -1,8 +1,17 @@
+// pawn_table.go caches pawn structure evaluation.
+//
+// Pawn evaluation is slow since there are many pawns times
+// many features. However, pawns have restricted mobility so
+// the evaluation doesn't change much.
+//
+// TODO: Cache one side only. Current way makes the code a bit
+// ugly which is not worth it considering that the table is very
+// small
+
 package engine
 
 const (
 	pawnTableBits = 6
-	pawnTableSize = 1 << pawnTableBits
 )
 
 type pawnEntry struct {

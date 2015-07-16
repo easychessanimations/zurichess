@@ -1,5 +1,5 @@
-// TODO: Move this file to bitbucket.org/brtzsnr/zurichess/internal
-// Methods here exported because they are used also by notation package.
+// Methods here are exported because they are used also by the notation package.
+// TODO: Find a way to hide these.
 
 package engine
 

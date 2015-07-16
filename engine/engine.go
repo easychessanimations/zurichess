@@ -48,8 +48,8 @@ type Stats struct {
 	CacheHit  uint64    // number of times the position was found transposition table
 	CacheMiss uint64    // number of times the position was not found in the transposition table
 	Nodes     uint64    // number of nodes searched
-	Depth     int
-	SelDepth  int
+	Depth     int       // depth search
+	SelDepth  int       // maximum depth reached on PV (doesn't include hash moves)
 }
 
 // NPS returns nodes per second.
@@ -144,6 +144,7 @@ func (eng *Engine) endPosition() (int16, bool) {
 	if pos.IsThreeFoldRepetition() {
 		return 0, true
 	}
+	// TODO: Handle 50 moves rule.
 	return 0, false
 }
 
@@ -218,8 +219,12 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 		return score
 	}
 
+	// Stand pat.
+	// TODO: Some suggest to not stand pat when in check.
+	// However, I did several tests and handling checks in quiescence
+	// doesn't help at all.
 	score := eng.Score()
-	if score >= β { // stand pat
+	if score >= β {
 		return score
 	}
 	localα := α
@@ -257,10 +262,10 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 //
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).
-// depth is the fractional depth (decreasing)
-// nullWindow indicates whether to scout first. Implies non-null move.
+// depth is the remaining depth (decreasing)
 // lmr is how much to reduce a late move. Implies non-null move.
-// move is the move to execute
+// nullWindow indicates whether to scout first. Implies non-null move.
+// move is the move to execute. Can be NullMove.
 //
 // Returns the score from the deeper search.
 func (eng *Engine) tryMove(α, β, depth, lmr int16, nullWindow bool, move Move) int16 {
@@ -388,8 +393,8 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
-		// TODO: can depth ever by < 0?
-		score := eng.searchQuiescence(α, β, depth)
+		// Depth can be < 0 due to aggressive LMR.
+		score := eng.searchQuiescence(α, β, 0)
 		eng.updateHash(α, β, depth, score, NullMove)
 		return score
 	}
@@ -539,6 +544,8 @@ func (eng *Engine) search(tc *TimeControl, depth, estimated int16) int16 {
 }
 
 // printInfo prints a info UCI string.
+//
+// TODO: Engine shouldn't know about the protocol used.
 func (eng *Engine) printInfo(score int16, pv []Move) {
 	buf := &eng.buffer // shortcut
 

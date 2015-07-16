@@ -1,3 +1,16 @@
+// material.go implements position evaluation.
+//
+// Evaluation function is quiet basic and consistes of:
+//
+// * Material and mobility
+// * Piece square tables for pawns and king. Other figures did not improve the eval.
+// * King shelter (only in mid game)
+// * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see pawn_table.go).
+// * Phased eval between mid game and end game.
+//
+// Missing elements are special handling in end games, such as
+// distance between kings or distance from king to most advance pawn.
+
 package engine
 
 import (
@@ -21,14 +34,14 @@ var (
 
 	// GlobalMaterial is the shared material values.
 	GlobalMaterial = Material{
-		ConnectedPawn:   Score{11, 2},
-		DoublePawn:      Score{3, 19},
-		IsolatedPawn:    Score{5, 3},
-		PassedPawn:      [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}},
-		BishopPairBonus: Score{28, 45},
-		KingShelter:     Score{20, -10},
-		Mobility:        [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}},
-		FigureBonus:     [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}},
+		ConnectedPawn: Score{11, 2},
+		DoublePawn:    Score{3, 19},
+		IsolatedPawn:  Score{5, 3},
+		PassedPawn:    [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}},
+		BishopPair:    Score{28, 45},
+		KingShelter:   Score{20, -10},
+		Mobility:      [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}},
+		FigureBonus:   [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}},
 
 		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
 			{}, // NoFigure
@@ -100,14 +113,14 @@ func (s Score) Times(t int32) Score {
 
 // Material stores the evaluation parameters.
 type Material struct {
-	ConnectedPawn   Score
-	DoublePawn      Score
-	IsolatedPawn    Score
-	PassedPawn      [8]Score               // score of each passed pawn, indexed by rank
-	BishopPairBonus Score                  // how much a pair of bishop is worth
-	KingShelter     Score                  // award pawn shelter in front of the king
-	Mobility        [FigureArraySize]Score // how much each piece's mobility is worth
-	FigureBonus     [FigureArraySize]Score // how much each piece is worth
+	ConnectedPawn Score
+	DoublePawn    Score
+	IsolatedPawn  Score
+	PassedPawn    [8]Score               // score of each passed pawn, indexed by rank
+	BishopPair    Score                  // how much a pair of bishop is worth
+	KingShelter   Score                  // award pawn shelter in front of the king
+	Mobility      [FigureArraySize]Score // how much each piece's mobility is worth
+	FigureBonus   [FigureArraySize]Score // how much each piece is worth
 
 	// Piece Square Table from White POV.
 	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
@@ -124,24 +137,14 @@ type Evaluation struct {
 	position  *Position // position to evaluate
 	material  *Material // evaluation parameters
 	pawnTable pawnTable // a cache for pawn evaluation
-
-	piece [PieceArraySize]Score // cached scores for piece
-	promo [PieceArraySize]Score // cached scores for promotion
 }
 
 // MakeEvaluation returns a new Evaluation object which evaluates
 // pos using parameters in mat.
 func MakeEvaluation(pos *Position, mat *Material) Evaluation {
-	var piece, promo [PieceArraySize]Score
-	for pi := PieceMinValue; pi <= PieceMaxValue; pi++ {
-		piece[pi] = pov(mat.FigureBonus[pi.Figure()], pi.Color())
-		promo[pi] = pov(mat.FigureBonus[pi.Figure()].Minus(mat.FigureBonus[Pawn]), pi.Color())
-	}
 	return Evaluation{
 		position: pos,
 		material: mat,
-		piece:    piece,
-		promo:    promo,
 	}
 }
 
@@ -193,7 +196,9 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 		if passed.Has(sq) {
 			ps = ps.Plus(mat.PassedPawn[rank])
 		}
-		if connected.Has(sq) { // bonus added to both pawns
+		if connected.Has(sq) {
+			// The bonus is added to both pawns.
+			// TODO: Add to a single pawn to encourage longer chains.
 			ps = ps.Plus(mat.ConnectedPawn)
 		}
 		if double.Has(sq) {
@@ -202,6 +207,7 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 		if isolated.Has(sq) {
 			ps = ps.Minus(mat.IsolatedPawn)
 		}
+		// TODO: Penalize backward pawns to encourage pawn advancement.
 
 		score = score.Plus(ps)
 	}
@@ -220,7 +226,7 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	mask := colorMask[us]
 
 	// Award connected bishops.
-	score := mat.BishopPairBonus.Times(int32(pos.NumPieces[us][Bishop] / 2))
+	score := mat.BishopPair.Times(int32(pos.NumPieces[us][Bishop] / 2))
 
 	// Award pawn forward mobility.
 	// Forward mobility is important especially in the end game to
