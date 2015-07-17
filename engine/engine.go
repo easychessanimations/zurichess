@@ -436,24 +436,21 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 		// Reduce most quiet moves and bad captures.
 		lmr := int16(0)
 		if allowLateMove && move != hash && !eng.stack.IsKiller(move) {
-			if move.IsQuiet() { // At low depths only reduce the quiet moves.
+			if move.IsQuiet() {
+				// Reduce quiet moves more at high depths and after many quiet moves.
+				// Large numQuiet means it's likely not a CUT node.
+				// Large depth means reductions are less risky.
 				numQuiet++
-				lmr = 1
-			}
-
-			// Moves that are suspected to result in material loss
-			// (SEE<0) can be reduced more.
-			const step = 5
-			if see := eng.evaluation.SEE(move); see < 0 {
-				if move.IsQuiet() {
-					// Reduce quiet moves more at high depths and after many quiet moves.
-					// Large numQuiet means it's likely not a CUT node.
-					// Large depth means reductions are less risky.
-					lmr = 1 + min(depth, numQuiet)/step
+				tmp := 1 + min(depth, numQuiet)/5
+				if tmp != 1 && eng.evaluation.SEESign(move) {
+					lmr = tmp
 				} else {
-					// Always reduce bad captures by one, higher reductions miss lots of tactics.
 					lmr = 1
 				}
+
+			} else if eng.evaluation.SEESign(move) {
+				// Bad captures (SEE<0) can be reduced, too.
+				lmr = 1
 			}
 		}
 
