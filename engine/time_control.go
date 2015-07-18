@@ -98,7 +98,7 @@ func (tc *TimeControl) Start(ponder bool) {
 	// Branch more when there are more pieces. With fewer pieces
 	// there is less mobility and hash table kicks in more often.
 	branchFactor := time.Duration(defaultbranchFactor)
-	for np := tc.numPieces; np > 0; np /= 5 {
+	for np := tc.numPieces - 2; np > 0; np /= 6 {
 		branchFactor++
 	}
 
