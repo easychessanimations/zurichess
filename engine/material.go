@@ -8,8 +8,10 @@
 // * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see pawn_table.go).
 // * Phased eval between mid game and end game.
 //
-// Missing elements are special handling in end games, such as
-// distance between kings or distance from king to most advance pawn.
+// TODO:
+// * Special handling of end games.
+// * Rooks on 7th rank
+// * Connected passed pawns.
 
 package engine
 
@@ -74,17 +76,6 @@ var (
 // Score represents a pair of mid game and end game scores.
 type Score struct {
 	M, E int32
-}
-
-func pov(s Score, col Color) Score {
-	switch col {
-	case White:
-		return s
-	case Black:
-		return s.Neg()
-	default:
-		return Score{}
-	}
 }
 
 // Neg returns -s.
