@@ -79,7 +79,10 @@ type Engine struct {
 	rootPly    int        // position's ply at the start of the search
 	stack      stack      // stack of moves
 	pvTable    pvTable    // principal variation table
-	buffer     bytes.Buffer
+
+	// A buffer to write pv lines.
+	// TODO: move UCI output logic out of Engine.
+	buffer bytes.Buffer
 }
 
 // NewEngine creates a new engine to search for pos.

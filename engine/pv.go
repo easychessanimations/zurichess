@@ -8,13 +8,13 @@ const (
 
 // TODO: Unexport pvEntry fields.
 type pvEntry struct {
-	// Lock is used to handled hash conflicts.
+	// lock is used to handled hash conflicts.
 	// Normally set to position's Zobrist key.
-	Lock uint64
+	lock uint64
 	// When was the move added.
-	Birth uint32
-	// Move on pricipal variation for this position.
-	Move Move
+	birth uint32
+	// move on pricipal variation for this position.
+	move Move
 }
 
 // pvTable is like hash table, but only to keep principal variation.
@@ -55,11 +55,11 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 	zobrist := pos.Zobrist()
 
 	var entry *pvEntry
-	if entry1.Lock == zobrist {
+	if entry1.lock == zobrist {
 		entry = entry1
-	} else if entry2.Lock == zobrist {
+	} else if entry2.lock == zobrist {
 		entry = entry2
-	} else if entry1.Birth <= entry2.Birth {
+	} else if entry1.birth <= entry2.birth {
 		entry = entry1
 	} else {
 		entry = entry2
@@ -67,31 +67,30 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 
 	pv.timer++
 	*entry = pvEntry{
-		Lock:  pos.Zobrist(),
-		Move:  move,
-		Birth: pv.timer,
+		lock:  pos.Zobrist(),
+		move:  move,
+		birth: pv.timer,
 	}
 }
 
-// TODO: Return move.
 // TODO: Lookup move in transposition table if none is available.
-func (pv *pvTable) get(pos *Position) *pvEntry {
+func (pv *pvTable) get(pos *Position) Move {
 	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
 	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
 	zobrist := pos.Zobrist()
 
 	var entry *pvEntry
-	if entry1.Lock == zobrist {
+	if entry1.lock == zobrist {
 		entry = entry1
 	}
-	if entry2.Lock == zobrist {
+	if entry2.lock == zobrist {
 		entry = entry2
 	}
 	if entry == nil {
-		return nil
+		return NullMove
 	}
 
-	return entry
+	return entry.move
 }
 
 // Get returns the principal variation.
@@ -100,12 +99,12 @@ func (pv *pvTable) Get(pos *Position) []Move {
 	var moves []Move
 
 	// Extract the moves by following the position.
-	entry := pv.get(pos)
-	for entry != nil && entry.Move.MoveType() != NoMove && !seen[pos.Zobrist()] {
+	next := pv.get(pos)
+	for next != NullMove && !seen[pos.Zobrist()] {
 		seen[pos.Zobrist()] = true
-		moves = append(moves, entry.Move)
-		pos.DoMove(entry.Move)
-		entry = pv.get(pos)
+		moves = append(moves, next)
+		pos.DoMove(next)
+		next = pv.get(pos)
 	}
 
 	// Undo all moves, so we get back to the initial state.
