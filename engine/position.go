@@ -18,6 +18,9 @@ const (
 )
 
 var (
+	// Starting position.
+	FENStartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
 )

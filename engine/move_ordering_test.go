@@ -23,7 +23,7 @@ func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 }
 
 func TestReturnsHashMove(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 
 	for i, str := range []string{"f3f5", "e2b5", "a1b1"} {
 		hash := pos.UCIToMove(str)
@@ -37,7 +37,7 @@ func TestReturnsHashMove(t *testing.T) {
 }
 
 func TestReturnsMoves(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	seen := make(map[Move]int)
 
 	var moves []Move

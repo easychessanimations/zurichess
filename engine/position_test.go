@@ -270,7 +270,7 @@ func TestCastle(t *testing.T) {
 }
 
 func TestKingCannotCastleWhenUnderAttack(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("f3f5")
@@ -368,7 +368,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 }
 
 func TestCannotCastleAfterRookCapture(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("f3f5")
@@ -450,7 +450,7 @@ func TestGenPawnAttackMoves1(t *testing.T) {
 
 func TestGenPawnAttackMoves2(t *testing.T) {
 	var moves []Move
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	pos.genPawnAttackMoves(All, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
@@ -560,7 +560,7 @@ func TestPawnPromotions(t *testing.T) {
 }
 
 func TestPawnPromotions2(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Piece(SquareF5, NoPiece)
@@ -767,7 +767,7 @@ func TestNullMoveEnpassantSquare(t *testing.T) {
 }
 
 func TestNullMoveCastlingAbility(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("")
@@ -779,7 +779,7 @@ func TestNullMoveCastlingAbility(t *testing.T) {
 	}
 
 	te.Undo()
-	if FENKiwipete != pos.String() {
+	if fenKiwipete != pos.String() {
 		t.Fatalf("bad nullmove undo. expected %s, got %s", FENStartPos, pos.String())
 	}
 	if AnyCastle != pos.CastlingAbility() {

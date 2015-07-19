@@ -21,7 +21,7 @@ var (
 )
 
 func TestSANToMovePlay(t *testing.T) {
-	pos, _ := PositionFromFEN(FENKiwipete)
+	pos, _ := PositionFromFEN(fenKiwipete)
 	for i, test := range sanMoves {
 		actual, err := pos.SANToMove(test.san)
 		if err != nil {
