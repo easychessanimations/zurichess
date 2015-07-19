@@ -219,8 +219,13 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[us] | pos.PawnThreats(us.Opposite())
 
-	// Award connected bishops.
-	score := mat.BishopPair.Times(int32(pos.NumPieces[us][Bishop] / 2))
+	// Award connect bishop pair.
+	var score Score
+	if bishops := pos.ByPiece(us, Bishop); bishops.HasMoreThanOne() {
+		// if bishops&BbWhiteSquares != 0 && bishops&BbBlackSquares != 0 {
+		score = score.Plus(mat.BishopPair)
+		// }
+	}
 
 	// Award pawn forward mobility.
 	// Forward mobility is important especially in the end game to
@@ -272,7 +277,7 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	// Penalize broken shield in front of the king.
 	// Ignore shelter if we entered late game.
 	them := us.Opposite()
-	if pos.NumPieces[them][Queen] > 0 {
+	if pos.ByPiece(them, Queen) != 0 {
 		pawns := pos.ByPiece(us, Pawn)
 		king := pos.ByPiece(us, King)
 		file := king.AsSquare().File()
@@ -319,15 +324,16 @@ func (e *Evaluation) evaluate() Score {
 //
 // phase is determined by the number of pieces left in the game where
 // pawn has score 0, knight and bishop 1, rook 2, queen 2.
-// See tapered eval: // https://chessprogramming.wikispaces.com/Tapered+Eval
+// See tapered eval for explanation and original code:
+// https://chessprogramming.wikispaces.com/Tapered+Eval
 func phase(pos *Position, score Score) int32 {
 	total := int32(16*0 + 4*1 + 4*1 + 4*2 + 2*4)
 	curr := total
-	// curr -= int32(pos.NumPieces[NoColor][Pawn]) * 0
-	curr -= int32(pos.NumPieces[NoColor][Knight]) * 1
-	curr -= int32(pos.NumPieces[NoColor][Bishop]) * 1
-	curr -= int32(pos.NumPieces[NoColor][Rook]) * 2
-	curr -= int32(pos.NumPieces[NoColor][Queen]) * 4
+	// curr -= pos.ByFigure[Pawn].Popcnt() * 0
+	curr -= pos.ByFigure[Knight].Popcnt() * 1
+	curr -= pos.ByFigure[Bishop].Popcnt() * 1
+	curr -= pos.ByFigure[Rook].Popcnt() * 2
+	curr -= pos.ByFigure[Queen].Popcnt() * 4
 	curr = (curr*256 + total/2) / total
 	return (score.M*(256-curr) + score.E*curr) / 256
 }

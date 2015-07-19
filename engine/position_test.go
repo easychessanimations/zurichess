@@ -685,27 +685,6 @@ func TestPanicPosition(t *testing.T) {
 	}
 }
 
-func TestNumPiece(t *testing.T) {
-	pos, _ := PositionFromFEN(FENStartPos)
-
-	data := []struct {
-		piece Piece
-		num   int8
-	}{
-		{NoPiece, 32},
-		{WhitePawn, 8},
-		{WhiteKing, 1},
-		{BlackKing, 1},
-	}
-
-	for _, d := range data {
-		actual := pos.NumPieces[d.piece.Color()][d.piece.Figure()]
-		if d.num != actual {
-			t.Errorf("for %v expected %d, got %d", d.piece, d.num, actual)
-		}
-	}
-}
-
 func TestIsThreeFoldRepetition(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard1)
 	te := &testEngine{T: t, Pos: pos}

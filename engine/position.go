@@ -40,10 +40,9 @@ type state struct {
 
 // Position encodes the chess board.
 type Position struct {
-	ByFigure   [FigureArraySize]Bitboard             // bitboards of square occupancy by figure.
-	ByColor    [ColorArraySize]Bitboard              // bitboards of square occupancy by color.
-	NumPieces  [ColorArraySize][FigureArraySize]int8 // number of (color, figure) on the board. NoColor/NoFigure means all.
-	SideToMove Color                                 // which side is to move. SideToMove is updated by DoMove and UndoMove.
+	ByFigure   [FigureArraySize]Bitboard // bitboards of square occupancy by figure.
+	ByColor    [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
+	SideToMove Color                     // which side is to move. SideToMove is updated by DoMove and UndoMove.
 
 	HalfMoveClock  int
 	FullMoveNumber int
@@ -176,6 +175,16 @@ func (pos *Position) Sides() (Color, Color) {
 	return pos.SideToMove, pos.SideToMove.Opposite()
 }
 
+// NumNonPawns returns the number of minor and major pieces.
+func (pos *Position) NumNonPawns(col Color) int {
+	return int((pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]).Popcnt())
+}
+
+// HasNonPawns returns whether col has at least some minor or major pieces.
+func (pos *Position) HasNonPawns(col Color) bool {
+	return pos.ByColor[col]&^pos.ByFigure[Pawn]&^pos.ByFigure[King] != 0
+}
+
 // Verify check the validity of the position.
 // Mostly used for debugging purposes.
 func (pos *Position) Verify() error {
@@ -279,10 +288,6 @@ func (pos *Position) Put(sq Square, pi Piece) {
 
 		pos.ByColor[col] |= bb
 		pos.ByFigure[fig] |= bb
-		pos.NumPieces[NoColor][NoFigure]++
-		pos.NumPieces[NoColor][fig]++
-		pos.NumPieces[col][NoFigure]++
-		pos.NumPieces[col][fig]++
 	}
 }
 
@@ -296,10 +301,6 @@ func (pos *Position) Remove(sq Square, pi Piece) {
 
 		pos.ByColor[col] &= bb
 		pos.ByFigure[fig] &= bb
-		pos.NumPieces[NoColor][NoFigure]--
-		pos.NumPieces[NoColor][fig]--
-		pos.NumPieces[col][NoFigure]--
-		pos.NumPieces[col][fig]--
 	}
 }
 

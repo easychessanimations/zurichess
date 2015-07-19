@@ -283,6 +283,16 @@ func (bb Bitboard) Has(sq Square) bool {
 	return bb>>sq&1 != 0
 }
 
+// HasOne returns true if the bitboard has exactly one square occupied.
+func (bb Bitboard) HasOne() bool {
+	return bb != 0 && bb&(bb-1) == 0
+}
+
+// HasMoreThanOne returns true if the bitboard has more than one square occupied.
+func (bb Bitboard) HasMoreThanOne() bool {
+	return bb&(bb-1) != 0
+}
+
 // AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {

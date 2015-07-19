@@ -60,7 +60,7 @@ func NewTimeControl(pos *Position) *TimeControl {
 		BInc:       0,
 		Depth:      64,
 		MovesToGo:  defaultMovesToGo,
-		numPieces:  int(pos.NumPieces[NoColor][NoFigure]),
+		numPieces:  int((pos.ByColor[White] | pos.ByColor[Black]).Popcnt()),
 		sideToMove: pos.SideToMove,
 	}
 }

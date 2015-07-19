@@ -124,19 +124,33 @@ func (eng *Engine) Score() int16 {
 func (eng *Engine) endPosition() (int16, bool) {
 	pos := eng.Position // shortcut
 	ply := int16(eng.ply())
-	if pos.NumPieces[White][King] == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MatedScore + ply), true
-	}
-	if pos.NumPieces[Black][King] == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
-	}
-	// K vs K is draw.
-	if pos.NumPieces[NoColor][NoPiece] == 2 {
+
+	// Trivial cases when kings are missing.
+	if pos.ByPiece(White, King) == 0 && pos.ByPiece(Black, King) == 0 {
 		return 0, true
 	}
-	// KN vs K and KB vs K are draws
-	if pos.NumPieces[NoColor][NoPiece] == 3 {
-		if pos.NumPieces[NoColor][Knight]+pos.NumPieces[NoColor][Bishop] == 1 {
+	if pos.ByPiece(White, King) == 0 {
+		return scoreMultiplier[pos.SideToMove] * (MatedScore + ply), true
+	}
+	if pos.ByPiece(Black, King) == 0 {
+		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
+	}
+
+	// K vs K is draw.
+	noKings := (pos.ByColor[White] | pos.ByColor[Black]) &^ pos.ByFigure[King]
+	if noKings == 0 {
+		return 0, true
+	}
+	// KN vs K is theoretical draw.
+	if noKings == pos.ByFigure[Knight] && pos.ByFigure[Knight].HasOne() {
+		return 0, true
+	}
+	// KB* vs KB* is theoretical draw if all bishops are on the same square color.
+	if bishops := pos.ByFigure[Bishop]; noKings == bishops {
+		if bishops&BbWhiteSquares == bishops {
+			return 0, true
+		}
+		if bishops&BbBlackSquares == bishops {
 			return 0, true
 		}
 	}
@@ -405,11 +419,11 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// which bails out if after the null move we are still in check.
 	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
 		depth > NullMoveDepthLimit && // not very close to leafs
-		pos.NumPieces[sideToMove][Pawn]+1 < pos.NumPieces[sideToMove][NoPiece] && // at least one minor/major piece.
+		pos.HasNonPawns(sideToMove) && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
 		reduction := int16(NullMoveDepthReduction)
-		if pos.NumPieces[sideToMove][Pawn]+3 < pos.NumPieces[sideToMove][NoPiece] {
+		if pos.NumNonPawns(sideToMove) >= 3 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
 		}
