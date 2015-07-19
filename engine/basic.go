@@ -21,6 +21,9 @@ var (
 		Queen:  "Q",
 		King:   "K",
 	}
+
+	// pov xor mask indexed by color.
+	povMask = [ColorArraySize]Square{0x00, 0x38, 0x00}
 )
 
 // Square identifies the location on the board.
@@ -73,6 +76,13 @@ func (sq Square) Rank() int {
 // File returns a number from 0 to 7 representing the file of the square.
 func (sq Square) File() int {
 	return int(sq % 8)
+}
+
+// POV returns the square from col's point of view.
+// That is for Black the rank is flipped, file stays the same.
+// Useful in evaluation based on king's or pawns' positions.
+func (sq Square) POV(col Color) Square {
+	return sq ^ povMask[col]
 }
 
 func (sq Square) String() string {

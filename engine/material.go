@@ -28,10 +28,6 @@ const (
 )
 
 var (
-	// sq ^ colorMask[col] is sq from col's POV.
-	// Used with PieceSquareTables which are from White's POV.
-	colorMask = [3]Square{0x00, 0x38, 0x00}
-
 	// GlobalMaterial is the shared material values.
 	GlobalMaterial = Material{
 		ConnectedPawn: Score{11, 2},
@@ -116,15 +112,15 @@ type Material struct {
 	ConnectedPawn Score
 	DoublePawn    Score
 	IsolatedPawn  Score
-	PassedPawn    [8]Score               // score of each passed pawn, indexed by rank
+	PassedPawn    [8]Score               // score of each passed pawn, indexed by rank from color's pov.
 	BishopPair    Score                  // how much a pair of bishop is worth
 	KingShelter   Score                  // award pawn shelter in front of the king
 	Mobility      [FigureArraySize]Score // how much each piece's mobility is worth
 	FigureBonus   [FigureArraySize]Score // how much each piece is worth
 
 	// Piece Square Table from White POV.
-	// For black the table is flipped, i.e. black index = 0x38 ^ white index.
-	// The tables are indexed from SquareA1 to SquareH8.
+	// The tables are indexed from SquareA1 to SquareH8,
+	// but should be accessed as PieceSquareTable[fig][sq.POV(us)].
 	PieceSquareTable [FigureArraySize][SquareArraySize]Score
 }
 
@@ -155,7 +151,6 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	// TODO: Evaluate larger pawn structures.
 
 	pos, mat := e.position, e.material // shortcut
-	mask := colorMask[us]
 
 	// Award pawns based on the Hans Berliner's system.
 	ours := pos.ByPiece(us, Pawn)
@@ -190,11 +185,11 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 
 	for bb := ours; bb != 0; {
 		sq := bb.Pop()
-		rank := (sq ^ mask).Rank() // from our POV
+		povSq := sq.POV(us)
 
-		ps := mat.PieceSquareTable[Pawn][sq^mask]
+		ps := mat.PieceSquareTable[Pawn][povSq]
 		if passed.Has(sq) {
-			ps = ps.Plus(mat.PassedPawn[rank])
+			ps = ps.Plus(mat.PassedPawn[povSq.Rank()])
 		}
 		if connected.Has(sq) {
 			// The bonus is added to both pawns.
@@ -223,7 +218,6 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	pos, mat := e.position, e.material // shortcut
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[us] | pos.PawnThreats(us.Opposite())
-	mask := colorMask[us]
 
 	// Award connected bishops.
 	score := mat.BishopPair.Times(int32(pos.NumPieces[us][Bishop] / 2))
@@ -272,7 +266,7 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 		sq := bb.Pop()
 		king := pos.KingMobility(sq) &^ excl
 		score = score.Plus(mat.Mobility[King].Times(king.Popcnt()))
-		score = score.Plus(mat.PieceSquareTable[King][sq^mask])
+		score = score.Plus(mat.PieceSquareTable[King][sq.POV(us)])
 	}
 
 	// Penalize broken shield in front of the king.
