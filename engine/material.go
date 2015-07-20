@@ -1,17 +1,4 @@
 // material.go implements position evaluation.
-//
-// Evaluation function is quiet basic and consistes of:
-//
-// * Material and mobility
-// * Piece square tables for pawns and king. Other figures did not improve the eval.
-// * King shelter (only in mid game)
-// * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see pawn_table.go).
-// * Phased eval between mid game and end game.
-//
-// TODO:
-// * Special handling of end games.
-// * Rooks on 7th rank
-// * Connected passed pawns.
 
 package engine
 

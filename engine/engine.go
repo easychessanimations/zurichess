@@ -1,6 +1,14 @@
-// Package engine implements board, moves and search.
+// Package engine implements board, move generation and position searching.
 //
-// Search features implemented are:
+// The package can be used as a general library for chess tool writing and
+// provides the core functionality for the zurichess chess engine.
+//
+// Position (basic.go, position.go) uses:
+//
+//   * Bitboards for representation - https://chessprogramming.wikispaces.com/Bitboards
+//   * Magic bitboards for generation - https://chessprogramming.wikispaces.com/Magic+Bitboards
+//
+// Search (engine.go) features implemented are:
 //
 //   * Aspiration window - https://chessprogramming.wikispaces.com/Aspiration+Windows
 //   * Check extension - https://chessprogramming.wikispaces.com/Check+Extensions
@@ -11,7 +19,24 @@
 //   * Null move prunning (NMP) - https://chessprogramming.wikispaces.com/Null+Move+Pruning
 //   * Principal variation search (PVS) - https://chessprogramming.wikispaces.com/Principal+Variation+Search
 //   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
+//   * Mate distance pruning - https://chessprogramming.wikispaces.com/Mate+Distance+Pruning
+//   * Static Single Evaluation - https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
+//   * Zobrist hashing - https://chessprogramming.wikispaces.com/Zobrist+Hashing
+//
+// Move ordering (move_ordering.go) consists of:
+//
 //   * Hash move heuristic
+//   * Captures sorted by MVVLVA - https://chessprogramming.wikispaces.com/MVV-LVA
+//   * Killer moves - https://chessprogramming.wikispaces.com/Killer+Move
+//
+// Evaluation (material.go) function is quiet basic and consistes of:
+//
+//   * Material and mobility
+//   * Piece square tables for pawns and king. Other figures did not improve the eval.
+//   * King shelter (only in mid game)
+//   * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see pawn_table.go).
+//   * Phased eval between mid game and end game.
+//
 package engine
 
 import (
