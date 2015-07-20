@@ -4,18 +4,18 @@ package engine
 
 import "fmt"
 
-const _HashKind_name = "NoKindExactFailedLowFailedHigh"
+const _hashKind_name = "noEntryexactfailedLowfailedHigh"
 
-var _HashKind_index = [...]uint8{6, 11, 20, 30}
+var _hashKind_index = [...]uint8{7, 12, 21, 31}
 
-func (i HashKind) String() string {
-	if i >= HashKind(len(_HashKind_index)) {
-		return fmt.Sprintf("HashKind(%d)", i)
+func (i hashKind) String() string {
+	if i >= hashKind(len(_hashKind_index)) {
+		return fmt.Sprintf("hashKind(%d)", i)
 	}
-	hi := _HashKind_index[i]
+	hi := _hashKind_index[i]
 	lo := uint8(0)
 	if i > 0 {
-		lo = _HashKind_index[i-1]
+		lo = _hashKind_index[i-1]
 	}
-	return _HashKind_name[lo:hi]
+	return _hashKind_name[lo:hi]
 }

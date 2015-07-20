@@ -191,51 +191,54 @@ func (eng *Engine) endPosition() (int16, bool) {
 }
 
 // retrieveHash gets from GlobalHashTable the current position.
-func (eng *Engine) retrieveHash() (hashEntry, bool) {
-	entry, ok := GlobalHashTable.get(eng.Position)
-	if ok {
-		eng.Stats.CacheHit++
-		// Return mate score relative to root.
-		// The score was adjusted relative to position before the
-		// hash table was updated.
-		if entry.Score < KnownLossScore {
-			if entry.Kind == Exact {
-				entry.Score += int16(eng.ply())
-			}
-		} else if entry.Score > KnownWinScore {
-			if entry.Kind == Exact {
-				entry.Score -= int16(eng.ply())
-			}
-		}
-	} else {
+func (eng *Engine) retrieveHash() hashEntry {
+	entry := GlobalHashTable.get(eng.Position)
+
+	if entry.kind == noEntry {
 		eng.Stats.CacheMiss++
+		return hashEntry{}
 	}
-	return entry, ok
+
+	// Return mate score relative to root.
+	// The score was adjusted relative to position before the
+	// hash table was updated.
+	if entry.score < KnownLossScore {
+		if entry.kind == exact {
+			entry.score += int16(eng.ply())
+		}
+	} else if entry.score > KnownWinScore {
+		if entry.kind == exact {
+			entry.score -= int16(eng.ply())
+		}
+	}
+
+	eng.Stats.CacheHit++
+	return entry
 }
 
 // updateHash updates GlobalHashTable with the current position.
 func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
-	kind := Exact
+	kind := exact
 	if score <= α {
-		kind = FailedLow
+		kind = failedLow
 	} else if score >= β {
-		kind = FailedHigh
+		kind = failedHigh
 	}
 
 	// Save the mate score relative to the current position.
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
-		if kind == Exact {
+		if kind == exact {
 			score -= int16(eng.ply())
-		} else if kind == FailedLow {
+		} else if kind == failedLow {
 			score = KnownLossScore
 		} else {
 			return
 		}
 	} else if score > KnownWinScore {
-		if kind == Exact {
+		if kind == exact {
 			score += int16(eng.ply())
-		} else if kind == FailedHigh {
+		} else if kind == failedHigh {
 			score = KnownWinScore
 		} else {
 			return
@@ -243,10 +246,10 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 	}
 
 	GlobalHashTable.put(eng.Position, hashEntry{
-		Score: score,
-		Depth: depth,
-		Kind:  kind,
-		Move:  move,
+		score: score,
+		depth: depth,
+		kind:  kind,
+		move:  move,
 	})
 }
 
@@ -407,29 +410,28 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	}
 
 	// Check the transposition table.
-	entry, has := eng.retrieveHash()
-	hash := entry.Move
-	if has && depth <= entry.Depth {
-		hash = entry.Move
-		if ply > 0 && entry.Kind == Exact {
+	entry := eng.retrieveHash()
+	hash := entry.move
+	if entry.kind != noEntry && depth <= entry.depth {
+		if ply > 0 && entry.kind == exact {
 			// Simply return if the score is exact.
 			// Update principal variation table if possible.
-			if α < entry.Score && entry.Score < β {
+			if α < entry.score && entry.score < β {
 				eng.pvTable.Put(eng.Position, hash)
 			}
-			return entry.Score
+			return entry.score
 		}
-		if entry.Kind == FailedLow && entry.Score <= α {
+		if entry.kind == failedLow && entry.score <= α {
 			// Previously the move failed low so the actual score
-			// is at most entry.Score. If that's lower than α
+			// is at most entry.score. If that's lower than α
 			// this will also fail low.
-			return entry.Score
+			return entry.score
 		}
-		if entry.Kind == FailedHigh && entry.Score >= β {
+		if entry.kind == failedHigh && entry.score >= β {
 			// Previously the move failed high so the actual score
-			// is at least entry.Score. If that's higher than β
+			// is at least entry.score. If that's higher than β
 			// this will also fail high.
-			return entry.Score
+			return entry.score
 		}
 	}
 

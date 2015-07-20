@@ -1,4 +1,3 @@
-//go:generate stringer -type HashKind
 // hash_table.go implements a global transposition table.
 
 package engine
@@ -12,13 +11,13 @@ var (
 	GlobalHashTable        *HashTable // global transposition table.
 )
 
-type HashKind uint8
+type hashKind uint8
 
 const (
-	NoKind     HashKind = iota // No entry
-	Exact                      // Exact score is known
-	FailedLow                  // Search failed low, upper bound.
-	FailedHigh                 // Search failed high, lower bound
+	noEntry    hashKind = iota // No entry
+	exact                      // exact score is known
+	failedLow                  // Search failed low, upper bound.
+	failedHigh                 // Search failed high, lower bound
 )
 
 // hashEntry is a value in the transposition table.
@@ -29,11 +28,11 @@ type hashEntry struct {
 	// Normally, lock is derived from the position's Zobrist key.
 	lock uint32
 
-	Kind HashKind // type of hash
-	Move Move     // best move
+	move Move     // best move
+	kind hashKind // type of hash
 
-	Score int16 // score of the position. if mate, score is relative to current position.
-	Depth int16 // remaining search depth
+	score int16 // score of the position. if mate, score is relative to current position.
+	depth int16 // remaining search depth
 }
 
 // HashTable is a transposition table.
@@ -79,7 +78,7 @@ func (ht *HashTable) put(pos *Position, entry hashEntry) {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	entry.lock = lock
 
-	if e := &ht.table[key0]; e.lock == lock || e.Kind == NoKind || e.Depth+1 >= entry.Depth {
+	if e := &ht.table[key0]; e.lock == lock || e.kind == noEntry || e.depth+1 >= entry.depth {
 		ht.table[key0] = entry
 	} else {
 		ht.table[key1] = entry
@@ -91,15 +90,15 @@ func (ht *HashTable) put(pos *Position, entry hashEntry) {
 // Observation: due to collision errors, the hashEntry returned might be
 // from a different table. However, these errors are not common because
 // we use 32-bit lock + log_2(len(ht.table)) bits to avoid collisions.
-func (ht *HashTable) get(pos *Position) (hashEntry, bool) {
+func (ht *HashTable) get(pos *Position) hashEntry {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
-	if ht.table[key0].lock == lock && ht.table[key0].Kind != NoKind {
-		return ht.table[key0], true
+	if ht.table[key0].lock == lock {
+		return ht.table[key0]
 	}
-	if ht.table[key1].lock == lock && ht.table[key1].Kind != NoKind {
-		return ht.table[key1], true
+	if ht.table[key1].lock == lock {
+		return ht.table[key1]
 	}
-	return hashEntry{}, false
+	return hashEntry{}
 }
 
 // Clear removes all entries from hash.
