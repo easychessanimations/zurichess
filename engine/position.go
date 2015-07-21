@@ -793,17 +793,20 @@ func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
 // kind is a combination of Quiet, Tactical or Violent.
 func (pos *Position) GenerateMoves(kind int, moves *[]Move) {
-	pos.genPawnAdvanceMoves(kind, moves)
-	pos.genPawnAttackMoves(kind, moves)
+	// Order of the moves is important because the last quiet
+	// moves will be reduced less.  Current order was produced
+	// by testing 20 random orders and picking the best.
+	pos.genKingMovesNear(kind, moves)
 	pos.genPawnDoubleAdvanceMoves(kind, moves)
+	pos.genRookMoves(Rook, kind, moves)
+	pos.genBishopMoves(Queen, kind, moves)
+	pos.genPawnAttackMoves(kind, moves)
+	pos.genPawnAdvanceMoves(kind, moves)
 	pos.genPawnPromotions(kind, moves)
 	pos.genKnightMoves(kind, moves)
 	pos.genBishopMoves(Bishop, kind, moves)
-	pos.genRookMoves(Rook, kind, moves)
-	pos.genBishopMoves(Queen, kind, moves)
-	pos.genRookMoves(Queen, kind, moves)
 	pos.genKingCastles(kind, moves)
-	pos.genKingMovesNear(kind, moves)
+	pos.genRookMoves(Queen, kind, moves)
 }
 
 // GenerateFigureMoves generate moves for a given figure.
