@@ -190,7 +190,8 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 
 // evaluate position for a single side.
 //
-// The returned score is from White's POV. Pawn features are evaluated part of pawnStructure.
+// The returned score is from our POV.
+// Pawn features are evaluated part of pawnStructure.
 func (e *Evaluation) evaluateSide(us Color) Score {
 	// FigureBonus is included in the static score, and thus not added here.
 	pos, mat := e.position, e.material // shortcut
