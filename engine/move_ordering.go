@@ -5,7 +5,7 @@
 package engine
 
 var (
-	// mvvlvaTable stores the ordering scores.
+	// MVVLVATable stores the ordering scores.
 	//
 	// MVV/LVA stands for "Most valuable victim, Least valuable attacker".
 	// See https://chessprogramming.wikispaces.com/MVV-LVA.
@@ -15,8 +15,8 @@ var (
 	// Capturing the king should have a very high value
 	// to prevent searching positions with other side in check.
 	//
-	// mvvlvaTable[attacker * FigureSize + victim]
-	mvvlvaTable = [FigureArraySize * FigureArraySize]int{
+	// MVVLVATable[attacker * FigureSize + victim]
+	MVVLVATable = [FigureArraySize * FigureArraySize]int{
 		250, 254, 535, 757, 919, 1283, 20000, // Promotion
 		250, 863, 1380, 1779, 2307, 2814, 20000, // Pawn
 		250, 781, 1322, 1654, 1766, 2414, 20000, // Knight
@@ -50,18 +50,13 @@ const (
 	msDone // all moves returned
 )
 
-// SetMvvLva sets the MVV/LVA table.
-func SetMvvLva(str string) error {
-	return SetMaterialValue("MvvLva", mvvlvaTable[:], str)
-}
-
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
 func mvvlva(m Move) int16 {
 	a := int(m.Piece().Figure())
 	v := int(m.Capture().Figure())
 	p := int(m.Promotion().Figure())
-	return int16(mvvlvaTable[a*FigureArraySize+v] + mvvlvaTable[p])
+	return int16(MVVLVATable[a*FigureArraySize+v] + MVVLVATable[p])
 }
 
 // heapSort sorts moves by coresponding value in order.

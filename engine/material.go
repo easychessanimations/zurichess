@@ -4,8 +4,8 @@ package engine
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
+	// "strconv"
+	// "strings"
 )
 
 const (
@@ -456,31 +456,4 @@ func (e *Evaluation) SEE(m Move) int32 {
 		}
 	}
 	return gain[0]
-}
-
-// SetMaterialValue parses str and updates array.
-//
-// str has format "value0,value1,...,valuen-1" (no spaces and no quotes).
-// If valuei is empty then array[i] is not modified.
-// n, the number of values, must be equal to len(array).
-func SetMaterialValue(name string, array []int, str string) error {
-	fields := strings.Split(str, ",")
-	if len(fields) != len(array) {
-		return fmt.Errorf("%s: expected %d elements, got %d",
-			name, len(array), len(fields))
-	}
-	for _, f := range fields {
-		if f != "" {
-			if _, err := strconv.ParseInt(f, 10, 0); err != nil {
-				return fmt.Errorf("%s: %v", name, err)
-			}
-		}
-	}
-	for i, f := range fields {
-		if f != "" {
-			value, _ := strconv.ParseInt(f, 10, 32)
-			array[i] = int(value)
-		}
-	}
-	return nil
 }
