@@ -693,7 +693,7 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Move("b8c6")
 	te.Move("c3b1")
 	te.Move("c6b8")
-	if pos.IsThreeFoldRepetition() { // Knights.
+	if pos.ThreeFoldRepetition() == 3 { // Knights.
 		t.Errorf("three fold repetition not expected")
 	}
 
@@ -701,7 +701,7 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Move("b8c6")
 	te.Move("c3b1")
 	te.Move("c6b8")
-	if !pos.IsThreeFoldRepetition() { // Knights, knights.
+	if pos.ThreeFoldRepetition() != 3 { // Knights, knights.
 		t.Errorf("three fold repetition expected")
 	}
 
@@ -711,7 +711,7 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Undo()
 	te.Move("d2d4")
 	te.Move("d7d5")
-	if pos.IsThreeFoldRepetition() { // Knights, pawns.
+	if pos.ThreeFoldRepetition() == 3 { // Knights, pawns.
 		t.Errorf("three fold repetition not expected")
 	}
 
@@ -719,7 +719,7 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Move("b8c6")
 	te.Move("c3b1")
 	te.Move("c6b8")
-	if pos.IsThreeFoldRepetition() { // Knights, pawns, knights.
+	if pos.ThreeFoldRepetition() == 3 { // Knights, pawns, knights.
 		t.Errorf("three fold repetition not expected")
 	}
 
@@ -727,7 +727,7 @@ func TestIsThreeFoldRepetition(t *testing.T) {
 	te.Move("b8c6")
 	te.Move("c3b1")
 	te.Move("c6b8")
-	if !pos.IsThreeFoldRepetition() { // Knights, pawns, knights, knights.
+	if pos.ThreeFoldRepetition() != 3 { // Knights, pawns, knights, knights.
 		t.Errorf("three fold repetition expected")
 	}
 }

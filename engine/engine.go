@@ -183,7 +183,9 @@ func (eng *Engine) endPosition() (int16, bool) {
 		}
 	}
 	// Repetition is a draw.
-	if pos.IsThreeFoldRepetition() {
+	// At root we need to continue searching even if we saw two repetitions already,
+	// however we can prune deeper search only at two repetitions.
+	if r := pos.ThreeFoldRepetition(); ply > 0 && r >= 2 || r >= 3 {
 		return 0, true
 	}
 	// TODO: Handle 50 moves rule.

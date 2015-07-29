@@ -363,21 +363,18 @@ func (pos *Position) KingMobility(sq Square) Bitboard {
 	return bbKingAttack[sq]
 }
 
-// IsThreeFoldRepetition returns whether current position was seen three times already.
-func (pos *Position) IsThreeFoldRepetition() bool {
-	if pos.Ply-pos.curr.IrreversiblePly < 4 {
-		return false
-	}
-
+// ThreeFoldRepetition returns whether current position was seen three times already.
+// Returns minimum between 3 and the actual number of repetitions.
+func (pos *Position) ThreeFoldRepetition() int {
 	c, z := 0, pos.Zobrist()
 	for i := pos.Ply; i >= pos.curr.IrreversiblePly; i -= 2 {
 		if pos.states[i].Zobrist == z {
 			if c++; c == 3 {
-				return true
+				break
 			}
 		}
 	}
-	return false
+	return c
 }
 
 // IsChecked returns true if side's king is checked.
