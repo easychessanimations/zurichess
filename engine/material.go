@@ -4,8 +4,6 @@ package engine
 
 import (
 	"fmt"
-	// "strconv"
-	// "strings"
 )
 
 const (
@@ -17,45 +15,50 @@ const (
 )
 
 var (
-	// GlobalMaterial is the shared material values.
-	GlobalMaterial = Material{
-		ConnectedPawn: Score{11, 2},
-		DoublePawn:    Score{3, 19},
-		IsolatedPawn:  Score{5, 3},
-		PassedPawn:    [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}},
-		BishopPair:    Score{28, 45},
-		KingShelter:   Score{20, -10},
-		Mobility:      [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}},
-		FigureBonus:   [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}},
+	// All evaluation parameters.
 
-		PieceSquareTable: [FigureArraySize][SquareArraySize]Score{
-			{}, // NoFigure
-			{ // Pawn
-				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-				{1, 10}, {4, 7}, {2, -1}, {3, 1}, {-5, 5}, {16, 18}, {14, 11}, {17, -2},
-				{2, 11}, {0, 7}, {0, -1}, {-2, 7}, {7, 11}, {3, 9}, {12, 8}, {5, 7},
-				{0, 33}, {1, 13}, {11, 19}, {17, 7}, {15, 4}, {-2, 10}, {-2, 20}, {4, 19},
-				{4, 47}, {5, 33}, {4, 11}, {21, 9}, {14, 4}, {19, 5}, {3, 28}, {-1, 29},
-				{17, 71}, {4, 45}, {52, 24}, {17, 48}, {27, 29}, {15, 37}, {37, 33}, {15, 40},
-				{30, 69}, {47, 66}, {26, 30}, {3, 20}, {40, 45}, {22, 53}, {25, 67}, {12, 70},
-				{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-			},
-			{}, // Knight
-			{}, // Bishop
-			{}, // Rook
-			{}, // Queen
-			{ // King
-				// The values for King were suggested by Tomasz Michniewski.
-				// Numbers were copied from: https://chessprogramming.wikispaces.com/Simplified+evaluation+function
-				{20, -50}, {30, -30}, {10, -30}, {0, -30}, {0, -30}, {10, -30}, {30, -30}, {20, -50},
-				{20, -30}, {20, -30}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {20, -30}, {20, -30},
-				{-10, -30}, {-20, -10}, {-20, 20}, {-20, 30}, {-20, 30}, {-20, 20}, {-20, -10}, {-10, -30},
-				{-20, -30}, {-30, -10}, {-30, 30}, {-40, 40}, {-40, 40}, {-30, 30}, {-30, 10}, {-20, -30},
-				{-30, -30}, {-40, -10}, {-40, 30}, {-50, 40}, {-50, 40}, {-40, 30}, {-40, -10}, {-30, -30},
-				{-30, -30}, {-40, -10}, {-40, 20}, {-50, 30}, {-50, 30}, {-40, 20}, {-40, -10}, {-30, -30},
-				{-30, -30}, {-40, -20}, {-40, -10}, {-50, 0}, {-50, 0}, {-40, -10}, {-40, -20}, {-30, -30},
-				{-30, -50}, {-40, -40}, {-40, -30}, {-50, -20}, {-50, -20}, {-40, -30}, {-40, -40}, {-30, -50},
-			},
+	ConnectedPawn = Score{11, 2}
+	DoublePawn    = Score{3, 19}
+	IsolatedPawn  = Score{5, 3}
+	// score of each passed pawn, indexed by rank from color's pov.
+	PassedPawn = [8]Score{{0, 0}, {0, 0}, {0, 0}, {0, 0}, {23, 65}, {38, 113}, {58, 153}, {0, 0}}
+	BishopPair = Score{28, 45}
+	// award pawn shelter in front of the king
+	KingShelter = Score{20, -10}
+	// how much each piece's mobility is worth
+	Mobility = [FigureArraySize]Score{{0, 0}, {2, 20}, {8, 8}, {6, 7}, {7, 7}, {2, 5}, {-11, 0}}
+	// how much each piece is worth
+	FigureBonus = [FigureArraySize]Score{{0, 0}, {55, 120}, {325, 316}, {341, 346}, {454, 589}, {1110, 1085}, {20000, 20000}}
+	// Piece Square Table from White POV.
+	// The tables are indexed from SquareA1 to SquareH8,
+	// but should be accessed as PieceSquareTable[fig][sq.POV(us)].
+	PieceSquareTable = [FigureArraySize][SquareArraySize]Score{
+		{}, // NoFigure
+		{ // Pawn
+			{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+			{1, 10}, {4, 7}, {2, -1}, {3, 1}, {-5, 5}, {16, 18}, {14, 11}, {17, -2},
+			{2, 11}, {0, 7}, {0, -1}, {-2, 7}, {7, 11}, {3, 9}, {12, 8}, {5, 7},
+			{0, 33}, {1, 13}, {11, 19}, {17, 7}, {15, 4}, {-2, 10}, {-2, 20}, {4, 19},
+			{4, 47}, {5, 33}, {4, 11}, {21, 9}, {14, 4}, {19, 5}, {3, 28}, {-1, 29},
+			{17, 71}, {4, 45}, {52, 24}, {17, 48}, {27, 29}, {15, 37}, {37, 33}, {15, 40},
+			{30, 69}, {47, 66}, {26, 30}, {3, 20}, {40, 45}, {22, 53}, {25, 67}, {12, 70},
+			{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+		},
+		{}, // Knight
+		{}, // Bishop
+		{}, // Rook
+		{}, // Queen
+		{ // King
+			// The values for King were suggested by Tomasz Michniewski.
+			// Numbers were copied from= https://chessprogramming.wikispaces.com/Simplified+evaluation+function
+			{20, -50}, {30, -30}, {10, -30}, {0, -30}, {0, -30}, {10, -30}, {30, -30}, {20, -50},
+			{20, -30}, {20, -30}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {20, -30}, {20, -30},
+			{-10, -30}, {-20, -10}, {-20, 20}, {-20, 30}, {-20, 30}, {-20, 20}, {-20, -10}, {-10, -30},
+			{-20, -30}, {-30, -10}, {-30, 30}, {-40, 40}, {-40, 40}, {-30, 30}, {-30, 10}, {-20, -30},
+			{-30, -30}, {-40, -10}, {-40, 30}, {-50, 40}, {-50, 40}, {-40, 30}, {-40, -10}, {-30, -30},
+			{-30, -30}, {-40, -10}, {-40, 20}, {-50, 30}, {-50, 30}, {-40, 20}, {-40, -10}, {-30, -30},
+			{-30, -30}, {-40, -20}, {-40, -10}, {-50, 0}, {-50, 0}, {-40, -10}, {-40, -20}, {-30, -30},
+			{-30, -50}, {-40, -40}, {-40, -30}, {-50, -20}, {-50, -20}, {-40, -30}, {-40, -40}, {-30, -50},
 		},
 	}
 )
@@ -85,23 +88,6 @@ func (s Score) Times(t int32) Score {
 	return Score{s.M * t, s.E * t}
 }
 
-// Material stores the evaluation parameters.
-type Material struct {
-	ConnectedPawn Score
-	DoublePawn    Score
-	IsolatedPawn  Score
-	PassedPawn    [8]Score               // score of each passed pawn, indexed by rank from color's pov.
-	BishopPair    Score                  // how much a pair of bishop is worth
-	KingShelter   Score                  // award pawn shelter in front of the king
-	Mobility      [FigureArraySize]Score // how much each piece's mobility is worth
-	FigureBonus   [FigureArraySize]Score // how much each piece is worth
-
-	// Piece Square Table from White POV.
-	// The tables are indexed from SquareA1 to SquareH8,
-	// but should be accessed as PieceSquareTable[fig][sq.POV(us)].
-	PieceSquareTable [FigureArraySize][SquareArraySize]Score
-}
-
 // Evaluation evaluates a position.
 //
 // Evaluation has two parts:
@@ -109,17 +95,13 @@ type Material struct {
 //  - a dynamic score, a more refined score of the position.
 type Evaluation struct {
 	position  *Position // position to evaluate
-	material  *Material // evaluation parameters
 	pawnTable pawnTable // a cache for pawn evaluation
 }
 
 // MakeEvaluation returns a new Evaluation object which evaluates
-// pos using parameters in mat.
-func MakeEvaluation(pos *Position, mat *Material) Evaluation {
-	return Evaluation{
-		position: pos,
-		material: mat,
-	}
+// pos using parameters in
+func MakeEvaluation(pos *Position) Evaluation {
+	return Evaluation{position: pos}
 }
 
 // pawns computes the pawn structure score of side.
@@ -128,13 +110,13 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 	// TODO: Evaluate opposed pawns.
 	// TODO: Evaluate larger pawn structures.
 
-	pos, mat := e.position, e.material // shortcut
+	pos := e.position // shortcut
 
 	// Award pawns based on the Hans Berliner's system.
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(us.Opposite(), Pawn)
 
-	score = mat.FigureBonus[Pawn].Times(ours.Popcnt())
+	score = FigureBonus[Pawn].Times(ours.Popcnt())
 
 	// From white's POV (P - white pawn, p - black pawn).
 	// block   wings
@@ -165,20 +147,20 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 		sq := bb.Pop()
 		povSq := sq.POV(us)
 
-		ps := mat.PieceSquareTable[Pawn][povSq]
+		ps := PieceSquareTable[Pawn][povSq]
 		if passed.Has(sq) {
-			ps = ps.Plus(mat.PassedPawn[povSq.Rank()])
+			ps = ps.Plus(PassedPawn[povSq.Rank()])
 		}
 		if connected.Has(sq) {
 			// The bonus is added to both pawns.
 			// TODO: Add to a single pawn to encourage longer chains.
-			ps = ps.Plus(mat.ConnectedPawn)
+			ps = ps.Plus(ConnectedPawn)
 		}
 		if double.Has(sq) {
-			ps = ps.Minus(mat.DoublePawn)
+			ps = ps.Minus(DoublePawn)
 		}
 		if isolated.Has(sq) {
-			ps = ps.Minus(mat.IsolatedPawn)
+			ps = ps.Minus(IsolatedPawn)
 		}
 		// TODO: Penalize backward pawns to encourage pawn advancement.
 
@@ -194,7 +176,7 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 // Pawn features are evaluated part of pawnStructure.
 func (e *Evaluation) evaluateSide(us Color) Score {
 	// FigureBonus is included in the static score, and thus not added here.
-	pos, mat := e.position, e.material // shortcut
+	pos := e.position // shortcut
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[us] | pos.PawnThreats(us.Opposite())
 
@@ -202,7 +184,7 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	var score Score
 	if bishops := pos.ByPiece(us, Bishop); bishops.HasMoreThanOne() {
 		// if bishops&BbWhiteSquares != 0 && bishops&BbBlackSquares != 0 {
-		score = score.Plus(mat.BishopPair)
+		score = score.Plus(BishopPair)
 		// }
 	}
 
@@ -213,7 +195,7 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	mobility := Bitboard(0)
 	ours := pos.ByPiece(us, Pawn)
 	mobility = Forward(us, ours) &^ (pos.ByColor[White] | pos.ByColor[Black])
-	score = score.Plus(mat.Mobility[Pawn].Times(mobility.Popcnt()))
+	score = score.Plus(Mobility[Pawn].Times(mobility.Popcnt()))
 
 	// Knight and bishop mobility considers only pawns.
 	// We exclude minors and majors because they enable tactics.
@@ -221,14 +203,14 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	for bb := pos.ByPiece(us, Knight); bb != 0; {
 		sq := bb.Pop()
 		knight := pos.KnightMobility(sq) &^ excl
-		score = score.Plus(mat.FigureBonus[Knight])
-		score = score.Plus(mat.Mobility[Knight].Times(knight.Popcnt()))
+		score = score.Plus(FigureBonus[Knight])
+		score = score.Plus(Mobility[Knight].Times(knight.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, Bishop); bb != 0; {
 		sq := bb.Pop()
 		bishop := pos.BishopMobility(sq, all) &^ excl
-		score = score.Plus(mat.FigureBonus[Bishop])
-		score = score.Plus(mat.Mobility[Bishop].Times(bishop.Popcnt()))
+		score = score.Plus(FigureBonus[Bishop])
+		score = score.Plus(Mobility[Bishop].Times(bishop.Popcnt()))
 	}
 
 	// Rook and Queen mobility considers only pawns and minor pieces.
@@ -237,20 +219,20 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	for bb := pos.ByPiece(us, Rook); bb != 0; {
 		sq := bb.Pop()
 		rook := pos.RookMobility(sq, all) &^ excl
-		score = score.Plus(mat.FigureBonus[Rook])
-		score = score.Plus(mat.Mobility[Rook].Times(rook.Popcnt()))
+		score = score.Plus(FigureBonus[Rook])
+		score = score.Plus(Mobility[Rook].Times(rook.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, Queen); bb != 0; {
 		sq := bb.Pop()
 		queen := pos.QueenMobility(sq, all) &^ excl
-		score = score.Plus(mat.FigureBonus[Queen])
-		score = score.Plus(mat.Mobility[Queen].Times(queen.Popcnt()))
+		score = score.Plus(FigureBonus[Queen])
+		score = score.Plus(Mobility[Queen].Times(queen.Popcnt()))
 	}
 	for bb := pos.ByPiece(us, King); bb != 0; {
 		sq := bb.Pop()
 		king := pos.KingMobility(sq) &^ excl
-		score = score.Plus(mat.Mobility[King].Times(king.Popcnt()))
-		score = score.Plus(mat.PieceSquareTable[King][sq.POV(us)])
+		score = score.Plus(Mobility[King].Times(king.Popcnt()))
+		score = score.Plus(PieceSquareTable[King][sq.POV(us)])
 	}
 
 	// Penalize broken shield in front of the king.
@@ -269,13 +251,13 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 		}
 
 		if file > 0 && West(king)&pawns == 0 {
-			score = score.Minus(mat.KingShelter)
+			score = score.Minus(KingShelter)
 		}
 		if king&pawns == 0 {
-			score = score.Minus(mat.KingShelter.Times(2))
+			score = score.Minus(KingShelter.Times(2))
 		}
 		if file < 7 && East(king)&pawns == 0 {
-			score = score.Minus(mat.KingShelter)
+			score = score.Minus(KingShelter)
 		}
 	}
 
@@ -341,7 +323,7 @@ func (e *Evaluation) SEESign(m Move) bool {
 }
 
 func (e *Evaluation) bonus(fig Figure) int32 {
-	return e.material.FigureBonus[fig].M
+	return FigureBonus[fig].M
 }
 
 // SEE returns the static exchange evaluation for m.

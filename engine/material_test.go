@@ -49,7 +49,7 @@ func TestSEE(t *testing.T) {
 	for i, fen := range testFENs {
 		var moves []Move
 		pos, _ := PositionFromFEN(fen)
-		e := MakeEvaluation(pos, &GlobalMaterial)
+		e := MakeEvaluation(pos)
 		e.position.GenerateMoves(All, &moves)
 		for _, m := range moves {
 			actual := e.SEE(m)
@@ -74,7 +74,7 @@ var seeBench = "1rr3k1/4ppb1/2q1bnp1/1p2B1Q1/6P1/2p2P2/2P1B2R/2K4R w - - 0 1"
 func BenchmarkSEESlow(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	e := MakeEvaluation(pos, &GlobalMaterial)
+	e := MakeEvaluation(pos)
 	e.position.GenerateMoves(All, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
@@ -86,7 +86,7 @@ func BenchmarkSEESlow(b *testing.B) {
 func BenchmarkSEEFast(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	e := MakeEvaluation(pos, &GlobalMaterial)
+	e := MakeEvaluation(pos)
 	e.position.GenerateMoves(All, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {

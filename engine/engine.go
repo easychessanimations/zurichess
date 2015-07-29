@@ -6,7 +6,7 @@
 // Position (basic.go, position.go) uses:
 //
 //   * Bitboards for representation - https://chessprogramming.wikispaces.com/Bitboards
-//   * Magic bitboards for generation - https://chessprogramming.wikispaces.com/Magic+Bitboards
+//   * Magic bitboards for sliding move generation - https://chessprogramming.wikispaces.com/Magic+Bitboards
 //
 // Search (engine.go) features implemented are:
 //
@@ -29,7 +29,7 @@
 //   * Captures sorted by MVVLVA - https://chessprogramming.wikispaces.com/MVV-LVA
 //   * Killer moves - https://chessprogramming.wikispaces.com/Killer+Move
 //
-// Evaluation (material.go) function is quiet basic and consistes of:
+// Evaluation (material.go) function is quiet basic and consists of:
 //
 //   * Material and mobility
 //   * Piece square tables for pawns and king. Other figures did not improve the eval.
@@ -129,7 +129,7 @@ func (eng *Engine) SetPosition(pos *Position) {
 	} else {
 		eng.Position, _ = PositionFromFEN(FENStartPos)
 	}
-	eng.evaluation = MakeEvaluation(eng.Position, &GlobalMaterial)
+	eng.evaluation = MakeEvaluation(eng.Position)
 }
 
 // DoMove executes a move.

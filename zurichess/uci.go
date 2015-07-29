@@ -19,7 +19,15 @@ var (
 	errQuit = fmt.Errorf("quit")
 
 	globals = map[string]interface{}{
-		"Material": &engine.GlobalMaterial,
+		"BishopPair":       &engine.BishopPair,
+		"ConnectedPawn":    &engine.ConnectedPawn,
+		"DoublePawn":       &engine.DoublePawn,
+		"FigureBonus":      &engine.FigureBonus,
+		"IsolatedPawn":     &engine.IsolatedPawn,
+		"KingShelter":      &engine.KingShelter,
+		"Mobility":         &engine.Mobility,
+		"PassedPawn":       &engine.PassedPawn,
+		"PieceSquareTable": &engine.PieceSquareTable,
 	}
 )
 
