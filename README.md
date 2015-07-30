@@ -11,13 +11,18 @@ zurichess is a chess engine and a chess library written in
 strong chess engine and to enable chess tools writing. See
 the library reference.
 
+zurichess is NOT a complete chess program. Like with most
+other chess engines you need a GUI that supports the UCI
+protocol. Some popular GUIs are XBoard (Linux), Eboard (Linux)
+Winboard (Windows), Arena (Windows).
+
 zurichess partially implements [UCI
 protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but
-the available commands are enough for most purposes.  zurichess was
+the available commands are enough for most purposes. zurichess was
 successfully tested under Linux AMD64 and Linux ARM and other people
 have tested zurichess under Windows AMD64.
 
-zurichess plays on [FICS](http://freechess.org) under handle
+zurichess plays on [FICS](http://freechess.org) under the handle
 [zurichess](http://ficsgames.org/cgi-bin/search.cgi?player=zurichess&action=Statistics).
 Usually it runs code at tip (master) which is a bit stronger
 than the latest stable version.
@@ -66,18 +71,27 @@ in alphabetical order.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
 
-* Moved to new page http://bitbucket.org/zurichess/zurichess.
-* Evaluate passed, connected and isolated pawns. Tuning was done using Texel's tuning method
-implemented using [txt](https://bitbucket.org/brtzsnr/txt).
+* Moved to the new page http://bitbucket.org/zurichess/zurichess.
+* Evaluate passed, connected and isolated pawns. Tuning was done
+using Texel's tuning method implemented by
+[txt](https://bitbucket.org/brtzsnr/txt).
 * Add Static Exchange Evalution (SEE).
 * Ignore bad captures (SEE < 0) in quiescence search.
-* Late move reduce of all quiet moves. Aggresively reduce bad quiet (SEE < 0)
-moves at higher depths.
-* Increase number of killers to 4.
-* Improve move generation speed. Add phased move generation: hash, captures, quiet
-allows the engine to skip generation or sorting of the moves in many cases.
+* Late move reduce (LMR) of all quiet non-critical moves. Aggresively reduce
+bad quiet (SEE < 0) moves at higher depths.
+* Adjust LMR conditions. Reduce more at high depths (near root) and high move count.
+* Increase number of killers to 4. Helps with more aggressive LMR.
+* Improve move generation speed. Add phased move generation: hash,
+captures, quiet allows the engine to skip generation or sorting of
+the moves in many cases.
 * Implement `setoption Clear Hash`.
 * Implement pondering. Should give some ELO boost for online competitions.
+* Improve move generation order. Picked the best among 20 random orders.
+* Prune two-fold repetitions at non-root nodes. This pruning cuts huge parts
+of the search tree without affecting search quality. >30ELO improvement
+in self play.
+* Small time control adjustment. Still too little time used in the mid
+game and search explosions are aborted.
 * Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
