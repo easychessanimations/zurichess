@@ -94,8 +94,8 @@ func (s Score) Times(t int32) Score {
 //  - a primitive static score that is incrementally updated every move.
 //  - a dynamic score, a more refined score of the position.
 type Evaluation struct {
-	position  *Position // position to evaluate
-	pawnTable pawnTable // a cache for pawn evaluation
+	position  *Position                 // position to evaluate
+	pawnTable [ColorArraySize]pawnTable // a cache for pawn evaluation
 }
 
 // MakeEvaluation returns a new Evaluation object which evaluates
@@ -106,15 +106,19 @@ func MakeEvaluation(pos *Position) Evaluation {
 
 // pawns computes the pawn structure score of side.
 func (e *Evaluation) pawnStructure(us Color) (score Score) {
+	pos := e.position // shortcut
+	ours := pos.ByPiece(us, Pawn)
+	theirs := pos.ByPiece(us.Opposite(), Pawn)
+
+	if score, ok := e.pawnTable[us].get(ours, theirs); ok {
+		// Use a cached value if available.
+		return score
+	}
+
 	// TODO: Evaluate double pawns that are not next to each other.
 	// TODO: Evaluate opposed pawns.
 	// TODO: Evaluate larger pawn structures.
-
-	pos := e.position // shortcut
-
-	// Award pawns based on the Hans Berliner's system.
-	ours := pos.ByPiece(us, Pawn)
-	theirs := pos.ByPiece(us.Opposite(), Pawn)
+	// TODO: Penalize backward pawns to encourage pawn advancement.
 
 	score = FigureBonus[Pawn].Times(ours.Popcnt())
 
@@ -162,11 +166,11 @@ func (e *Evaluation) pawnStructure(us Color) (score Score) {
 		if isolated.Has(sq) {
 			ps = ps.Minus(IsolatedPawn)
 		}
-		// TODO: Penalize backward pawns to encourage pawn advancement.
 
 		score = score.Plus(ps)
 	}
 
+	e.pawnTable[us].put(ours, theirs, score)
 	return score
 }
 
@@ -180,12 +184,12 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	// Exclude squares attacked by enemy pawns from calculating mobility.
 	excl := pos.ByColor[us] | pos.PawnThreats(us.Opposite())
 
+	// Award pawn structure.
+	score := e.pawnStructure(us)
+
 	// Award connect bishop pair.
-	var score Score
 	if bishops := pos.ByPiece(us, Bishop); bishops.HasMoreThanOne() {
-		// if bishops&BbWhiteSquares != 0 && bishops&BbBlackSquares != 0 {
 		score = score.Plus(BishopPair)
-		// }
 	}
 
 	// Award pawn forward mobility.
@@ -264,23 +268,6 @@ func (e *Evaluation) evaluateSide(us Color) Score {
 	return score
 }
 
-// evaluate returns position's score from White's POV.
-func (e *Evaluation) evaluate() Score {
-	pos := e.position // shortcut
-
-	// Evaluate pawn structure, possible using a cached score.
-	white := pos.ByPiece(White, Pawn)
-	black := pos.ByPiece(Black, Pawn)
-	score, ok := e.pawnTable.get(white, black)
-	if !ok {
-		score = e.pawnStructure(White).Minus(e.pawnStructure(Black))
-		e.pawnTable.put(white, black, score)
-	}
-
-	// Evaluate the remaining pieces.
-	return score.Plus(e.evaluateSide(White)).Minus(e.evaluateSide(Black))
-}
-
 // phase returns the score phase between mid game and end game.
 //
 // phase is determined by the number of pieces left in the game where
@@ -304,7 +291,7 @@ func phase(pos *Position, score Score) int32 {
 // Returns a score phased between mid and end game.
 // The returned is always between KnowLossScore and KnownWinScore, excluding.
 func (e *Evaluation) Evaluate() int16 {
-	score := e.evaluate()
+	score := e.evaluateSide(White).Minus(e.evaluateSide(Black))
 	eval := phase(e.position, score)
 	if int32(KnownLossScore) >= eval || eval >= int32(KnownWinScore) {
 		panic(fmt.Sprintf("score %d (%v) should be between %d and %d",

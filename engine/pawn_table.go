@@ -15,29 +15,30 @@ const (
 )
 
 type pawnEntry struct {
-	white Bitboard
-	black Bitboard
-	score Score
+	ours   Bitboard // ours's pawns
+	theirs Bitboard // theirs's pawns
+	score  Score
 }
 
+// hash table for pawn evaluation for a single color.
 type pawnTable [1 << pawnTableBits]pawnEntry
 
-// hash hashes white and black pawns bitboards together.
-func hash(white, black Bitboard) int {
-	h := (white ^ black) * 4270591956663283
+// hash hashes ours and theirs pawns bitboards together.
+func hash(ours, theirs Bitboard) int {
+	h := (ours ^ theirs) * 4270591956663283
 	return int(h >> (64 - pawnTableBits))
 }
 
 // get retrieves score from the table, if cached.
-func (pt *pawnTable) get(white, black Bitboard) (Score, bool) {
-	entry := &pt[hash(white, black)]
-	return entry.score, (entry.white == white && entry.black == black)
+func (pt *pawnTable) get(ours, theirs Bitboard) (Score, bool) {
+	entry := &pt[hash(ours, theirs)]
+	return entry.score, (entry.ours == ours && entry.theirs == theirs)
 }
 
 // put stores score in the table.
-func (pt *pawnTable) put(white, black Bitboard, score Score) {
-	entry := &pt[hash(white, black)]
-	entry.white = white
-	entry.black = black
+func (pt *pawnTable) put(ours, theirs Bitboard, score Score) {
+	entry := &pt[hash(ours, theirs)]
+	entry.ours = ours
+	entry.theirs = theirs
 	entry.score = score
 }
