@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	defaultMovesToGo    = 30 // default number of more moves expected to play
-	defaultbranchFactor = 2  // default branching factor
+	defaultMovesToGo = 30 // default number of more moves expected to play
 )
 
 // atomicFlag is an atomic bool that can only be set.
@@ -38,21 +37,29 @@ type TimeControl struct {
 	Depth       int           // maximum depth search (including)
 	MovesToGo   int           // number of remaining moves
 
-	numPieces  int
 	sideToMove Color
+	branch     int        // branching factor
+	currDepth  int        // current depth searched
 	stopped    atomicFlag // true to stop the search
 	ponderhit  atomicFlag // true if ponder was successful
 
-	searchTime     time.Duration
-	searchDeadline time.Time
-	ponderTime     time.Duration
-	ponderDeadline time.Time
+	searchTime     time.Duration // alocated time for this move
+	searchDeadline time.Time     // don't go to the next depth after this deadline
+	stopDeadline   time.Time     // abort search after this deadline
 }
 
 // NewTimeControl returns a new time control with no time limit,
 // no depth limit, zero time increment and zero moves to go.
 func NewTimeControl(pos *Position) *TimeControl {
 	inf := time.Duration(math.MaxInt64)
+
+	// Branch more when there are more pieces. With fewer pieces
+	// there is less mobility and hash table kicks in more often.
+	branch := 2
+	for np := (pos.ByColor[White] | pos.ByColor[Black]).Popcnt(); np > 0; np /= 6 {
+		branch++
+	}
+
 	return &TimeControl{
 		WTime:      inf,
 		WInc:       0,
@@ -60,8 +67,8 @@ func NewTimeControl(pos *Position) *TimeControl {
 		BInc:       0,
 		Depth:      64,
 		MovesToGo:  defaultMovesToGo,
-		numPieces:  int((pos.ByColor[White] | pos.ByColor[Black]).Popcnt()),
 		sideToMove: pos.SideToMove,
+		branch:     branch,
 	}
 }
 
@@ -86,7 +93,12 @@ func (tc *TimeControl) thinkingTime(t, i time.Duration) time.Duration {
 	// The formula allows engine to use more of time in the begining
 	// and rely more on the increment later.
 	tmp := time.Duration(tc.MovesToGo)
-	if tt := (t + (tmp-1)*i) / tmp; tt < t {
+	tt := (t + (tmp-1)*i) / tmp
+
+	if tt < 0 {
+		return 0
+	}
+	if tt < t {
 		return tt
 	}
 	return t
@@ -95,63 +107,44 @@ func (tc *TimeControl) thinkingTime(t, i time.Duration) time.Duration {
 // Start starts the timer.
 // Should start as soon as possible to set the correct time.
 func (tc *TimeControl) Start(ponder bool) {
-	// Branch more when there are more pieces. With fewer pieces
-	// there is less mobility and hash table kicks in more often.
-	branchFactor := time.Duration(defaultbranchFactor)
-	for np := tc.numPieces - 2; np > 0; np /= 6 {
-		branchFactor++
+	var otime, oinc time.Duration // our time, inc
+	if tc.sideToMove == White {
+		otime, oinc = tc.WTime, tc.WInc
+	} else {
+		otime, oinc = tc.BTime, tc.BInc
 	}
 
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
 	for i := 4; i > 0; i /= 2 {
 		if tc.MovesToGo <= i {
-			branchFactor++
+			tc.branch++
 		}
 	}
 
-	var otime, oinc time.Duration // our time, inc
-	var ttime, tinc time.Duration // their time, inc
-	if tc.sideToMove == White {
-		otime, oinc = tc.WTime, tc.WInc
-		ttime, tinc = tc.BTime, tc.BInc
-	} else {
-		otime, oinc = tc.BTime, tc.BInc
-		ttime, tinc = tc.WTime, tc.WInc
-	}
-
-	tc.stopped = atomicFlag{}
+	tc.stopped = atomicFlag{flag: false}
 	tc.ponderhit = atomicFlag{flag: !ponder}
 
-	// Searches stops such that the last ply has enough time to finish before alloted time.
-	tc.searchTime = tc.thinkingTime(otime, oinc) / branchFactor
-	// Pondering stops based on other's time plus some of our time.
-	tc.ponderTime = (tc.thinkingTime(ttime, tinc) + tc.searchTime/2) / branchFactor
-
+	// searchDeadline is the last moment when search can start a new iteration.
+	// stopDeadline is when to abort the search in case of an explosion.
 	now := time.Now()
-	tc.ponderDeadline = now.Add(tc.ponderTime)
-	tc.searchDeadline = now.Add(tc.searchTime)
+	tc.searchTime = tc.thinkingTime(otime, oinc)
+	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
+	tc.stopDeadline = now.Add(tc.searchTime * 4)
 }
 
 // NextDepth returns true if search can start at depth.
 func (tc *TimeControl) NextDepth(depth int) bool {
-	// If maximum search is not reached then at least some plies is searched.
-	// This avoid an issue when under the clock engine does not return any move
-	// because it stops at depth 0.
-	// We also want to stop the search early for `go depth 0`.
-	return depth <= tc.Depth && (depth <= 2 || !tc.Stopped())
+	tc.currDepth = depth
+	return tc.currDepth <= tc.Depth && !tc.hasStopped(tc.searchDeadline)
 }
 
 // PonderHit switch to our time control.
 func (tc *TimeControl) PonderHit() {
-	tc.searchDeadline = time.Now().Add(tc.searchTime)
+	now := time.Now()
+	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
+	tc.stopDeadline = now.Add(tc.searchTime * 4)
 	tc.ponderhit.set()
-}
-
-// Aborted returns true if pondering was aborted.
-func (tc *TimeControl) Aborted() bool {
-	// tc.ponderhit.get() is true if the engine is currently thinking on its own time.
-	return !tc.ponderhit.get() && tc.stopped.get()
 }
 
 // Stop marks the search as stopped.
@@ -160,18 +153,24 @@ func (tc *TimeControl) Stop() {
 	tc.stopped.set()
 }
 
-// Stopped returns true if the search has stopped.
-func (tc *TimeControl) Stopped() bool {
+func (tc *TimeControl) hasStopped(deadline time.Time) bool {
+	if tc.currDepth <= 2 {
+		return false
+	}
 	if tc.stopped.get() {
 		return true
 	}
-	if tc.ponderhit.get() && time.Now().After(tc.searchDeadline) {
-		tc.stopped.set()
-		return true
-	}
-	if !tc.ponderhit.get() && time.Now().After(tc.ponderDeadline) {
-		tc.stopped.set()
+	if tc.ponderhit.get() && time.Now().After(deadline) {
 		return true
 	}
 	return false
+}
+
+// Stopped returns true if the search has stopped.
+func (tc *TimeControl) Stopped() bool {
+	if !tc.hasStopped(tc.stopDeadline) {
+		return false
+	}
+	tc.stopped.set()
+	return true
 }

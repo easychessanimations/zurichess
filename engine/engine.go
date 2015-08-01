@@ -105,6 +105,9 @@ type Engine struct {
 	stack      stack      // stack of moves
 	pvTable    pvTable    // principal variation table
 
+	timeControl *TimeControl
+	stopped     bool
+
 	// A buffer to write pv lines.
 	// TODO: move UCI output logic out of Engine.
 	buffer bytes.Buffer
@@ -395,6 +398,10 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Update statistics.
 	eng.Stats.Nodes++
+	if eng.stopped || eng.Stats.Nodes%32768 == 0 && eng.timeControl.Stopped() {
+		eng.stopped = true
+		return α
+	}
 	if pvNode && ply > eng.Stats.SelDepth {
 		eng.Stats.SelDepth = eng.ply()
 	}
@@ -550,7 +557,7 @@ func sup(b int) int {
 // search starts the search up to depth depth.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) search(tc *TimeControl, depth, estimated int16) int16 {
+func (eng *Engine) search(depth, estimated int16) int16 {
 	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
@@ -568,7 +575,7 @@ func (eng *Engine) search(tc *TimeControl, depth, estimated int16) int16 {
 		β = int(+InfinityScore)
 	}
 
-	for !tc.Aborted() {
+	for !eng.stopped {
 		// At root a non-null move is required, cannot prune based on null-move.
 		score = eng.searchTree(int16(α), int16(β), depth, true)
 
@@ -630,6 +637,8 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	now := time.Now()
 	eng.Stats = Stats{Start: now, Depth: -1}
 	eng.rootPly = eng.Position.Ply
+	eng.timeControl = tc
+	eng.stopped = false
 	eng.stack.Reset(eng.Position)
 	eng.buffer.Reset()
 
@@ -637,16 +646,19 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	score := int16(0)
 	for depth := 0; depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
-			// Stop if time control says we are done.
+			// Stop if tc control says we are done.
 			// Search at least one depth, otherwise a move cannot be returned.
 			break
 		}
 
 		eng.Stats.Depth = depth
-		score = eng.search(tc, int16(depth), score)
-		moves = eng.pvTable.Get(eng.Position)
-		if eng.Options.AnalyseMode {
-			eng.printInfo(score, moves)
+		score = eng.search(int16(depth), score)
+
+		if !eng.stopped {
+			moves = eng.pvTable.Get(eng.Position)
+			if eng.Options.AnalyseMode {
+				eng.printInfo(score, moves)
+			}
 		}
 
 		if !silent || now.Add(2*time.Second).After(time.Now()) {
