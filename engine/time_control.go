@@ -1,13 +1,13 @@
 package engine
 
 import (
-	"math"
 	"sync"
 	"time"
 )
 
 const (
 	defaultMovesToGo = 30 // default number of more moves expected to play
+	infinite         = 1000000000 * time.Second
 )
 
 // atomicFlag is an atomic bool that can only be set.
@@ -51,8 +51,6 @@ type TimeControl struct {
 // NewTimeControl returns a new time control with no time limit,
 // no depth limit, zero time increment and zero moves to go.
 func NewTimeControl(pos *Position) *TimeControl {
-	inf := time.Duration(math.MaxInt64)
-
 	// Branch more when there are more pieces. With fewer pieces
 	// there is less mobility and hash table kicks in more often.
 	branch := 2
@@ -61,9 +59,9 @@ func NewTimeControl(pos *Position) *TimeControl {
 	}
 
 	return &TimeControl{
-		WTime:      inf,
+		WTime:      infinite,
 		WInc:       0,
-		BTime:      inf,
+		BTime:      infinite,
 		BInc:       0,
 		Depth:      64,
 		MovesToGo:  defaultMovesToGo,
