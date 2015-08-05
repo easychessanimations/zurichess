@@ -89,10 +89,6 @@ func (s Score) Times(t int32) Score {
 }
 
 // Evaluation evaluates a position.
-//
-// Evaluation has two parts:
-//  - a primitive static score that is incrementally updated every move.
-//  - a dynamic score, a more refined score of the position.
 type Evaluation struct {
 	position  *Position                 // position to evaluate
 	pawnTable [ColorArraySize]pawnTable // a cache for pawn evaluation

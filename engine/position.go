@@ -337,7 +337,7 @@ func (pos *Position) Get(sq Square) Piece {
 	panic("unreachable")
 }
 
-// KnightMobility returns all squares a knigth can reach from sq.
+// KnightMobility returns all squares a knight can reach from sq.
 func (pos *Position) KnightMobility(sq Square) Bitboard {
 	return bbKnightAttack[sq]
 }

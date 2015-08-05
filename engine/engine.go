@@ -29,7 +29,7 @@
 //   * Captures sorted by MVVLVA - https://chessprogramming.wikispaces.com/MVV-LVA
 //   * Killer moves - https://chessprogramming.wikispaces.com/Killer+Move
 //
-// Evaluation (material.go) function is quiet basic and consists of:
+// Evaluation (material.go) function is quite basic and consists of:
 //
 //   * Material and mobility
 //   * Piece square tables for pawns and king. Other figures did not improve the eval.
@@ -65,16 +65,16 @@ type Options struct {
 	AnalyseMode bool // true to display info strings
 }
 
-// Stats stores some basic stats on the engine.
+// Stats stores some basic stats of the search.
 //
 // Statistics are reset every iteration of the iterative deepening search.
 type Stats struct {
-	Start     time.Time // when computation was started
+	Start     time.Time // when the computation was started
 	CacheHit  uint64    // number of times the position was found transposition table
 	CacheMiss uint64    // number of times the position was not found in the transposition table
 	Nodes     uint64    // number of nodes searched
 	Depth     int       // depth search
-	SelDepth  int       // maximum depth reached on PV (doesn't include hash moves)
+	SelDepth  int       // maximum depth reached on PV (doesn't include the hash moves)
 }
 
 // NPS returns nodes per second.

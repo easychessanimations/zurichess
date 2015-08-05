@@ -32,7 +32,7 @@ var (
 )
 
 // SANToMove converts a move from SAN format to internal representation.
-// SAN stand for standard algebraic notation and
+// SAN stands for standard algebraic notation and
 // its description can be found in FIDE handbook.
 //
 // The set of strings accepted is a slightly different.

@@ -146,7 +146,6 @@ func (tc *TimeControl) PonderHit() {
 }
 
 // Stop marks the search as stopped.
-// The result of the search is going to be used.
 func (tc *TimeControl) Stop() {
 	tc.stopped.set()
 }
