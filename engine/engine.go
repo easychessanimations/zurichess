@@ -203,6 +203,10 @@ func (eng *Engine) retrieveHash() hashEntry {
 		eng.Stats.CacheMiss++
 		return hashEntry{}
 	}
+	if entry.move != NullMove && !eng.Position.IsValid(entry.move) {
+		eng.Stats.CacheMiss++
+		return hashEntry{}
+	}
 
 	// Return mate score relative to root.
 	// The score was adjusted relative to position before the

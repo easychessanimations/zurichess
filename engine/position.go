@@ -190,6 +190,18 @@ func (pos *Position) HasNonPawns(col Color) bool {
 	return pos.ByColor[col]&^pos.ByFigure[Pawn]&^pos.ByFigure[King] != 0
 }
 
+// IsValid returns true if m is a valid move for pos.
+func (pos *Position) IsValid(m Move) bool {
+	if pos.Get(m.From()) != m.Piece() {
+		return false
+	}
+	if pos.Get(m.CaptureSquare()) != m.Capture() {
+		return false
+	}
+	// TODO: Handle castling rights.
+	return true
+}
+
 // Verify check the validity of the position.
 // Mostly used for debugging purposes.
 func (pos *Position) Verify() error {
