@@ -96,7 +96,7 @@ in self play.
 game. Abort search if it takes much more time than alloted.
 * Usual code clean ups, speed ups and bug fixes.
 
-### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
+### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern)
 
 This release's theme is pruning the search. ELO is about 2234 on CCRL 40/4.
 
