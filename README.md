@@ -46,7 +46,7 @@ After the workspace is created cloning and compiling zurichess is easy:
 #!bash
 $ go get -u bitbucket.org/zurichess/zurichess/zurichess
 $ $GOPATH/bin/zurichess --version
-zurichess (devel), build with go1.4 at (just now), running on amd64
+zurichess (devel), build with go1.5 at (just now), running on amd64
 ```
 
 ## Download
@@ -69,21 +69,23 @@ binaries should be stable for any kind of testing.
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (development)
+### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (stable)
 
-* Moved to the new page http://bitbucket.org/zurichess/zurichess.
+The theme of this release is tuning the evaluation, search and move generation.
+
+* Move to the new page http://bitbucket.org/zurichess/zurichess.
 * Evaluate passed, connected and isolated pawns. Tuning was done
 using Texel's tuning method implemented by
-[txt](https://bitbucket.org/brtzsnr/txt).
-* Add Static Exchange Evalution (SEE).
+[txt](https://bitbucket.org/zurichess/txt).
+* Add Static Exchange Evaluation (SEE).
 * Ignore bad captures (SEE < 0) in quiescence search.
-* Late move reduce (LMR) of all quiet non-critical moves. Aggresively reduce
+* Late move reduce (LMR) of all quiet non-critical moves. Aggressively reduce
 bad quiet (SEE < 0) moves at higher depths.
 * Adjust LMR conditions. Reduce more at high depths (near root) and high move count.
 * Increase number of killers to 4. Helps with more aggressive LMR.
 * Improve move generation speed. Add phased move generation: hash,
-captures, quiet allows the engine to skip generation or sorting of
-the moves in many cases.
+captures, and quiets. Phased move generation allows the engine to skip
+generation or sorting of the moves in many cases.
 * Implement `setoption Clear Hash`.
 * Implement pondering. Should give some ELO boost for online competitions.
 * Improve move generation order. Picked the best among 20 random orders.
@@ -91,7 +93,7 @@ the moves in many cases.
 of the search tree without affecting search quality. >30ELO improvement
 in self play.
 * Small time control adjustment. Still too little time used in the mid
-game and search explosions are aborted.
+game. Abort search if it takes much more time than alloted.
 * Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [bern](http://en.wikipedia.org/wiki/Canton_of_Bern) (stable)
@@ -102,7 +104,7 @@ This release's theme is pruning the search. ELO is about 2234 on CCRL 40/4.
 * Reduce late quiet moves (LMR).
 * Optimize move ordering. Penalize moves threatened by pawns in quiescence search.
 * Optimize check extension. Do not extend many bad checks.
-* Change zobrist key to be equal to polyglot key. No book support, but better hashing.
+* Change Zobrist key to be equal to polyglot key. No book support, but better hashing.
 * Add some integration tests such as mate in one and mate in two.
 * Usual code clean ups, speed ups and bug fixes.
 
@@ -128,7 +130,7 @@ This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
 * Implement aspiration window search with gradual widening.
 * Improve replacement strategy in transposition table.
 * Double the number of entries in the transposition table.
-* Develop [zuritest](https://bitbucket.org/brtzsnr/zuritest), testing infrastructure for zurichess.
+* Develop [zuritest](https://bitbucket.org/zurichess/zuritest), testing infrastructure for zurichess.
 * Fail-softly in more situations.
 * Implement UCI commands `go movetime` and `stop`.
 * Add a separate table for principal variation.
