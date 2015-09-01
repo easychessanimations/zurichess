@@ -59,49 +59,20 @@ func mvvlva(m Move) int16 {
 	return int16(MVVLVATable[a*FigureArraySize+v] + MVVLVATable[p])
 }
 
-// heapSort sorts moves by coresponding value in order.
-// heapSort is much faster than the library sort because it
-// avoids interface calls.
-type heapSort struct {
-	moves []Move
-	order []int16
-}
+// sort sorts moves by coresponding value in order.
+// sort is much faster than the library sort because it avoids interface calls.
+func sort(moves []Move, order []int16) {
+	for i := range moves {
+		m, o := moves[i], order[i]
 
-func (hs *heapSort) swap(i, j int) {
-	hs.moves[i], hs.moves[j] = hs.moves[j], hs.moves[i]
-	hs.order[i], hs.order[j] = hs.order[j], hs.order[i]
-}
-
-func (hs *heapSort) sort() {
-	hs.heapify()
-	for end := len(hs.moves) - 1; end > 0; {
-		hs.swap(end, 0)
-		end--
-		hs.siftDown(0, end)
-	}
-}
-
-func (hs *heapSort) heapify() {
-	count := len(hs.moves)
-	for start := (count - 2) / 2; start >= 0; start-- {
-		hs.siftDown(start, count-1)
-	}
-}
-
-func (hs *heapSort) siftDown(start, end int) {
-	for root := start; root*2+1 <= end; {
-		swap, child := root, root*2+1
-		if hs.order[swap] < hs.order[child] {
-			swap = child
+		j := i
+		for ; j > 0 && order[j-1] > o; j-- {
+			moves[j] = moves[j-1]
+			order[j] = order[j-1]
 		}
-		if child+1 <= end && hs.order[swap] < hs.order[child+1] {
-			swap = child + 1
-		}
-		if swap == root {
-			return
-		}
-		hs.swap(root, swap)
-		root = swap
+
+		moves[j] = m
+		order[j] = o
 	}
 }
 
@@ -181,18 +152,20 @@ func (st *stack) generateMoves(kind int) {
 // moveBest moves best move to front.
 func (st *stack) moveBest() {
 	ms := &st.moves[st.position.Ply]
-	bi := -1
+	if len(ms.moves) == 0 {
+		return
+	}
+
+	bi := 0
 	for i, m := range ms.moves {
-		if m != ms.hash && (bi == -1 || ms.order[i] > ms.order[bi]) {
+		if m != ms.hash && ms.order[i] > ms.order[bi] {
 			bi = i
 		}
 	}
 
-	if bi != -1 {
-		last := len(ms.moves) - 1
-		ms.moves[bi], ms.moves[last] = ms.moves[last], ms.moves[bi]
-		ms.order[bi], ms.order[last] = ms.order[last], ms.order[bi]
-	}
+	last := len(ms.moves) - 1
+	ms.moves[bi], ms.moves[last] = ms.moves[last], ms.moves[bi]
+	ms.order[bi], ms.order[last] = ms.order[last], ms.order[bi]
 }
 
 // popFront pops the move from the front
@@ -268,8 +241,7 @@ func (st *stack) PopMove() Move {
 
 		case msSortRest:
 			ms.state = msReturnRest
-			hs := &heapSort{ms.moves, ms.order}
-			hs.sort()
+			sort(ms.moves, ms.order)
 
 		case msReturnRest:
 			if m := st.popFront(); m != NullMove {
