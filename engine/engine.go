@@ -297,7 +297,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		if move.MoveType() == Normal && eng.evaluation.SEESign(move) {
+		if move.MoveType() == Normal && seeSign(eng.Position, move) {
 			continue // Discard losing captures.
 		}
 
@@ -507,13 +507,13 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 				// Large depth means reductions are less risky.
 				numQuiet++
 				tmp := 1 + min(depth, numQuiet)/5
-				if tmp != 1 && eng.evaluation.SEESign(move) {
+				if tmp != 1 && seeSign(eng.Position, move) {
 					lmr = tmp
 				} else {
 					lmr = 1
 				}
 
-			} else if eng.evaluation.SEESign(move) {
+			} else if seeSign(eng.Position, move) {
 				// Bad captures (SEE<0) can be reduced, too.
 				lmr = 1
 			}

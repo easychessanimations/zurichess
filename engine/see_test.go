@@ -4,23 +4,23 @@ import (
 	"testing"
 )
 
-func (e *Evaluation) seeSlow(m Move, score int32) int32 {
+func seeSlow(pos *Position, m Move, score int32) int32 {
 	if m == NullMove || score > 0 {
 		return score
 	}
 
 	// Compute the score change.
-	score += e.bonus(m.Capture().Figure())
+	score += seeScore[m.Capture().Figure()]
 	if m.MoveType() == Promotion {
-		score -= e.bonus(Pawn)
-		score += e.bonus(m.Target().Figure())
+		score -= seeScore[Pawn]
+		score += seeScore[m.Target().Figure()]
 	}
 
-	e.position.DoMove(m)
+	pos.DoMove(m)
 
 	// Find the smallest attacker.
 	var moves []Move
-	e.position.GenerateMoves(Violent, &moves)
+	pos.GenerateMoves(Violent, &moves)
 	next := NullMove
 	for _, n := range moves {
 		if n.To() != m.To() {
@@ -35,8 +35,8 @@ func (e *Evaluation) seeSlow(m Move, score int32) int32 {
 	}
 
 	// Recursively compute the see.
-	see := -e.seeSlow(next, -score)
-	e.position.UndoMove(m)
+	see := -seeSlow(pos, next, -score)
+	pos.UndoMove(m)
 
 	if see > score {
 		return score
@@ -49,11 +49,10 @@ func TestSEE(t *testing.T) {
 	for i, fen := range testFENs {
 		var moves []Move
 		pos, _ := PositionFromFEN(fen)
-		e := MakeEvaluation(pos)
-		e.position.GenerateMoves(All, &moves)
+		pos.GenerateMoves(All, &moves)
 		for _, m := range moves {
-			actual := e.SEE(m)
-			expected := e.seeSlow(m, 0)
+			actual := see(pos, m)
+			expected := seeSlow(pos, m, 0)
 			if expected != actual {
 				t.Errorf("#%d expected %d, got %d\nfor %v on %v", i, expected, actual, m, fen)
 				bad++
@@ -74,11 +73,10 @@ var seeBench = "1rr3k1/4ppb1/2q1bnp1/1p2B1Q1/6P1/2p2P2/2P1B2R/2K4R w - - 0 1"
 func BenchmarkSEESlow(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	e := MakeEvaluation(pos)
-	e.position.GenerateMoves(All, &moves)
+	pos.GenerateMoves(All, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
-			e.seeSlow(m, 0)
+			seeSlow(pos, m, 0)
 		}
 	}
 }
@@ -86,11 +84,10 @@ func BenchmarkSEESlow(b *testing.B) {
 func BenchmarkSEEFast(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	e := MakeEvaluation(pos)
-	e.position.GenerateMoves(All, &moves)
+	pos.GenerateMoves(All, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
-			e.SEE(m)
+			see(pos, m)
 		}
 	}
 }
