@@ -77,15 +77,23 @@ type Stats struct {
 	SelDepth  int       // maximum depth reached on PV (doesn't include the hash moves)
 }
 
+// maxDuration returns maximum of a and b.
+func maxDuration(a, b time.Duration) time.Duration {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // NPS returns nodes per second.
 func (s *Stats) NPS(now time.Time) uint64 {
-	elapsed := uint64(now.Sub(s.Start) + 1)
+	elapsed := uint64(maxDuration(now.Sub(s.Start), time.Microsecond))
 	return s.Nodes * uint64(time.Second) / elapsed
 }
 
 // Time returns the number of elapsed milliseconds.
 func (s *Stats) Time(now time.Time) uint64 {
-	elapsed := uint64(now.Sub(s.Start) + 1)
+	elapsed := uint64(maxDuration(now.Sub(s.Start), time.Microsecond))
 	return elapsed / uint64(time.Millisecond)
 }
 
