@@ -119,12 +119,14 @@ func TestMateIn1(t *testing.T) {
 		pv := eng.Play(tc)
 
 		if len(pv) != 1 {
-			t.Errorf("#%d Expected at one move, got %d", i, len(pv))
+			t.Errorf("#%d Expected at most one move, got %d", i, len(pv))
+			t.Errorf("position is %v", pos)
 			continue
 		}
 
 		if pv[0] != bm {
 			t.Errorf("#%d expected move %v, got %v", i, bm, pv[0])
+			t.Errorf("position is %v", pos)
 			continue
 		}
 	}

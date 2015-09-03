@@ -28,11 +28,6 @@ var (
 )
 
 const (
-	// Give bonus to killer move.
-	KillerMoveBonus int16 = 1024
-)
-
-const (
 	// Move generation states.
 
 	msHash = iota // return hash move
@@ -42,9 +37,10 @@ const (
 	msReturnViolent // return best moves in order
 
 	// Generate tactical&quiet, return best, sort, return one by one.
+	msGenKiller
+	msReturnKiller
+
 	msGenRest    // generate moves
-	msBestRest   // return best
-	msSortRest   // sort
 	msReturnRest // return in order
 
 	msDone // all moves returned
@@ -57,23 +53,6 @@ func mvvlva(m Move) int16 {
 	v := int(m.Capture().Figure())
 	p := int(m.Promotion().Figure())
 	return int16(MVVLVATable[a*FigureArraySize+v] + MVVLVATable[p])
-}
-
-// sort sorts moves by coresponding value in order.
-// sort is much faster than the library sort because it avoids interface calls.
-func sort(moves []Move, order []int16) {
-	for i := range moves {
-		m, o := moves[i], order[i]
-
-		j := i
-		for ; j > 0 && order[j-1] > o; j-- {
-			moves[j] = moves[j-1]
-			order[j] = order[j-1]
-		}
-
-		moves[j] = m
-		order[j] = o
-	}
 }
 
 // movesStack is a stack of moves.
@@ -133,19 +112,7 @@ func (st *stack) generateMoves(kind int) {
 	// Awards bonus for hash and killer moves.
 	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
 	for _, m := range ms.moves {
-		var weight int16
-		if m == ms.killer[0] {
-			weight = KillerMoveBonus - 0
-		} else if m == ms.killer[1] {
-			weight = KillerMoveBonus - 1
-		} else if m == ms.killer[2] {
-			weight = KillerMoveBonus - 2
-		} else if m == ms.killer[3] {
-			weight = KillerMoveBonus - 3
-		} else {
-			weight = mvvlva(m)
-		}
-		ms.order = append(ms.order, weight)
+		ms.order = append(ms.order, mvvlva(m))
 	}
 }
 
@@ -157,8 +124,8 @@ func (st *stack) moveBest() {
 	}
 
 	bi := 0
-	for i, m := range ms.moves {
-		if m != ms.hash && ms.order[i] > ms.order[bi] {
+	for i := range ms.moves {
+		if ms.order[i] > ms.order[bi] {
 			bi = i
 		}
 	}
@@ -179,11 +146,6 @@ func (st *stack) popFront() Move {
 	move := ms.moves[last]
 	ms.moves = ms.moves[:last]
 	ms.order = ms.order[:last]
-
-	if move == ms.hash {
-		// If the front move is the hash move, then the try next move.
-		return st.popFront()
-	}
 	return move
 }
 
@@ -192,6 +154,7 @@ func (st *stack) popFront() Move {
 // Moves are generated in several phases:
 //	first the hash move,
 //      then the violent moves,
+//      then the killer moves,
 //      then the tactical and quiet moves.
 func (st *stack) PopMove() Move {
 	ms := &st.moves[st.position.Ply]
@@ -201,8 +164,7 @@ func (st *stack) PopMove() Move {
 		case msHash:
 			// Return the hash move directly without generating the pseudo legal moves.
 			ms.state = msGenViolent
-			if ms.hash != NullMove {
-				// TODO verify integrity
+			if st.position.IsValid(ms.hash) {
 				return ms.hash
 			}
 
@@ -216,39 +178,53 @@ func (st *stack) PopMove() Move {
 			// it doesn't make sense to sort given that captures have a high
 			// chance to fail high. We just pop the moves in order of score.
 			st.moveBest()
-			if m := st.popFront(); m != NullMove {
+			if m := st.popFront(); m == NullMove {
+				if ms.kind&(Tactical|Quiet) == 0 {
+					// Optimization: skip remaining steps if no Tactical or Quiet moves
+					// were requested (e.g. in quiescence search).
+					ms.state = msDone
+				} else {
+					ms.state = msGenKiller
+				}
+			} else if m == ms.hash {
+				break
+			} else if m != NullMove {
 				return m
 			}
-			if ms.kind&(Tactical|Quiet) == 0 {
-				// Optimization: skip remaining steps if no Tactical or Quiet moves
-				// were requested (e.g. in quiescence search).
-				ms.state = msDone
-			} else {
-				ms.state = msGenRest
+
+		// Return killer moves.
+		// NB: Not all killer moves are valid.
+		case msGenKiller:
+			ms.state = msReturnKiller
+			for i := len(ms.killer) - 1; i >= 0; i-- {
+				if m := ms.killer[i]; m != NullMove {
+					ms.moves = append(ms.moves, ms.killer[i])
+					ms.order = append(ms.order, -int16(i))
+				}
 			}
 
-		// Return the quiet and tactical moves.
+		case msReturnKiller:
+			if m := st.popFront(); m == NullMove {
+				ms.state = msGenRest
+			} else if m == ms.hash {
+				break
+			} else if st.position.IsValid(m) {
+				return m
+			}
+
+		// Return the quiet and tactical moves in the order they were generated.
 		case msGenRest:
-			ms.state = msBestRest
+			ms.state = msReturnRest
 			st.generateMoves(Tactical | Quiet)
 
-		case msBestRest:
-			ms.state = msSortRest
-			st.moveBest()
-			if m := st.popFront(); m != NullMove {
-				return m
-			}
-
-		case msSortRest:
-			ms.state = msReturnRest
-			sort(ms.moves, ms.order)
-
 		case msReturnRest:
-			if m := st.popFront(); m != NullMove {
+			if m := st.popFront(); m == NullMove {
+				ms.state = msDone
+			} else if m == ms.hash || st.IsKiller(m) {
+				break
+			} else {
 				return m
 			}
-			// Update the state only when there are no moves left.
-			ms.state = msDone
 
 		case msDone:
 			// Just in case another move is requested.

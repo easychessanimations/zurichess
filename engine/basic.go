@@ -490,7 +490,7 @@ func (m Move) SideToMove() Color {
 }
 
 // CaptureSquare returns the captured piece square.
-// If no piece is captured, the result is undefined.
+// If no piece is captured, the result is the destination square.
 func (m Move) CaptureSquare() Square {
 	if m.MoveType() != Enpassant {
 		return m.To()

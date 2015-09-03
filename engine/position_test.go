@@ -861,3 +861,21 @@ func TestGenerateMovesColor(t *testing.T) {
 		}
 	}
 }
+
+func TestIsNotValid(t *testing.T) {
+	data := []struct {
+		fen  string
+		move Move
+	}{
+		{"rnbqkbnr/ppp1pppp/8/8/4p3/3B4/PPPP1PPP/RNBQK1NR w KQkq - 0 1", MakeMove(Normal, SquareD2, SquareD4, NoPiece, WhitePawn)},
+		{"rnbqkbnr/ppp1pppp/8/8/8/4pN2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", MakeMove(Castling, SquareE1, SquareG1, NoPiece, WhiteKing)},
+		{"rnbqkbnr/ppp1pppp/8/8/8/4pN2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", MakeMove(Normal, SquareB8, SquareD7, WhitePawn, BlackKnight)},
+	}
+
+	for i, d := range data {
+		pos, _ := PositionFromFEN(d.fen)
+		if pos.IsValid(d.move) {
+			t.Errorf("#%d for %s move %v is invalid", i, d.fen, d.move)
+		}
+	}
+}

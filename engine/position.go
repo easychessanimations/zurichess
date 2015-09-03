@@ -192,13 +192,98 @@ func (pos *Position) HasNonPawns(col Color) bool {
 
 // IsValid returns true if m is a valid move for pos.
 func (pos *Position) IsValid(m Move) bool {
+	if m == NullMove {
+		return false
+	}
 	if pos.Get(m.From()) != m.Piece() {
 		return false
 	}
 	if pos.Get(m.CaptureSquare()) != m.Capture() {
 		return false
 	}
-	// TODO: Handle castling rights.
+	if m.Piece().Figure() == Pawn {
+		// Pawn move is tested above. Promotion is always correct.
+		if m.MoveType() == Enpassant {
+			if !pos.IsEnpassantSquare(m.To()) {
+				return false
+			}
+		}
+		if BbPawnStartRank.Has(m.From()) && BbPawnDoubleRank.Has(m.To()) {
+			if !pos.IsEmpty((m.From() + m.To()) / 2) {
+				return false
+			}
+		}
+		return true
+	}
+	if m.Piece().Figure() == Knight {
+		// Knight move is tested above. Knight jumps around.
+		return true
+	}
+
+	// Quick test of queen's attack on an empty board.
+	sq := m.From()
+	to := m.To().Bitboard()
+	if bbSuperAttack[sq]&to == 0 {
+		return false
+	}
+
+	all := pos.ByColor[White] | pos.ByColor[Black]
+
+	switch m.Piece().Figure() {
+	case Pawn: // handled aove
+		panic("unreachable")
+	case Knight: // handled above
+		panic("unreachable")
+	case Bishop:
+		return to&pos.BishopMobility(sq, all) != 0
+	case Rook:
+		return to&pos.RookMobility(sq, all) != 0
+	case Queen:
+		return to&pos.QueenMobility(sq, all) != 0
+	case King:
+		if m.MoveType() == Normal {
+			return to&bbKingAttack[sq] != 0
+		}
+
+		// m.MoveType() == Castling
+		if m.SideToMove() == White && m.To() == SquareG1 {
+			if pos.CastlingAbility()&WhiteOO == 0 ||
+				!pos.IsEmpty(SquareF1) || !pos.IsEmpty(SquareG1) {
+				return false
+			}
+		}
+		if m.SideToMove() == White && m.To() == SquareC1 {
+			if pos.CastlingAbility()&WhiteOOO == 0 ||
+				!pos.IsEmpty(SquareB1) || !pos.IsEmpty(SquareC1) || !pos.IsEmpty(SquareD1) {
+				return false
+			}
+		}
+		if m.SideToMove() == Black && m.To() == SquareG8 {
+			if pos.CastlingAbility()&BlackOO == 0 ||
+				!pos.IsEmpty(SquareF8) || !pos.IsEmpty(SquareG8) {
+				return false
+			}
+		}
+		if m.SideToMove() == Black && m.To() == SquareC8 {
+			if pos.CastlingAbility()&BlackOOO == 0 ||
+				!pos.IsEmpty(SquareB8) || !pos.IsEmpty(SquareC8) || !pos.IsEmpty(SquareD8) {
+				return false
+			}
+		}
+		rook, start, end := CastlingRook(m.To())
+		if pos.Get(start) != rook {
+			return false
+		}
+		them := m.SideToMove().Opposite()
+		if pos.GetAttacker(m.From(), them) != NoFigure ||
+			pos.GetAttacker(end, them) != NoFigure ||
+			pos.GetAttacker(m.To(), them) != NoFigure {
+			return false
+		}
+	default:
+		panic("unreachable")
+	}
+
 	return true
 }
 
@@ -238,6 +323,11 @@ func (pos *Position) Verify() error {
 				return fmt.Errorf("%v and %v overlap", pi1, pi2)
 			}
 		}
+	}
+
+	// Verifies that enpassant square is empty.
+	if sq := pos.curr.EnpassantSquare[0]; sq != SquareA1 && !pos.IsEmpty(sq) {
+		return fmt.Errorf("Expected empty enpassant square %v, got %v", sq, pos.Get(sq))
 	}
 
 	return nil

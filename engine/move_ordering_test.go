@@ -37,31 +37,33 @@ func TestReturnsHashMove(t *testing.T) {
 }
 
 func TestReturnsMoves(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
-	seen := make(map[Move]int)
+	for _, fen := range testFENs {
+		pos, _ := PositionFromFEN(fen)
+		seen := make(map[Move]int)
 
-	var moves []Move
-	pos.GenerateMoves(All, &moves)
-	for _, m := range moves {
-		seen[m] |= 1
-	}
-
-	st := &stack{}
-	st.Reset(pos)
-	st.GenerateMoves(All, NullMove)
-	for m := st.PopMove(); m != NullMove; m = st.PopMove() {
-		if seen[m]&2 != 0 {
-			t.Errorf("move %v not expected", m)
+		var moves []Move
+		pos.GenerateMoves(All, &moves)
+		for _, m := range moves {
+			seen[m] |= 1
 		}
-		seen[m] |= 2
-	}
 
-	for m, v := range seen {
-		if v == 1 {
-			t.Errorf("move %v not generated", m)
+		st := &stack{}
+		st.Reset(pos)
+		st.GenerateMoves(All, moves[1234567891%len(moves)])
+		for m := st.PopMove(); m != NullMove; m = st.PopMove() {
+			if seen[m]&2 != 0 {
+				t.Errorf("move %v is duplicate", m)
+			}
+			seen[m] |= 2
 		}
-		if v == 2 {
-			t.Errorf("move %v not expected", m)
+
+		for m, v := range seen {
+			if v == 1 {
+				t.Errorf("move %v not generated", m)
+			}
+			if v == 2 {
+				t.Errorf("move %v not expected", m)
+			}
 		}
 	}
 }
