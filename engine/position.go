@@ -38,6 +38,7 @@ type state struct {
 	CastlingAbility Castle    // remaining castling rights.
 	EnpassantSquare [2]Square // enpassant square (polyglot, fen). If none, then SquareA1.
 	IrreversiblePly int       // highest square in which an irreversible move (cannot be part of repetition) was made
+	Move            Move      // last move played
 	Zobrist         uint64
 }
 
@@ -166,6 +167,11 @@ func (pos *Position) EnpassantSquare() Square {
 // CastlingAbility returns kings' castling ability.
 func (pos *Position) CastlingAbility() Castle {
 	return pos.curr.CastlingAbility
+}
+
+// Move returns the last move played, if any.
+func (pos *Position) LastMove() Move {
+	return pos.curr.Move
 }
 
 // Zobrist returns the zobrist key of the position.
@@ -513,6 +519,7 @@ func (pos *Position) PrettyPrint() {
 // DoMove executes a legal move.
 func (pos *Position) DoMove(move Move) {
 	pos.pushState()
+	pos.curr.Move = move
 
 	// Update castling rights.
 	pi := move.Piece()

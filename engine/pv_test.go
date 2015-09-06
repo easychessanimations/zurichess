@@ -8,7 +8,7 @@ import (
 func TestPV(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	pvTable := newPvTable()
-	for _, game := range games {
+	for _, game := range testGames {
 		var moves []Move
 		movesStr := strings.Fields(game)
 		for _, moveStr := range movesStr {

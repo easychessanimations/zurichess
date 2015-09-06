@@ -2,6 +2,7 @@ package engine
 
 import (
 	"log"
+	"strings"
 	"testing"
 )
 
@@ -876,6 +877,31 @@ func TestIsNotValid(t *testing.T) {
 		pos, _ := PositionFromFEN(d.fen)
 		if pos.IsValid(d.move) {
 			t.Errorf("#%d for %s move %v is invalid", i, d.fen, d.move)
+		}
+	}
+}
+
+func TestLastMove(t *testing.T) {
+	for g, game := range testGames {
+		var tmp []Move
+		moves := strings.Fields(game)
+		pos, _ := PositionFromFEN(FENStartPos)
+
+		for _, move := range moves {
+			m := pos.UCIToMove(move)
+			tmp = append(tmp, m)
+			pos.DoMove(m)
+			if got := pos.LastMove(); m != got {
+				t.Errorf("#%d DoMove: got last move %v, expected %v", g, got, m)
+			}
+		}
+
+		for i := len(moves) - 1; i >= 0; i-- {
+			m := tmp[i]
+			if got := pos.LastMove(); m != got {
+				t.Errorf("#%d UndoMove: got last move %v, expected %v", g, got, m)
+			}
+			pos.UndoMove(m)
 		}
 	}
 }
