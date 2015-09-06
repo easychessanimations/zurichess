@@ -132,6 +132,10 @@ func TestScore(t *testing.T) {
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m := pos.UCIToMove(move)
+			if !pos.IsValid(m) {
+				// t.Fatalf("bad bad bad")
+			}
+
 			dynamic.DoMove(m)
 			static.SetPosition(pos)
 			if dynamic.Score() != static.Score() {

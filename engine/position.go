@@ -201,12 +201,16 @@ func (pos *Position) IsValid(m Move) bool {
 	if m == NullMove {
 		return false
 	}
+	if m.SideToMove() != pos.SideToMove {
+		return false
+	}
 	if pos.Get(m.From()) != m.Piece() {
 		return false
 	}
 	if pos.Get(m.CaptureSquare()) != m.Capture() {
 		return false
 	}
+
 	if m.Piece().Figure() == Pawn {
 		// Pawn move is tested above. Promotion is always correct.
 		if m.MoveType() == Enpassant {
@@ -442,7 +446,7 @@ func (pos *Position) Get(sq Square) Piece {
 			return ColorFigure(col, fig)
 		}
 	}
-	panic("unreachable")
+	panic("unreachable: square has color, but no figure")
 }
 
 // KnightMobility returns all squares a knight can reach from sq.

@@ -303,16 +303,16 @@ func TestCastleMovesPieces(t *testing.T) {
 
 	// Black
 	pos.SideToMove = Black
-	te.Move("e8c8")
-	te.Piece(SquareA8, NoPiece)
-	te.Piece(SquareC8, BlackKing)
-	te.Piece(SquareD8, BlackRook)
+	te.Move("e8g8")
+	te.Piece(SquareH8, NoPiece)
+	te.Piece(SquareG8, BlackKing)
+	te.Piece(SquareF8, BlackRook)
 	te.Piece(SquareE8, NoPiece)
 
 	te.Undo()
-	te.Piece(SquareA8, BlackRook)
-	te.Piece(SquareC8, NoPiece)
-	te.Piece(SquareD8, NoPiece)
+	te.Piece(SquareH8, BlackRook)
+	te.Piece(SquareG8, NoPiece)
+	te.Piece(SquareF8, NoPiece)
 	te.Piece(SquareE8, BlackKing)
 }
 
@@ -588,7 +588,7 @@ func TestPawnAttacksEnpassant(t *testing.T) {
 	te.Pawn(SquareE5, []string{"e5e6", "e5f6"})
 
 	te.Move("e3e4")
-	te.Move("f3f4")
+	te.Move("f3g2")
 	te.Pawn(SquareE5, []string{"e5e6"})
 
 	te.Undo()
@@ -687,7 +687,7 @@ func TestPanicPosition(t *testing.T) {
 }
 
 func TestIsThreeFoldRepetition(t *testing.T) {
-	pos, _ := PositionFromFEN(testBoard1)
+	pos, _ := PositionFromFEN(FENStartPos)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("b1c3")
