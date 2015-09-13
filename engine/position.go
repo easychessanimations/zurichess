@@ -210,6 +210,9 @@ func (pos *Position) IsValid(m Move) bool {
 	if pos.Get(m.CaptureSquare()) != m.Capture() {
 		return false
 	}
+	if m.Piece().Color() == m.Capture().Color() {
+		return false
+	}
 
 	if m.Piece().Figure() == Pawn {
 		// Pawn move is tested above. Promotion is always correct.
