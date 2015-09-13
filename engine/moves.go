@@ -185,10 +185,19 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 // UCIToMove parses a move given in UCI format.
 // s can be "a2a4" or "h7h8Q" for pawn promotion.
-// TODO: Return an error.
-func (pos *Position) UCIToMove(s string) Move {
-	from, _ := SquareFromString(s[0:2])
-	to, _ := SquareFromString(s[2:4])
+func (pos *Position) UCIToMove(s string) (Move, error) {
+	if len(s) < 4 {
+		return NullMove, fmt.Errorf("%s is too short", s)
+	}
+
+	from, err := SquareFromString(s[0:2])
+	if err != nil {
+		return NullMove, err
+	}
+	to, err := SquareFromString(s[2:4])
+	if err != nil {
+		return NullMove, err
+	}
 
 	moveType := Normal
 	capt := pos.Get(to)
@@ -206,9 +215,20 @@ func (pos *Position) UCIToMove(s string) Move {
 		moveType = Castling
 	}
 	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
+		if len(s) != 5 {
+			return NullMove, fmt.Errorf("%s doesn't have a promotion piece", s)
+		}
 		moveType = Promotion
 		target = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
+	} else {
+		if len(s) != 4 {
+			return NullMove, fmt.Errorf("%s move is too long", s)
+		}
 	}
 
-	return MakeMove(moveType, from, to, capt, target)
+	move := MakeMove(moveType, from, to, capt, target)
+	if !pos.IsValid(move) {
+		return NullMove, fmt.Errorf("%s is not a valid move", s)
+	}
+	return move, nil
 }

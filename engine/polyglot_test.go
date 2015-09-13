@@ -55,7 +55,7 @@ func TestZobristUndo(t *testing.T) {
 		var tmp []Move   // moves executed
 
 		for _, move := range moves {
-			m := pos.UCIToMove(move)
+			m, _ := pos.UCIToMove(move)
 			zob = append(zob, pos.Zobrist())
 			tmp = append(tmp, m)
 			pos.DoMove(m)

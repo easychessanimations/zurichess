@@ -131,7 +131,7 @@ func TestScore(t *testing.T) {
 
 		moves := strings.Fields(game)
 		for _, move := range moves {
-			m := pos.UCIToMove(move)
+			m, _ := pos.UCIToMove(move)
 			if !pos.IsValid(m) {
 				// t.Fatalf("bad bad bad")
 			}
@@ -198,7 +198,7 @@ func BenchmarkScore(b *testing.B) {
 			todo := strings.Fields(g)
 
 			for j := range todo {
-				move := eng.Position.UCIToMove(todo[j])
+				move, _ := eng.Position.UCIToMove(todo[j])
 				done = append(done, move)
 				eng.DoMove(move)
 				_ = eng.Score()

@@ -25,7 +25,7 @@ type testEngine struct {
 func (te *testEngine) Move(m string) {
 	move := Move(0)
 	if m != "" {
-		move = te.Pos.UCIToMove(m)
+		move, _ = te.Pos.UCIToMove(m)
 	}
 	if te.Pos.SideToMove == move.Capture().Color() {
 		te.T.Fatalf("%v cannot capture its own color (move %v)",
@@ -473,7 +473,7 @@ func TestGenPawnEnpassant(t *testing.T) {
 	pos.Put(SquareC3, WhitePawn)
 	pos.Put(SquareC4, BlackPawn)
 
-	move := pos.UCIToMove("b2b4")
+	move, _ := pos.UCIToMove("b2b4")
 
 	pos.DoMove(move)
 	if SquareB3 != pos.EnpassantSquare() {
@@ -697,10 +697,10 @@ func TestHasLegalMoves(t *testing.T) {
 		{"5k2/5P2/5K2/8/8/8/8/8 b - - 0 1", false},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		pos, _ := PositionFromFEN(test.fen)
 		if got := pos.HasLegalMoves(); got != test.has {
-			t.Errorf("#%d expected pos.HasLegalMoves() %v, got %v", test.has, got)
+			t.Errorf("#%d expected pos.HasLegalMoves() %v, got %v", i, test.has, got)
 		}
 	}
 }
@@ -907,7 +907,7 @@ func TestLastMove(t *testing.T) {
 		pos, _ := PositionFromFEN(FENStartPos)
 
 		for _, move := range moves {
-			m := pos.UCIToMove(move)
+			m, _ := pos.UCIToMove(move)
 			tmp = append(tmp, m)
 			pos.DoMove(m)
 			if got := pos.LastMove(); m != got {

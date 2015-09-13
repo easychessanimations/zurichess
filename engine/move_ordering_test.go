@@ -26,7 +26,7 @@ func TestReturnsHashMove(t *testing.T) {
 	pos, _ := PositionFromFEN(fenKiwipete)
 
 	for i, str := range []string{"f3f5", "e2b5", "a1b1"} {
-		hash := pos.UCIToMove(str)
+		hash, _ := pos.UCIToMove(str)
 		st := &stack{}
 		st.Reset(pos)
 		st.GenerateMoves(All, hash)

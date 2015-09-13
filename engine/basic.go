@@ -12,8 +12,6 @@ import (
 )
 
 var (
-	errorInvalidSquare = fmt.Errorf("invalid square")
-
 	figureToSymbol = map[Figure]string{
 		Knight: "N",
 		Bishop: "B",
@@ -110,7 +108,7 @@ func RankFile(r, f int) Square {
 // The string has standard chess format [a-h][1-8].
 func SquareFromString(s string) (Square, error) {
 	if len(s) != 2 {
-		return SquareA1, errorInvalidSquare
+		return SquareA1, fmt.Errorf("invalid square %s", s)
 	}
 
 	f, r := -1, -1
@@ -124,7 +122,7 @@ func SquareFromString(s string) (Square, error) {
 		r = int(s[1] - '1')
 	}
 	if f == -1 || r == -1 {
-		return SquareA1, errorInvalidSquare
+		return SquareA1, fmt.Errorf("invalid square %s", s)
 	}
 
 	return RankFile(r, f), nil

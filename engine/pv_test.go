@@ -12,7 +12,7 @@ func TestPV(t *testing.T) {
 		var moves []Move
 		movesStr := strings.Fields(game)
 		for _, moveStr := range movesStr {
-			move := pos.UCIToMove(moveStr)
+			move, _ := pos.UCIToMove(moveStr)
 			pos.DoMove(move)
 			moves = append(moves, move)
 		}
