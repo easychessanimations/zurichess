@@ -686,6 +686,25 @@ func TestPanicPosition(t *testing.T) {
 	}
 }
 
+func TestHasLegalMoves(t *testing.T) {
+	tests := []struct {
+		fen string
+		has bool
+	}{
+		{"8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111", true},
+		{"Q4k2/2p2p2/1r6/3p3p/4PPb1/2P3P1/7P/6K1 b - - 0 44", true},
+		{"4b2k/5pQ1/5P2/7p/4P3/2P1K1P1/1r6/8 b - - 10 57", false},
+		{"5k2/5P2/5K2/8/8/8/8/8 b - - 0 1", false},
+	}
+
+	for _, test := range tests {
+		pos, _ := PositionFromFEN(test.fen)
+		if got := pos.HasLegalMoves(); got != test.has {
+			t.Errorf("#%d expected pos.HasLegalMoves() %v, got %v", test.has, got)
+		}
+	}
+}
+
 func TestIsThreeFoldRepetition(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	te := &testEngine{T: t, Pos: pos}

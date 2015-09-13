@@ -475,6 +475,48 @@ func (pos *Position) KingMobility(sq Square) Bitboard {
 	return bbKingAttack[sq]
 }
 
+// HasLegalMoves returns true if current side has any legal moves.
+func (pos *Position) HasLegalMoves() bool {
+	var moves []Move
+	pos.GenerateMoves(All, &moves)
+	us := pos.SideToMove
+
+	for _, m := range moves {
+		pos.DoMove(m)
+		checked := pos.IsChecked(us)
+		pos.UndoMove(m)
+
+		if !checked {
+			return true
+		}
+	}
+
+	return false
+}
+
+// InsufficientMaterial returns true if the position is theoretical draw.
+func (pos *Position) InsufficientMaterial() bool {
+	// K vs K is draw.
+	noKings := (pos.ByColor[White] | pos.ByColor[Black]) &^ pos.ByFigure[King]
+	if noKings == 0 {
+		return true
+	}
+	// KN vs K is theoretical draw.
+	if noKings == pos.ByFigure[Knight] && pos.ByFigure[Knight].HasOne() {
+		return true
+	}
+	// KB* vs KB* is theoretical draw if all bishops are on the same square color.
+	if bishops := pos.ByFigure[Bishop]; noKings == bishops {
+		if bishops&BbWhiteSquares == bishops {
+			return true
+		}
+		if bishops&BbBlackSquares == bishops {
+			return true
+		}
+	}
+	return false
+}
+
 // ThreeFoldRepetition returns whether current position was seen three times already.
 // Returns minimum between 3 and the actual number of repetitions.
 func (pos *Position) ThreeFoldRepetition() int {

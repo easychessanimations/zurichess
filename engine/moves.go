@@ -185,6 +185,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 
 // UCIToMove parses a move given in UCI format.
 // s can be "a2a4" or "h7h8Q" for pawn promotion.
+// TODO: Return an error.
 func (pos *Position) UCIToMove(s string) Move {
 	from, _ := SquareFromString(s[0:2])
 	to, _ := SquareFromString(s[2:4])

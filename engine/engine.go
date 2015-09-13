@@ -174,24 +174,9 @@ func (eng *Engine) endPosition() (int16, bool) {
 	if pos.ByPiece(Black, King) == 0 {
 		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
 	}
-
-	// K vs K is draw.
-	noKings := (pos.ByColor[White] | pos.ByColor[Black]) &^ pos.ByFigure[King]
-	if noKings == 0 {
+	// Neither side cannot mate.
+	if pos.InsufficientMaterial() {
 		return 0, true
-	}
-	// KN vs K is theoretical draw.
-	if noKings == pos.ByFigure[Knight] && pos.ByFigure[Knight].HasOne() {
-		return 0, true
-	}
-	// KB* vs KB* is theoretical draw if all bishops are on the same square color.
-	if bishops := pos.ByFigure[Bishop]; noKings == bishops {
-		if bishops&BbWhiteSquares == bishops {
-			return 0, true
-		}
-		if bishops&BbBlackSquares == bishops {
-			return 0, true
-		}
 	}
 	// Repetition is a draw.
 	// At root we need to continue searching even if we saw two repetitions already,
