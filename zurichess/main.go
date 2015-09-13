@@ -55,20 +55,20 @@ func main() {
 	log.SetPrefix("info string ")
 	log.SetFlags(log.Lshortfile)
 
-	bio := bufio.NewReader(os.Stdin)
 	uci := NewUCI()
-	for {
-		line, _, err := bio.ReadLine()
-		if err != nil {
-			log.Println("error:", err)
-			break
-		}
-		if err := uci.Execute(string(line)); err != nil {
+	scan := bufio.NewScanner(os.Stdin)
+	for scan.Scan() {
+		line := scan.Text()
+		if err := uci.Execute(line); err != nil {
 			if err != errQuit {
 				log.Println(err)
 			} else {
 				break
 			}
 		}
+	}
+
+	if scan.Err() != nil {
+		log.Println(scan.Err())
 	}
 }
