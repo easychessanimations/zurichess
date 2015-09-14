@@ -901,6 +901,30 @@ func TestIsValid(t *testing.T) {
 	}
 }
 
+func TestFiftyMoveRule(t *testing.T) {
+	data := []struct {
+		fen  string
+		move Move
+		draw bool
+	}{
+		{"8/K5p1/1P1k1p1p/5P1P/2R3P1/8/8/8 b - - 0 78", NullMove, false},
+		{"2b5/8/1P6/8/2k3K1/8/5B2/8 w - - 99 113", NullMove, false},
+		{"2b5/8/1P6/8/2k3K1/8/5B2/8 w - - 99 113", MakeMove(Normal, SquareG4, SquareF4, NoPiece, WhiteKing), true},
+		{"2b5/8/1P6/8/2k2K2/8/5B2/8 b - - 100 113", NullMove, true},
+	}
+
+	for i, d := range data {
+		pos, _ := PositionFromFEN(d.fen)
+		if d.move != NullMove {
+			pos.DoMove(d.move)
+		}
+		if got := pos.FiftyMoveRule(); got != d.draw {
+			t.Errorf("#%d got FiftyMoveRule == %v, expected %v", i, got, d.draw)
+			t.Errorf("position is %v", pos)
+		}
+	}
+}
+
 func TestLastMove(t *testing.T) {
 	for g, game := range testGames {
 		var tmp []Move

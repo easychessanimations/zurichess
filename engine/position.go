@@ -37,8 +37,8 @@ func init() {
 type state struct {
 	CastlingAbility Castle    // remaining castling rights.
 	EnpassantSquare [2]Square // enpassant square (polyglot, fen). If none, then SquareA1.
-	IrreversiblePly int       // highest square in which an irreversible move (cannot be part of repetition) was made
-	Move            Move      // last move played
+	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
+	Move            Move      // last move played.
 	Zobrist         uint64
 }
 
@@ -47,21 +47,18 @@ type Position struct {
 	ByFigure   [FigureArraySize]Bitboard // bitboards of square occupancy by figure.
 	ByColor    [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
 	SideToMove Color                     // which side is to move. SideToMove is updated by DoMove and UndoMove.
+	Ply        int                       // current ply
 
-	HalfMoveClock  int
-	FullMoveNumber int
-	Ply            int // current Ply
-
-	states []state // a state for each Ply
-	curr   *state  // current state
+	fullmoveCounter int     // fullmove counter, incremented after black move
+	states          []state // a state for each Ply
+	curr            *state  // current state
 }
 
 // NewPosition returns a new position.
 func NewPosition() *Position {
 	pos := &Position{
-		HalfMoveClock:  0,
-		FullMoveNumber: 1,
-		states:         make([]state, 1),
+		fullmoveCounter: 1,
+		states:          make([]state, 1),
 	}
 	pos.curr = &pos.states[pos.Ply]
 	return pos
@@ -114,11 +111,15 @@ func PositionFromFEN(fen string) (*Position, error) {
 		return nil, err
 	}
 	var err error
-	if pos.HalfMoveClock, err = strconv.Atoi(f[4]); err != nil {
+	if pos.curr.HalfmoveClock, err = strconv.Atoi(f[4]); err != nil {
 		return nil, err
 	}
-	if pos.FullMoveNumber, err = strconv.Atoi(f[5]); err != nil {
+	if pos.fullmoveCounter, err = strconv.Atoi(f[5]); err != nil {
 		return nil, err
+	}
+	pos.Ply = (pos.fullmoveCounter - 1) * 2
+	if pos.SideToMove == Black {
+		pos.Ply++
 	}
 	return pos, nil
 }
@@ -130,28 +131,30 @@ func (pos *Position) String() string {
 	s += " " + FormatSideToMove(pos)
 	s += " " + FormatCastlingAbility(pos)
 	s += " " + FormatEnpassantSquare(pos)
-	s += " " + strconv.Itoa(pos.HalfMoveClock)
-	s += " " + strconv.Itoa(pos.FullMoveNumber)
+	s += " " + strconv.Itoa(pos.curr.HalfmoveClock)
+	s += " " + strconv.Itoa(pos.fullmoveCounter)
 	return s
 }
 
 // prev returns state at previous Ply.
 func (pos *Position) prev() *state {
-	return &pos.states[pos.Ply-1]
+	return &pos.states[len(pos.states)-1]
 }
 
 // popState pops one Ply.
 func (pos *Position) popState() {
-	pos.states = pos.states[:pos.Ply]
+	len := len(pos.states) - 1
+	pos.states = pos.states[:len]
+	pos.curr = &pos.states[len-1]
 	pos.Ply--
-	pos.curr = &pos.states[pos.Ply]
 }
 
 // pushState adds one Ply.
 func (pos *Position) pushState() {
-	pos.states = append(pos.states, pos.states[pos.Ply])
+	len := len(pos.states)
+	pos.states = append(pos.states, pos.states[len-1])
+	pos.curr = &pos.states[len]
 	pos.Ply++
-	pos.curr = &pos.states[pos.Ply]
 }
 
 // IsEnpassantSquare returns truee if sq is the enpassant square
@@ -524,14 +527,22 @@ func (pos *Position) InsufficientMaterial() bool {
 // Returns minimum between 3 and the actual number of repetitions.
 func (pos *Position) ThreeFoldRepetition() int {
 	c, z := 0, pos.Zobrist()
-	for i := pos.Ply; i >= pos.curr.IrreversiblePly; i -= 2 {
-		if pos.states[i].Zobrist == z {
+	for i := 0; i < len(pos.states) && i <= pos.curr.HalfmoveClock; i += 2 {
+		if pos.states[len(pos.states)-1-i].Zobrist == z {
 			if c++; c == 3 {
 				break
 			}
 		}
 	}
 	return c
+}
+
+// FiftyMoveRule returns True if 50 moves (on each side) were made
+// without any capture of pawn move.
+//
+// If FiftyMoveRule returns true, the position is a draw.
+func (pos *Position) FiftyMoveRule() bool {
+	return pos.curr.HalfmoveClock >= 100
 }
 
 // IsChecked returns true if side's king is checked.
@@ -575,9 +586,14 @@ func (pos *Position) DoMove(move Move) {
 	if pi != NoPiece { // nullmove cannot change castling ability
 		pos.SetCastlingAbility(pos.curr.CastlingAbility &^ lostCastleRights[move.From()] &^ lostCastleRights[move.To()])
 	}
-	// Update IrreversiblePly.
+	// update fullmove counter.
+	if pos.SideToMove == Black {
+		pos.fullmoveCounter++
+	}
+	// Update halfmove clock.
+	pos.curr.HalfmoveClock++
 	if move.Capture() != NoPiece || pi.Figure() == Pawn {
-		pos.curr.IrreversiblePly = pos.Ply
+		pos.curr.HalfmoveClock = 0
 	}
 	// Move rook on castling.
 	if move.MoveType() == Castling {
@@ -618,6 +634,10 @@ func (pos *Position) UndoMove(move Move) {
 		rook, start, end := CastlingRook(move.To())
 		pos.Put(start, rook)
 		pos.Remove(end, rook)
+	}
+
+	if pos.SideToMove == Black {
+		pos.fullmoveCounter--
 	}
 
 	pos.popState()

@@ -178,6 +178,10 @@ func (eng *Engine) endPosition() (int16, bool) {
 	if pos.InsufficientMaterial() {
 		return 0, true
 	}
+	// Fifty full moves without a capture or a pawn move.
+	if pos.FiftyMoveRule() {
+		return 0, true
+	}
 	// Repetition is a draw.
 	// At root we need to continue searching even if we saw two repetitions already,
 	// however we can prune deeper search only at two repetitions.
