@@ -157,6 +157,22 @@ func (pos *Position) pushState() {
 	pos.Ply++
 }
 
+func (pos *Position) FullmoveCounter() int {
+	return pos.fullmoveCounter
+}
+
+func (pos *Position) SetFullmoveCounter(n int) {
+	pos.fullmoveCounter = n
+}
+
+func (pos *Position) HalfmoveClock() int {
+	return pos.curr.HalfmoveClock
+}
+
+func (pos *Position) SetHalfmoveClock(n int) {
+	pos.curr.HalfmoveClock = n
+}
+
 // IsEnpassantSquare returns truee if sq is the enpassant square
 func (pos *Position) IsEnpassantSquare(sq Square) bool {
 	return sq != SquareA1 && sq == pos.EnpassantSquare()
