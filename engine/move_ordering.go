@@ -87,7 +87,7 @@ func (st *stack) get() *moveStack {
 	return &st.moves[st.position.Ply]
 }
 
-// generateMoves generates all moves.
+// GenerateMoves generates all moves of kind.
 func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms := st.get()
 	ms.moves = ms.moves[:0]
@@ -99,7 +99,6 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 }
 
 // generateMoves generates all moves.
-// Called from main search tree which has hash and killer moves available.
 func (st *stack) generateMoves(kind int) {
 	ms := &st.moves[st.position.Ply]
 	if len(ms.moves) != 0 || len(ms.order) != 0 {
