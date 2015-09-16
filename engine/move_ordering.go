@@ -251,7 +251,7 @@ func (st *stack) IsKiller(m Move) bool {
 // SaveKiller saves a killer move, m.
 func (st *stack) SaveKiller(m Move) {
 	ms := &st.moves[st.position.Ply]
-	if m.Capture() == NoPiece {
+	if !m.IsViolent() {
 		// Move the newly found killer first.
 		if m == ms.killer[0] {
 			// do nothing
