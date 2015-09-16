@@ -210,7 +210,7 @@ func (uci *UCI) go_(line string) error {
 		case "depth":
 			i++
 			d, _ := strconv.Atoi(args[i])
-			uci.timeControl.Depth = d
+			uci.timeControl.Depth = int32(d)
 		}
 	}
 

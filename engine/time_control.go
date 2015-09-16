@@ -34,12 +34,12 @@ func (af *atomicFlag) get() bool {
 type TimeControl struct {
 	WTime, WInc time.Duration // time and increment for white.
 	BTime, BInc time.Duration // time and increment for black
-	Depth       int           // maximum depth search (including)
+	Depth       int32         // maximum depth search (including)
 	MovesToGo   int           // number of remaining moves
 
 	sideToMove Color
 	branch     int        // branching factor
-	currDepth  int        // current depth searched
+	currDepth  int32      // current depth searched
 	stopped    atomicFlag // true to stop the search
 	ponderhit  atomicFlag // true if ponder was successful
 
@@ -70,7 +70,7 @@ func NewTimeControl(pos *Position) *TimeControl {
 	}
 }
 
-func NewFixedDepthTimeControl(pos *Position, depth int) *TimeControl {
+func NewFixedDepthTimeControl(pos *Position, depth int32) *TimeControl {
 	tc := NewTimeControl(pos)
 	tc.Depth = depth
 	tc.MovesToGo = 1
@@ -132,7 +132,7 @@ func (tc *TimeControl) Start(ponder bool) {
 }
 
 // NextDepth returns true if search can start at depth.
-func (tc *TimeControl) NextDepth(depth int) bool {
+func (tc *TimeControl) NextDepth(depth int32) bool {
 	tc.currDepth = depth
 	return tc.currDepth <= tc.Depth && !tc.hasStopped(tc.searchDeadline)
 }

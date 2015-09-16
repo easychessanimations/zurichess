@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	KnownWinScore  = 25000          // All scores strictly greater than KnownWinScore are sure wins.
-	KnownLossScore = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
-	MateScore      = 30000          // MateScore - N is mate in N plies.
-	MatedScore     = -MateScore     // MatedScore + N is mated in N plies.
-	InfinityScore  = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
+	KnownWinScore  int32 = 25000          // All scores strictly greater than KnownWinScore are sure wins.
+	KnownLossScore int32 = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
+	MateScore      int32 = 30000          // MateScore - N is mate in N plies.
+	MatedScore     int32 = -MateScore     // MatedScore + N is mated in N plies.
+	InfinityScore  int32 = 32000          // Maximum possible score. -InfinityScore is the minimum possible score.
 )
 
 var (
@@ -286,12 +286,12 @@ func phase(pos *Position, score Score) int32 {
 //
 // Returns a score phased between mid and end game.
 // The returned is always between KnowLossScore and KnownWinScore, excluding.
-func (e *Evaluation) Evaluate() int16 {
+func (e *Evaluation) Evaluate() int32 {
 	score := e.evaluateSide(White).Minus(e.evaluateSide(Black))
 	eval := phase(e.position, score)
-	if int32(KnownLossScore) >= eval || eval >= int32(KnownWinScore) {
+	if KnownLossScore >= eval || eval >= KnownWinScore {
 		panic(fmt.Sprintf("score %d (%v) should be between %d and %d",
 			eval, score, KnownLossScore, KnownWinScore))
 	}
-	return int16(eval)
+	return eval
 }

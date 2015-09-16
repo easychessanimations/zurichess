@@ -47,17 +47,17 @@ import (
 )
 
 const (
-	CheckDepthExtension    = 1 // how much to extend search in case of checks
-	NullMoveDepthLimit     = 1 // disable null-move below this limit
-	NullMoveDepthReduction = 1 // default null-move depth reduction. Can reduce more in some situations.
-	PVSDepthLimit          = 0 // do not do PVS below and including this limit
-	LMRDepthLimit          = 3 // do not do LMR below and including this limit
+	CheckDepthExtension    int32 = 1 // how much to extend search in case of checks
+	NullMoveDepthLimit     int32 = 1 // disable null-move below this limit
+	NullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
+	PVSDepthLimit          int32 = 0 // do not do PVS below and including this limit
+	LMRDepthLimit          int32 = 3 // do not do LMR below and including this limit
 )
 
 var (
 	// scoreMultiplier is used to compute the score from side
 	// to move POV from given the score from white POV.
-	scoreMultiplier = [ColorArraySize]int16{0, -1, 1}
+	scoreMultiplier = [ColorArraySize]int32{0, -1, 1}
 )
 
 // Options keeps engine's options.
@@ -73,8 +73,8 @@ type Stats struct {
 	CacheHit  uint64    // number of times the position was found transposition table
 	CacheMiss uint64    // number of times the position was not found in the transposition table
 	Nodes     uint64    // number of nodes searched
-	Depth     int       // depth search
-	SelDepth  int       // maximum depth reached on PV (doesn't include the hash moves)
+	Depth     int32     // depth search
+	SelDepth  int32     // maximum depth reached on PV (doesn't include the hash moves)
 }
 
 // maxDuration returns maximum of a and b.
@@ -154,25 +154,23 @@ func (eng *Engine) UndoMove(move Move) {
 }
 
 // Score evaluates current position from White's POV.
-func (eng *Engine) Score() int16 {
+func (eng *Engine) Score() int32 {
 	return scoreMultiplier[eng.Position.SideToMove] * eng.evaluation.Evaluate()
 }
 
 // endPosition determines whether the current position is an end game.
 // Returns score and a bool if the game has ended.
-func (eng *Engine) endPosition() (int16, bool) {
+func (eng *Engine) endPosition() (int32, bool) {
 	pos := eng.Position // shortcut
-	ply := int16(eng.ply())
-
 	// Trivial cases when kings are missing.
 	if pos.ByPiece(White, King) == 0 && pos.ByPiece(Black, King) == 0 {
 		return 0, true
 	}
 	if pos.ByPiece(White, King) == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MatedScore + ply), true
+		return scoreMultiplier[pos.SideToMove] * (MatedScore + eng.ply()), true
 	}
 	if pos.ByPiece(Black, King) == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MateScore - ply), true
+		return scoreMultiplier[pos.SideToMove] * (MateScore - eng.ply()), true
 	}
 	// Neither side cannot mate.
 	if pos.InsufficientMaterial() {
@@ -185,7 +183,7 @@ func (eng *Engine) endPosition() (int16, bool) {
 	// Repetition is a draw.
 	// At root we need to continue searching even if we saw two repetitions already,
 	// however we can prune deeper search only at two repetitions.
-	if r := pos.ThreeFoldRepetition(); ply > 0 && r >= 2 || r >= 3 {
+	if r := pos.ThreeFoldRepetition(); eng.ply() > 0 && r >= 2 || r >= 3 {
 		return 0, true
 	}
 	// TODO: Handle 50 moves rule.
@@ -210,11 +208,11 @@ func (eng *Engine) retrieveHash() hashEntry {
 	// hash table was updated.
 	if entry.score < KnownLossScore {
 		if entry.kind == exact {
-			entry.score += int16(eng.ply())
+			entry.score += eng.ply()
 		}
 	} else if entry.score > KnownWinScore {
 		if entry.kind == exact {
-			entry.score -= int16(eng.ply())
+			entry.score -= eng.ply()
 		}
 	}
 
@@ -223,7 +221,7 @@ func (eng *Engine) retrieveHash() hashEntry {
 }
 
 // updateHash updates GlobalHashTable with the current position.
-func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
+func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
 	kind := exact
 	if score <= α {
 		kind = failedLow
@@ -235,7 +233,7 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
 		if kind == exact {
-			score -= int16(eng.ply())
+			score -= eng.ply()
 		} else if kind == failedLow {
 			score = KnownLossScore
 		} else {
@@ -243,7 +241,7 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 		}
 	} else if score > KnownWinScore {
 		if kind == exact {
-			score += int16(eng.ply())
+			score += eng.ply()
 		} else if kind == failedHigh {
 			score = KnownWinScore
 		} else {
@@ -252,9 +250,9 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 	}
 
 	GlobalHashTable.put(eng.Position, hashEntry{
-		score: score,
-		depth: depth,
 		kind:  kind,
+		score: score,
+		depth: int8(depth),
 		move:  move,
 	})
 }
@@ -264,7 +262,7 @@ func (eng *Engine) updateHash(α, β, depth, score int16, move Move) {
 // This is a very limited search which considers only violent moves.
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
-func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
+func (eng *Engine) searchQuiescence(α, β, depth int32) int32 {
 	eng.Stats.Nodes++
 	if score, done := eng.endPosition(); done {
 		return score
@@ -319,7 +317,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int16) int16 {
 // move is the move to execute. Can be NullMove.
 //
 // Returns the score from the deeper search.
-func (eng *Engine) tryMove(α, β, depth, lmr int16, nullWindow bool, move Move) int16 {
+func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move) int32 {
 	depth--
 	pos := eng.Position // shortcut
 	us := pos.SideToMove
@@ -363,11 +361,11 @@ func (eng *Engine) tryMove(α, β, depth, lmr int16, nullWindow bool, move Move)
 }
 
 // ply returns the ply from the beginning of the search.
-func (eng *Engine) ply() int {
-	return eng.Position.Ply - eng.rootPly
+func (eng *Engine) ply() int32 {
+	return int32(eng.Position.Ply - eng.rootPly)
 }
 
-func min(a, b int16) int16 {
+func min(a, b int32) int32 {
 	if a <= b {
 		return a
 	}
@@ -393,7 +391,7 @@ func min(a, b int16) int16 {
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
-func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
+func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β
 
@@ -415,14 +413,14 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 
 	// Mate pruning: If an ancestor already has a mate in ply moves then
 	// the search will always fail low so we return the lowest wining score.
-	if int16(MateScore-ply) <= α {
+	if MateScore-ply <= α {
 		return KnownWinScore
 	}
 
 	// Check the transposition table.
 	entry := eng.retrieveHash()
 	hash := entry.move
-	if entry.kind != noEntry && depth <= entry.depth {
+	if entry.kind != noEntry && depth <= int32(entry.depth) {
 		if ply > 0 && entry.kind == exact {
 			// Simply return if the score is exact.
 			// Update principal variation table if possible.
@@ -462,7 +460,7 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 		pos.HasNonPawns(sideToMove) && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
-		reduction := int16(NullMoveDepthReduction)
+		reduction := NullMoveDepthReduction
 		if pos.NumNonPawns(sideToMove) >= 3 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
@@ -481,14 +479,14 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
 	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
 
-	numQuiet := int16(0)
+	numQuiet := int32(0)
 	localα := α
-	bestMove, bestScore := NullMove, int16(-InfinityScore)
+	bestMove, bestScore := NullMove, -InfinityScore
 	eng.stack.GenerateMoves(All, hash)
 
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Reduce most quiet moves and bad captures.
-		lmr := int16(0)
+		lmr := int32(0)
 		if allowLateMove && move != hash && !eng.stack.IsKiller(move) {
 			if move.IsQuiet() {
 				// Reduce quiet moves more at high depths and after many quiet moves.
@@ -526,7 +524,7 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	// If no move was found then the game is over.
 	if bestMove == NullMove {
 		if sideIsChecked {
-			bestScore = int16(MatedScore + ply)
+			bestScore = MatedScore + ply
 		} else {
 			bestScore = 0
 		}
@@ -541,30 +539,30 @@ func (eng *Engine) searchTree(α, β, depth int16, nullMoveAllowed bool) int16 {
 	return bestScore
 }
 
-func inf(a int) int {
-	if a <= int(-InfinityScore) {
-		return int(-InfinityScore)
+func inf(a int32) int32 {
+	if a <= -InfinityScore {
+		return -InfinityScore
 	}
-	return int(a)
+	return a
 }
 
-func sup(b int) int {
-	if b >= int(InfinityScore) {
-		return int(InfinityScore)
+func sup(b int32) int32 {
+	if b >= InfinityScore {
+		return InfinityScore
 	}
-	return int(b)
+	return b
 }
 
 // search starts the search up to depth depth.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
-func (eng *Engine) search(depth, estimated int16) int16 {
+func (eng *Engine) search(depth, estimated int32) int32 {
 	// This method only implements aspiration windows.
 	//
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, δ := int(estimated), 21
+	γ, δ := estimated, int32(21)
 	α, β := inf(γ-δ), sup(γ+δ)
 	score := estimated
 
@@ -572,18 +570,18 @@ func (eng *Engine) search(depth, estimated int16) int16 {
 		// Disable aspiration window for very low search depths.
 		// This wastes lots of time especially for depth == 0 which is
 		// used for tunning.
-		α = int(-InfinityScore)
-		β = int(+InfinityScore)
+		α = -InfinityScore
+		β = +InfinityScore
 	}
 
 	for !eng.stopped {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.searchTree(int16(α), int16(β), depth, true)
+		score = eng.searchTree(α, β, depth, true)
 
-		if int(score) <= α {
+		if score <= α {
 			α = inf(α - δ)
 			δ += δ / 2
-		} else if int(score) >= β {
+		} else if score >= β {
 			β = sup(β + δ)
 			δ += δ / 2
 		} else {
@@ -597,7 +595,7 @@ func (eng *Engine) search(depth, estimated int16) int16 {
 // printInfo prints a info UCI string.
 //
 // TODO: Engine shouldn't know about the protocol used.
-func (eng *Engine) printInfo(score int16, pv []Move) {
+func (eng *Engine) printInfo(score int32, pv []Move) {
 	buf := &eng.buffer // shortcut
 
 	// Write depth.
@@ -644,8 +642,8 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	eng.buffer.Reset()
 
 	silent := true
-	score := int16(0)
-	for depth := 0; depth < 64; depth++ {
+	score := int32(0)
+	for depth := int32(0); depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
 			// Stop if tc control says we are done.
 			// Search at least one depth, otherwise a move cannot be returned.
@@ -653,7 +651,7 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		}
 
 		eng.Stats.Depth = depth
-		score = eng.search(int16(depth), score)
+		score = eng.search(depth, score)
 
 		if !eng.stopped {
 			moves = eng.pvTable.Get(eng.Position)

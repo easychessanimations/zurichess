@@ -21,18 +21,12 @@ const (
 )
 
 // hashEntry is a value in the transposition table.
-//
-// TODO: store full move and age.
 type hashEntry struct {
-	// lock is used to handle hashing conflicts.
-	// Normally, lock is derived from the position's Zobrist key.
-	lock uint32
-
-	move Move     // best move
-	kind hashKind // type of hash
-
-	score int16 // score of the position. if mate, score is relative to current position.
-	depth int16 // remaining search depth
+	lock  uint32   // lock is used to handle hashing conflicts.
+	move  Move     // best move
+	score int32    // score of the position. if mate, score is relative to current position.
+	depth int8     // remaining search depth
+	kind  hashKind // type of hash
 }
 
 // HashTable is a transposition table.
