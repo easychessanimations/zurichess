@@ -69,6 +69,12 @@ binaries should be stable for any kind of testing.
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (development)
+
+* Implement fifty-move draw rule. Add HasLegalMoves and InsufficientMaterial methods.
+* Improve move ordering: add killer phase; remove sorting.
+* Usual code clean ups, speed ups and bug fixes.
+
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (stable)
 
 The theme of this release is tuning the evaluation, search and move generation.

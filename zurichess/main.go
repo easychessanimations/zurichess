@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	buildVersion = "fribourg"
+	buildVersion = "geneva"
 	buildTime    = "(just now)"
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
