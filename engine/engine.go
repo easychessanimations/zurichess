@@ -562,7 +562,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, δ := estimated, int32(21)
+	γ, δ := estimated, int32(210)
 	α, β := inf(γ-δ), sup(γ+δ)
 	score := estimated
 
@@ -608,7 +608,7 @@ func (eng *Engine) printInfo(score int32, pv []Move) {
 	} else if score < KnownLossScore {
 		fmt.Fprintf(buf, "score mate %d ", (MatedScore-score)/2)
 	} else {
-		fmt.Fprintf(buf, "score cp %d ", score)
+		fmt.Fprintf(buf, "score cp %d ", score/10)
 	}
 
 	// Write stats.
