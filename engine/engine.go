@@ -472,6 +472,15 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	}
 
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
+
+	// Futility pruning at fronteer nodes.
+	if !sideIsChecked && depth == 1 && !pvNode &&
+		KnownLossScore < α && β < KnownWinScore {
+		if futility := eng.Score() - 2000; futility >= β {
+			return futility
+		}
+	}
+
 	hasGoodMoves := hash != NullMove || eng.stack.HasKiller()
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
@@ -482,8 +491,8 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	numQuiet := int32(0)
 	localα := α
 	bestMove, bestScore := NullMove, -InfinityScore
-	eng.stack.GenerateMoves(All, hash)
 
+	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Reduce most quiet moves and bad captures.
 		lmr := int32(0)
@@ -499,7 +508,6 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 				} else {
 					lmr = 1
 				}
-
 			} else if seeSign(eng.Position, move) {
 				// Bad captures (SEE<0) can be reduced, too.
 				lmr = 1
