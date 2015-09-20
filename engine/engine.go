@@ -52,6 +52,7 @@ const (
 	NullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
 	PVSDepthLimit          int32 = 0 // do not do PVS below and including this limit
 	LMRDepthLimit          int32 = 3 // do not do LMR below and including this limit
+	FutilityDepthLimit     int32 = 2 // maximum depth to do futility pruning.
 )
 
 var (
@@ -473,10 +474,11 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 
 	sideIsChecked := eng.Position.IsChecked(sideToMove)
 
-	// Futility pruning at fronteer nodes.
-	if !sideIsChecked && depth == 1 && !pvNode &&
+	// Futility pruning at frontier nodes.
+	// Disable when in check or when searching for a mate.
+	if !sideIsChecked && depth <= FutilityDepthLimit && !pvNode &&
 		KnownLossScore < α && β < KnownWinScore {
-		if futility := eng.Score() - 2000; futility >= β {
+		if futility := eng.Score() - depth*1500; futility >= β {
 			return futility
 		}
 	}
