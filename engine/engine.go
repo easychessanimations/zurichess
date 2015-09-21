@@ -504,12 +504,7 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 				// Large numQuiet means it's likely not a CUT node.
 				// Large depth means reductions are less risky.
 				numQuiet++
-				tmp := 1 + min(depth, numQuiet)/5
-				if tmp != 1 && seeSign(eng.Position, move) {
-					lmr = tmp
-				} else {
-					lmr = 1
-				}
+				lmr = 1 + min(depth, numQuiet)/5
 			} else if seeSign(eng.Position, move) {
 				// Bad captures (SEE<0) can be reduced, too.
 				lmr = 1
