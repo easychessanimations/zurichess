@@ -17,7 +17,7 @@ const (
 type pawnEntry struct {
 	ours   Bitboard // ours's pawns
 	theirs Bitboard // theirs's pawns
-	score  Score
+	eval   Eval
 }
 
 // hash table for pawn evaluation for a single color.
@@ -30,15 +30,15 @@ func hash(ours, theirs Bitboard) int {
 }
 
 // get retrieves score from the table, if cached.
-func (pt *pawnTable) get(ours, theirs Bitboard) (Score, bool) {
+func (pt *pawnTable) get(ours, theirs Bitboard) (Eval, bool) {
 	entry := &pt[hash(ours, theirs)]
-	return entry.score, (entry.ours == ours && entry.theirs == theirs)
+	return entry.eval, (entry.ours == ours && entry.theirs == theirs)
 }
 
 // put stores score in the table.
-func (pt *pawnTable) put(ours, theirs Bitboard, score Score) {
+func (pt *pawnTable) put(ours, theirs Bitboard, eval Eval) {
 	entry := &pt[hash(ours, theirs)]
 	entry.ours = ours
 	entry.theirs = theirs
-	entry.score = score
+	entry.eval = eval
 }

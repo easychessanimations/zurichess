@@ -20,17 +20,7 @@ import (
 var (
 	errQuit = fmt.Errorf("quit")
 
-	globals = map[string]interface{}{
-		"BishopPair":       &engine.BishopPair,
-		"ConnectedPawn":    &engine.ConnectedPawn,
-		"DoublePawn":       &engine.DoublePawn,
-		"FigureBonus":      &engine.FigureBonus,
-		"IsolatedPawn":     &engine.IsolatedPawn,
-		"KingShelter":      &engine.KingShelter,
-		"Mobility":         &engine.Mobility,
-		"PassedPawn":       &engine.PassedPawn,
-		"PieceSquareTable": &engine.PieceSquareTable,
-	}
+	globals = map[string]interface{}{}
 )
 
 // uciLogger outputs search in uci format.
@@ -63,7 +53,7 @@ func (ul *uciLogger) PrintPV(stats engine.Stats, score int32, pv []engine.Move) 
 	} else if score < engine.KnownLossScore {
 		fmt.Fprintf(ul.buf, "score mate %d ", (engine.MatedScore-score)/2)
 	} else {
-		fmt.Fprintf(ul.buf, "score cp %d ", score/10)
+		fmt.Fprintf(ul.buf, "score cp %d ", score)
 	}
 
 	// Write stats.

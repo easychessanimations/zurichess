@@ -46,6 +46,9 @@ const (
 	PVSDepthLimit          int32 = 0 // do not do PVS below and including this limit
 	LMRDepthLimit          int32 = 3 // do not do LMR below and including this limit
 	FutilityDepthLimit     int32 = 2 // maximum depth to do futility pruning.
+
+	initialAspirationWindow = 21  // ~a quarter of a pawn
+	futilityMargin          = 150 // ~one and a halfpawn
 )
 
 var (
@@ -106,10 +109,9 @@ type Engine struct {
 	Stats    Stats     // search statistics
 	Position *Position // current Position
 
-	evaluation Evaluation // position evaluator
-	rootPly    int        // position's ply at the start of the search
-	stack      stack      // stack of moves
-	pvTable    pvTable    // principal variation table
+	rootPly int     // position's ply at the start of the search
+	stack   stack   // stack of moves
+	pvTable pvTable // principal variation table
 
 	timeControl *TimeControl
 	stopped     bool
@@ -138,7 +140,6 @@ func (eng *Engine) SetPosition(pos *Position) {
 	} else {
 		eng.Position, _ = PositionFromFEN(FENStartPos)
 	}
-	eng.evaluation = MakeEvaluation(eng.Position)
 }
 
 // DoMove executes a move.
@@ -153,7 +154,9 @@ func (eng *Engine) UndoMove() {
 
 // Score evaluates current position from White's POV.
 func (eng *Engine) Score() int32 {
-	return scoreMultiplier[eng.Position.SideToMove] * eng.evaluation.Evaluate()
+	score := Evaluate(eng.Position)
+	score = (score + 64) / 128
+	return scoreMultiplier[eng.Position.SideToMove] * score
 }
 
 // endPosition determines whether the current position is an end game.
@@ -475,7 +478,7 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	// Disable when in check or when searching for a mate.
 	if !sideIsChecked && depth <= FutilityDepthLimit && !pvNode &&
 		KnownLossScore < α && β < KnownWinScore {
-		if futility := eng.Score() - depth*1500; futility >= β {
+		if futility := eng.Score() - depth*futilityMargin; futility >= β {
 			return futility
 		}
 	}
@@ -564,7 +567,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	// The gradual widening algorithm is the one used by RobboLito
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
-	γ, δ := estimated, int32(210)
+	γ, δ := estimated, int32(initialAspirationWindow)
 	α, β := inf(γ-δ), sup(γ+δ)
 	score := estimated
 
