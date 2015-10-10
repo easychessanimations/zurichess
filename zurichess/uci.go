@@ -105,7 +105,7 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("id author Alexandru Moșoi\n")
 	fmt.Printf("\n")
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
-	fmt.Printf("option name Hash type spin default %v min 1 max 8192\n", engine.DefaultHashTableSizeMB)
+	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name Ponder type check default true\n")
 	fmt.Println("uciok")
 	return nil
