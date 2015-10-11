@@ -120,20 +120,6 @@ func testMoves(t *testing.T, moves []Move, expected []string) {
 	}
 }
 
-func TestSides(t *testing.T) {
-	pos, _ := PositionFromFEN(FENStartPos)
-	us, them := pos.Sides()
-	if us != White || them != Black {
-		t.Errorf("Expected %v and %v, got %v and %v", White, Black, us, them)
-	}
-
-	pos.DoMove(NullMove)
-	us, them = pos.Sides()
-	if us != Black || them != White {
-		t.Errorf("Expected %v and %v, got %v and %v", Black, White, us, them)
-	}
-}
-
 func TestPutGetRemove(t *testing.T) {
 	pos := NewPosition()
 	te := &testEngine{T: t, Pos: pos}

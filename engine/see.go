@@ -23,7 +23,8 @@ func seeSign(pos *Position, m Move) bool {
 // The implementation here is optimized for the common case when there
 // isn't any capture following the move.
 func see(pos *Position, m Move) int32 {
-	us, them := pos.Sides()
+	us := pos.SideToMove
+	them := us.Opposite()
 	sq := m.To()
 	bb := sq.Bitboard()
 	bb27 := bb &^ (BbRank1 | BbRank8)

@@ -200,11 +200,6 @@ func (pos *Position) Zobrist() uint64 {
 	return pos.curr.Zobrist
 }
 
-// Sides return current color to move, and the next color to move.
-func (pos *Position) Sides() (Color, Color) {
-	return pos.SideToMove, pos.SideToMove.Opposite()
-}
-
 // NumNonPawns returns the number of minor and major pieces.
 func (pos *Position) NumNonPawns(col Color) int {
 	return int((pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]).Popcnt())
