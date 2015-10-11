@@ -40,6 +40,8 @@ type UCI struct {
 	ready chan struct{}
 	// buffer of 1, if filled then the engine is pondering
 	ponder chan struct{}
+	// predicted position hash after 2 moves.
+	predicted uint64
 }
 
 func NewUCI() *UCI {
@@ -168,17 +170,18 @@ func (uci *UCI) position(line string) error {
 
 func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
-	args := strings.Fields(line)[1:]
-	uci.timeControl = engine.NewTimeControl(uci.Engine.Position)
+	predicted := uci.predicted == uci.Engine.Position.Zobrist()
+	uci.timeControl = engine.NewTimeControl(uci.Engine.Position, predicted)
 	uci.timeControl.MovesToGo = 30 // in case there is not time refresh
 	ponder := false
 
+	args := strings.Fields(line)[1:]
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "ponder":
 			ponder = true
 		case "infinite":
-			uci.timeControl = engine.NewTimeControl(uci.Engine.Position)
+			uci.timeControl = engine.NewTimeControl(uci.Engine.Position, false)
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
@@ -253,6 +256,16 @@ func (uci *UCI) stop(line string) error {
 // Should run in its own separate goroutine.
 func (uci *UCI) play() {
 	moves := uci.Engine.Play(uci.timeControl)
+
+	if len(moves) >= 2 {
+		uci.Engine.Position.DoMove(moves[0])
+		uci.Engine.Position.DoMove(moves[1])
+		uci.predicted = uci.Engine.Position.Zobrist()
+		uci.Engine.Position.UndoMove()
+		uci.Engine.Position.UndoMove()
+	} else {
+		uci.predicted = uci.Engine.Position.Zobrist()
+	}
 
 	// If pondering was requested it will block because the channel is full.
 	uci.ponder <- struct{}{}
