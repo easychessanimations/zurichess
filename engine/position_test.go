@@ -37,7 +37,7 @@ func (te *testEngine) Move(m string) {
 
 func (te *testEngine) Undo() {
 	l := len(te.moves) - 1
-	te.Pos.UndoMove(te.moves[l])
+	te.Pos.UndoMove()
 	te.moves = te.moves[:l]
 }
 
@@ -485,7 +485,7 @@ func TestGenPawnEnpassant(t *testing.T) {
 		}
 	}
 
-	pos.UndoMove(move)
+	pos.UndoMove()
 	if SquareA1 != pos.EnpassantSquare() {
 		t.Fatalf("expected enpassant square %v, got %v",
 			SquareA1, pos.EnpassantSquare())
@@ -668,7 +668,7 @@ func TestPanicPosition(t *testing.T) {
 	pos.GenerateMoves(All, &moves)
 	for _, m := range moves {
 		pos.DoMove(m)
-		pos.UndoMove(m)
+		pos.UndoMove()
 	}
 }
 
@@ -931,7 +931,7 @@ func TestLastMove(t *testing.T) {
 			if got := pos.LastMove(); m != got {
 				t.Errorf("#%d UndoMove: got last move %v, expected %v", g, got, m)
 			}
-			pos.UndoMove(m)
+			pos.UndoMove()
 		}
 	}
 }

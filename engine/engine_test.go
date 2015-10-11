@@ -204,9 +204,8 @@ func BenchmarkScore(b *testing.B) {
 				_ = eng.Score()
 			}
 
-			for j := range done {
-				move := done[len(done)-1-j]
-				eng.UndoMove(move)
+			for range done {
+				eng.UndoMove()
 				_ = eng.Score()
 			}
 		}

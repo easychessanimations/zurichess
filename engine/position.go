@@ -501,7 +501,7 @@ func (pos *Position) HasLegalMoves() bool {
 	for _, m := range moves {
 		pos.DoMove(m)
 		checked := pos.IsChecked(us)
-		pos.UndoMove(m)
+		pos.UndoMove()
 
 		if !checked {
 			return true
@@ -629,7 +629,8 @@ func (pos *Position) DoMove(move Move) {
 }
 
 // UndoMove takes back the last move.
-func (pos *Position) UndoMove(move Move) {
+func (pos *Position) UndoMove() {
+	move := pos.LastMove()
 	pos.SetCastlingAbility(pos.prev().CastlingAbility)
 	pos.SetEnpassantSquare(pos.prev().EnpassantSquare[1])
 	pos.SetSideToMove(pos.SideToMove.Opposite())

@@ -109,7 +109,7 @@ func (pv *pvTable) Get(pos *Position) []Move {
 
 	// Undo all moves, so we get back to the initial state.
 	for i := len(moves) - 1; i >= 0; i-- {
-		pos.UndoMove(moves[i])
+		pos.UndoMove()
 	}
 	return moves
 }

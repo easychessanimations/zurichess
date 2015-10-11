@@ -36,7 +36,7 @@ func seeSlow(pos *Position, m Move, score int32) int32 {
 
 	// Recursively compute the see.
 	see := -seeSlow(pos, next, -score)
-	pos.UndoMove(m)
+	pos.UndoMove()
 
 	if see > score {
 		return score

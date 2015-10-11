@@ -18,7 +18,7 @@ func TestPV(t *testing.T) {
 		}
 
 		for i := len(moves) - 1; i >= 0; i-- {
-			pos.UndoMove(moves[i])
+			pos.UndoMove()
 			pvTable.Put(pos, moves[i])
 		}
 

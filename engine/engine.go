@@ -150,8 +150,8 @@ func (eng *Engine) DoMove(move Move) {
 }
 
 // UndoMove undoes the last move.
-func (eng *Engine) UndoMove(move Move) {
-	eng.Position.UndoMove(move)
+func (eng *Engine) UndoMove() {
+	eng.Position.UndoMove()
 }
 
 // Score evaluates current position from White's POV.
@@ -291,7 +291,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int32) int32 {
 
 		eng.DoMove(move)
 		score := -eng.searchQuiescence(-β, -localα, depth-1)
-		eng.UndoMove(move)
+		eng.UndoMove()
 
 		if score >= β {
 			return score
@@ -327,7 +327,7 @@ func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move)
 	eng.DoMove(move)
 	if pos.IsChecked(us) {
 		// Exit early if we throw the king in check.
-		eng.UndoMove(move)
+		eng.UndoMove()
 		return -InfinityScore
 	}
 	if pos.IsChecked(them) {
@@ -357,7 +357,7 @@ func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move)
 		}
 	}
 
-	eng.UndoMove(move)
+	eng.UndoMove()
 	return score
 }
 
