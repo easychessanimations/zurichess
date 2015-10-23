@@ -82,7 +82,10 @@ func (st *stack) Reset(pos *Position) {
 // allocates memory if necessary.
 func (st *stack) get() *moveStack {
 	for len(st.moves) <= st.position.Ply {
-		st.moves = append(st.moves, moveStack{})
+		st.moves = append(st.moves, moveStack{
+			moves: make([]Move, 0, 4),
+			order: make([]int16, 0, 4),
+		})
 	}
 	return &st.moves[st.position.Ply]
 }

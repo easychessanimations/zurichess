@@ -35,11 +35,11 @@ func init() {
 }
 
 type state struct {
-	CastlingAbility Castle    // remaining castling rights.
-	EnpassantSquare [2]Square // enpassant square (polyglot, fen). If none, then SquareA1.
-	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
-	Move            Move      // last move played.
 	Zobrist         uint64
+	Move            Move      // last move played.
+	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
+	EnpassantSquare [2]Square // enpassant square (polyglot, fen). If none, then SquareA1.
+	CastlingAbility Castle    // remaining castling rights.
 }
 
 // Position encodes the chess board.
@@ -58,7 +58,7 @@ type Position struct {
 func NewPosition() *Position {
 	pos := &Position{
 		fullmoveCounter: 1,
-		states:          make([]state, 1),
+		states:          make([]state, 1, 4),
 	}
 	pos.curr = &pos.states[pos.Ply]
 	return pos
@@ -495,6 +495,7 @@ func (pos *Position) KingMobility(sq Square) Bitboard {
 }
 
 // HasLegalMoves returns true if current side has any legal moves.
+// Very expensive because it executes all moves.
 func (pos *Position) HasLegalMoves() bool {
 	var moves []Move
 	pos.GenerateMoves(All, &moves)
@@ -623,7 +624,7 @@ func (pos *Position) DoMove(move Move) {
 		pos.SetEnpassantSquare(SquareA1)
 	}
 
-	// Update the pieces the chess board.
+	// Update the pieces on the chess board.
 	pos.Remove(move.From(), pi)
 	pos.Remove(move.CaptureSquare(), move.Capture())
 	pos.Put(move.To(), move.Target())
@@ -840,8 +841,7 @@ func (pos *Position) getMask(kind int) Bitboard {
 	return mask
 }
 
-func (pos *Position) genKnightMoves(kind int, moves *[]Move) {
-	mask := pos.getMask(kind)
+func (pos *Position) genKnightMoves(mask Bitboard, moves *[]Move) {
 	pi := ColorFigure(pos.SideToMove, Knight)
 	for bb := pos.ByPiece(pos.SideToMove, Knight); bb != 0; {
 		from := bb.Pop()
@@ -850,8 +850,7 @@ func (pos *Position) genKnightMoves(kind int, moves *[]Move) {
 	}
 }
 
-func (pos *Position) genBishopMoves(fig Figure, kind int, moves *[]Move) {
-	mask := pos.getMask(kind)
+func (pos *Position) genBishopMoves(fig Figure, mask Bitboard, moves *[]Move) {
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
@@ -861,8 +860,7 @@ func (pos *Position) genBishopMoves(fig Figure, kind int, moves *[]Move) {
 	}
 }
 
-func (pos *Position) genRookMoves(fig Figure, kind int, moves *[]Move) {
-	mask := pos.getMask(kind)
+func (pos *Position) genRookMoves(fig Figure, mask Bitboard, moves *[]Move) {
 	pi := ColorFigure(pos.SideToMove, fig)
 	ref := pos.ByColor[White] | pos.ByColor[Black]
 	for bb := pos.ByPiece(pos.SideToMove, fig); bb != 0; {
@@ -872,8 +870,7 @@ func (pos *Position) genRookMoves(fig Figure, kind int, moves *[]Move) {
 	}
 }
 
-func (pos *Position) genKingMovesNear(kind int, moves *[]Move) {
-	mask := pos.getMask(kind)
+func (pos *Position) genKingMovesNear(mask Bitboard, moves *[]Move) {
 	pi := ColorFigure(pos.SideToMove, King)
 	from := pos.ByPiece(pos.SideToMove, King).AsSquare()
 	att := bbKingAttack[from] & mask
@@ -936,18 +933,21 @@ EndCastleOOO:
 // GetAttacker returns the smallest figure of color them that attacks sq.
 func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 	enemy := pos.ByColor[them]
+	// Pawn
 	if enemy&bbPawnAttack[sq]&pos.ByFigure[Pawn] != 0 {
 		if att := sq.Bitboard() & pos.PawnThreats(them); att != 0 {
 			return Pawn
 		}
 	}
-
 	// Knight
 	if enemy&bbKnightAttack[sq]&pos.ByFigure[Knight] != 0 {
 		return Knight
 	}
 	// Quick test of queen's attack on an empty board.
-	if enemy&bbSuperAttack[sq]&^pos.ByFigure[Pawn] == 0 {
+	// Exclude pawns and knights because they were already tested.
+	enemy &^= pos.ByFigure[Pawn]
+	enemy &^= pos.ByFigure[Knight]
+	if enemy&bbSuperAttack[sq] == 0 {
 		return NoFigure
 	}
 	// Bishop
@@ -976,26 +976,28 @@ func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
 // kind is a combination of Quiet, Tactical or Violent.
 func (pos *Position) GenerateMoves(kind int, moves *[]Move) {
+	mask := pos.getMask(kind)
 	// Order of the moves is important because the last quiet
 	// moves will be reduced less.  Current order was produced
 	// by testing 20 random orders and picking the best.
-	pos.genKingMovesNear(kind, moves)
+	pos.genKingMovesNear(mask, moves)
 	pos.genPawnDoubleAdvanceMoves(kind, moves)
-	pos.genRookMoves(Rook, kind, moves)
-	pos.genBishopMoves(Queen, kind, moves)
+	pos.genRookMoves(Rook, mask, moves)
+	pos.genBishopMoves(Queen, mask, moves)
 	pos.genPawnAttackMoves(kind, moves)
 	pos.genPawnAdvanceMoves(kind, moves)
 	pos.genPawnPromotions(kind, moves)
-	pos.genKnightMoves(kind, moves)
-	pos.genBishopMoves(Bishop, kind, moves)
+	pos.genKnightMoves(mask, moves)
+	pos.genBishopMoves(Bishop, mask, moves)
 	pos.genKingCastles(kind, moves)
-	pos.genRookMoves(Queen, kind, moves)
+	pos.genRookMoves(Queen, mask, moves)
 }
 
 // GenerateFigureMoves generate moves for a given figure.
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
 // kind is a combination of Quiet, Tactical or Violent.
 func (pos *Position) GenerateFigureMoves(fig Figure, kind int, moves *[]Move) {
+	mask := pos.getMask(kind)
 	switch fig {
 	case Pawn:
 		pos.genPawnAdvanceMoves(kind, moves)
@@ -1003,16 +1005,16 @@ func (pos *Position) GenerateFigureMoves(fig Figure, kind int, moves *[]Move) {
 		pos.genPawnDoubleAdvanceMoves(kind, moves)
 		pos.genPawnPromotions(kind, moves)
 	case Knight:
-		pos.genKnightMoves(kind, moves)
+		pos.genKnightMoves(mask, moves)
 	case Bishop:
-		pos.genBishopMoves(Bishop, kind, moves)
+		pos.genBishopMoves(Bishop, mask, moves)
 	case Rook:
-		pos.genRookMoves(Rook, kind, moves)
+		pos.genRookMoves(Rook, mask, moves)
 	case Queen:
-		pos.genBishopMoves(Queen, kind, moves)
-		pos.genRookMoves(Queen, kind, moves)
+		pos.genBishopMoves(Queen, mask, moves)
+		pos.genRookMoves(Queen, mask, moves)
 	case King:
-		pos.genKingMovesNear(kind, moves)
+		pos.genKingMovesNear(mask, moves)
 		pos.genKingCastles(kind, moves)
 	}
 }

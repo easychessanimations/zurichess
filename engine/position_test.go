@@ -69,32 +69,32 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 
 func (te *testEngine) Knight(expected []string) {
 	var actual []Move
-	te.Pos.genKnightMoves(All, &actual)
+	te.Pos.genKnightMoves(te.Pos.getMask(All), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Bishop(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Bishop, All, &actual)
+	te.Pos.genBishopMoves(Bishop, te.Pos.getMask(All), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Rook(expected []string) {
 	var actual []Move
-	te.Pos.genRookMoves(Rook, All, &actual)
+	te.Pos.genRookMoves(Rook, te.Pos.getMask(All), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Queen(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Queen, All, &actual)
-	te.Pos.genRookMoves(Queen, All, &actual)
+	te.Pos.genBishopMoves(Queen, te.Pos.getMask(All), &actual)
+	te.Pos.genRookMoves(Queen, te.Pos.getMask(All), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) King(expected []string) {
 	var actual []Move
-	te.Pos.genKingMovesNear(All, &actual)
+	te.Pos.genKingMovesNear(te.Pos.getMask(All), &actual)
 	te.Pos.genKingCastles(All, &actual)
 	testMoves(te.T, actual, expected)
 }
