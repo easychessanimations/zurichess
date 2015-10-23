@@ -114,7 +114,7 @@ type UCI struct {
 }
 
 func NewUCI() *UCI {
-	options := engine.Options{AnalyseMode: true}
+	options := engine.Options{}
 	return &UCI{
 		Engine:      engine.NewEngine(nil, newUCILogger(), options),
 		timeControl: nil,
