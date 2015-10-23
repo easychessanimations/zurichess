@@ -85,7 +85,7 @@ var (
 
 func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos, Options{})
+	eng := NewEngine(pos, nil, Options{})
 	for i := 0; i < 1; i++ {
 		tc := NewFixedDepthTimeControl(pos, 3)
 		tc.Start(false)
@@ -105,7 +105,7 @@ func TestMateIn1(t *testing.T) {
 
 		tc := NewFixedDepthTimeControl(pos, 2)
 		tc.Start(false)
-		eng := NewEngine(pos, Options{})
+		eng := NewEngine(pos, nil, Options{})
 		pv := eng.Play(tc)
 
 		if len(pv) != 1 {
@@ -126,8 +126,8 @@ func TestMateIn1(t *testing.T) {
 func TestScore(t *testing.T) {
 	for _, game := range testGames {
 		pos, _ := PositionFromFEN(FENStartPos)
-		dynamic := NewEngine(pos, Options{})
-		static := NewEngine(pos, Options{})
+		dynamic := NewEngine(pos, nil, Options{})
+		static := NewEngine(pos, nil, Options{})
 
 		moves := strings.Fields(game)
 		for _, move := range moves {
@@ -149,7 +149,7 @@ func TestEndGamePosition(t *testing.T) {
 	pos, _ := PositionFromFEN("6k1/5p1p/4p1p1/3p4/5P1P/8/3r2q1/6K1 w - - 2 55")
 	tc := NewFixedDepthTimeControl(pos, 3)
 	tc.Start(false)
-	eng := NewEngine(pos, Options{})
+	eng := NewEngine(pos, nil, Options{})
 	moves := eng.Play(tc)
 	if 0 != len(moves) {
 		t.Errorf("expected no pv, got %d moves", len(moves))
@@ -167,7 +167,7 @@ func BenchmarkStallingFENs(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, fen := range fens {
 			pos, _ := PositionFromFEN(fen)
-			eng := NewEngine(pos, Options{})
+			eng := NewEngine(pos, nil, Options{})
 			tc := NewFixedDepthTimeControl(pos, 5)
 			tc.Start(false)
 			eng.Play(tc)
@@ -178,7 +178,7 @@ func BenchmarkStallingFENs(b *testing.B) {
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)
-		eng := NewEngine(pos, Options{})
+		eng := NewEngine(pos, nil, Options{})
 		for j := 0; j < 20; j++ {
 			tc := NewFixedDepthTimeControl(pos, 4)
 			tc.Start(false)
@@ -190,7 +190,7 @@ func BenchmarkGame(b *testing.B) {
 
 func BenchmarkScore(b *testing.B) {
 	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos, Options{})
+	eng := NewEngine(pos, nil, Options{})
 
 	for i := 0; i < b.N; i++ {
 		for _, g := range testGames {

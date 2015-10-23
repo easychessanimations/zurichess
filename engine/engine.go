@@ -39,13 +39,6 @@
 //
 package engine
 
-import (
-	"bytes"
-	"fmt"
-	"os"
-	"time"
-)
-
 const (
 	CheckDepthExtension    int32 = 1 // how much to extend search in case of checks
 	NullMoveDepthLimit     int32 = 1 // disable null-move below this limit
@@ -70,32 +63,11 @@ type Options struct {
 //
 // Statistics are reset every iteration of the iterative deepening search.
 type Stats struct {
-	Start     time.Time // when the computation was started
-	CacheHit  uint64    // number of times the position was found transposition table
-	CacheMiss uint64    // number of times the position was not found in the transposition table
-	Nodes     uint64    // number of nodes searched
-	Depth     int32     // depth search
-	SelDepth  int32     // maximum depth reached on PV (doesn't include the hash moves)
-}
-
-// maxDuration returns maximum of a and b.
-func maxDuration(a, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// NPS returns nodes per second.
-func (s *Stats) NPS(now time.Time) uint64 {
-	elapsed := uint64(maxDuration(now.Sub(s.Start), time.Microsecond))
-	return s.Nodes * uint64(time.Second) / elapsed
-}
-
-// Time returns the number of elapsed milliseconds.
-func (s *Stats) Time(now time.Time) uint64 {
-	elapsed := uint64(maxDuration(now.Sub(s.Start), time.Microsecond))
-	return elapsed / uint64(time.Millisecond)
+	CacheHit  uint64 // number of times the position was found transposition table
+	CacheMiss uint64 // number of times the position was not found in the transposition table
+	Nodes     uint64 // number of nodes searched
+	Depth     int32  // depth search
+	SelDepth  int32  // maximum depth reached on PV (doesn't include the hash moves)
 }
 
 // CacheHitRatio returns the ration of hits over total number of lookups.
@@ -103,11 +75,36 @@ func (s *Stats) CacheHitRatio() float32 {
 	return float32(s.CacheHit) / float32(s.CacheHit+s.CacheMiss)
 }
 
+// Logger logs search progress.
+type Logger interface {
+	// BeginSearch signals a new search is started.
+	BeginSearch()
+	// EndSearch signals end of search.
+	EndSearch()
+	// PrintPV logs the principal variation after
+	// iterative deepening completed one depth.
+	PrintPV(stats Stats, score int32, pv []Move)
+}
+
+// NulLogger is a logger that does nothing.
+type NulLogger struct {
+}
+
+func (nl *NulLogger) BeginSearch() {
+}
+
+func (nl *NulLogger) EndSearch() {
+}
+
+func (nl *NulLogger) PrintPV(stats Stats, score int32, pv []Move) {
+}
+
 // Engine implements the logic to search the best move for a position.
 type Engine struct {
 	Options  Options   // engine options
-	Position *Position // current Position
+	Log      Logger    // logger
 	Stats    Stats     // search statistics
+	Position *Position // current Position
 
 	evaluation Evaluation // position evaluator
 	rootPly    int        // position's ply at the start of the search
@@ -116,17 +113,17 @@ type Engine struct {
 
 	timeControl *TimeControl
 	stopped     bool
-
-	// A buffer to write pv lines.
-	// TODO: move UCI output logic out of Engine.
-	buffer bytes.Buffer
 }
 
 // NewEngine creates a new engine to search for pos.
 // If pos is nil then the start position is used.
-func NewEngine(pos *Position, options Options) *Engine {
+func NewEngine(pos *Position, log Logger, options Options) *Engine {
+	if log == nil {
+		log = &NulLogger{}
+	}
 	eng := &Engine{
 		Options: options,
+		Log:     log,
 		pvTable: newPvTable(),
 	}
 	eng.SetPosition(pos)
@@ -597,36 +594,6 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	return score
 }
 
-// printInfo prints a info UCI string.
-//
-// TODO: Engine shouldn't know about the protocol used.
-func (eng *Engine) printInfo(score int32, pv []Move) {
-	buf := &eng.buffer // shortcut
-
-	// Write depth.
-	now := time.Now()
-	fmt.Fprintf(buf, "info depth %d seldepth %d ", eng.Stats.Depth, eng.Stats.SelDepth)
-
-	// Write score.
-	if score > KnownWinScore {
-		fmt.Fprintf(buf, "score mate %d ", (MateScore-score+1)/2)
-	} else if score < KnownLossScore {
-		fmt.Fprintf(buf, "score mate %d ", (MatedScore-score)/2)
-	} else {
-		fmt.Fprintf(buf, "score cp %d ", score/10)
-	}
-
-	// Write stats.
-	fmt.Fprintf(buf, "nodes %d time %d nps %d ", eng.Stats.Nodes, eng.Stats.Time(now), eng.Stats.NPS(now))
-
-	// Write principal variation.
-	fmt.Fprintf(buf, "pv")
-	for _, m := range pv {
-		fmt.Fprintf(buf, " %v", m.UCI())
-	}
-	fmt.Fprintf(buf, "\n")
-}
-
 // Play evaluates current position.
 //
 // Returns the principal variation, that is
@@ -638,15 +605,14 @@ func (eng *Engine) printInfo(score int32, pv []Move) {
 //
 // Time control, tc, should already be started.
 func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
-	now := time.Now()
-	eng.Stats = Stats{Start: now, Depth: -1}
+	eng.Log.BeginSearch()
+	eng.Stats = Stats{Depth: -1}
+
 	eng.rootPly = eng.Position.Ply
 	eng.timeControl = tc
 	eng.stopped = false
 	eng.stack.Reset(eng.Position)
-	eng.buffer.Reset()
 
-	silent := true
 	score := int32(0)
 	for depth := int32(0); depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
@@ -660,25 +626,10 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 
 		if !eng.stopped {
 			moves = eng.pvTable.Get(eng.Position)
-			if eng.Options.AnalyseMode {
-				eng.printInfo(score, moves)
-			}
-		}
-
-		if !silent || now.Add(2*time.Second).After(time.Now()) {
-			// Delay first output because first plies produce a lot of noise.
-			silent = false
-			eng.flush()
+			eng.Log.PrintPV(eng.Stats, score, moves)
 		}
 	}
 
-	eng.flush()
+	eng.Log.EndSearch()
 	return moves
-}
-
-// Flush writes the buffer to stdout.
-func (eng *Engine) flush() {
-	os.Stdout.Write(eng.buffer.Bytes())
-	os.Stdout.Sync()
-	eng.buffer.Reset()
 }

@@ -4,8 +4,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -31,6 +33,73 @@ var (
 	}
 )
 
+// uciLogger outputs search in uci format.
+type uciLogger struct {
+	start time.Time
+	buf   *bytes.Buffer
+}
+
+func newUCILogger() *uciLogger {
+	return &uciLogger{buf: &bytes.Buffer{}}
+}
+
+func (ul *uciLogger) BeginSearch() {
+	ul.start = time.Now()
+	ul.buf.Reset()
+}
+
+func (ul *uciLogger) EndSearch() {
+	ul.flush()
+}
+
+func (ul *uciLogger) PrintPV(stats engine.Stats, score int32, pv []engine.Move) {
+	// Write depth.
+	now := time.Now()
+	fmt.Fprintf(ul.buf, "info depth %d seldepth %d ", stats.Depth, stats.SelDepth)
+
+	// Write score.
+	if score > engine.KnownWinScore {
+		fmt.Fprintf(ul.buf, "score mate %d ", (engine.MateScore-score+1)/2)
+	} else if score < engine.KnownLossScore {
+		fmt.Fprintf(ul.buf, "score mate %d ", (engine.MatedScore-score)/2)
+	} else {
+		fmt.Fprintf(ul.buf, "score cp %d ", score/10)
+	}
+
+	// Write stats.
+	elapsed := uint64(maxDuration(now.Sub(ul.start), time.Microsecond))
+	nps := stats.Nodes * uint64(time.Second) / elapsed
+	millis := elapsed / uint64(time.Millisecond)
+	fmt.Fprintf(ul.buf, "nodes %d time %d nps %d ", stats.Nodes, millis, nps)
+
+	// Write principal variation.
+	fmt.Fprintf(ul.buf, "pv")
+	for _, m := range pv {
+		fmt.Fprintf(ul.buf, " %v", m.UCI())
+	}
+	fmt.Fprintf(ul.buf, "\n")
+
+	// Flush output if needed.
+	if now.After(ul.start.Add(time.Second)) {
+		ul.flush()
+	}
+}
+
+// flush flushes the buf to stdout.
+func (ul *uciLogger) flush() {
+	os.Stdout.Write(ul.buf.Bytes())
+	os.Stdout.Sync()
+	ul.buf.Reset()
+}
+
+// maxDuration returns maximum of a and b.
+func maxDuration(a, b time.Duration) time.Duration {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // UCI implements uci protocol.
 type UCI struct {
 	Engine      *engine.Engine
@@ -47,7 +116,7 @@ type UCI struct {
 func NewUCI() *UCI {
 	options := engine.Options{AnalyseMode: true}
 	return &UCI{
-		Engine:      engine.NewEngine(nil, options),
+		Engine:      engine.NewEngine(nil, newUCILogger(), options),
 		timeControl: nil,
 		ready:       make(chan struct{}, 1),
 		ponder:      make(chan struct{}, 1),
