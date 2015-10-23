@@ -421,11 +421,9 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 func (pos *Position) Put(sq Square, pi Piece) {
 	if pi != NoPiece {
 		pos.curr.Zobrist ^= zobristPiece[pi][sq]
-		col, fig := pi.Color(), pi.Figure()
 		bb := sq.Bitboard()
-
-		pos.ByColor[col] |= bb
-		pos.ByFigure[fig] |= bb
+		pos.ByColor[pi.Color()] |= bb
+		pos.ByFigure[pi.Figure()] |= bb
 	}
 }
 
@@ -434,17 +432,15 @@ func (pos *Position) Put(sq Square, pi Piece) {
 func (pos *Position) Remove(sq Square, pi Piece) {
 	if pi != NoPiece {
 		pos.curr.Zobrist ^= zobristPiece[pi][sq]
-		col, fig := pi.Color(), pi.Figure()
 		bb := ^sq.Bitboard()
-
-		pos.ByColor[col] &= bb
-		pos.ByFigure[fig] &= bb
+		pos.ByColor[pi.Color()] &= bb
+		pos.ByFigure[pi.Figure()] &= bb
 	}
 }
 
 // IsEmpty returns true if there is no piece at sq.
 func (pos *Position) IsEmpty(sq Square) bool {
-	return (pos.ByColor[White]|pos.ByColor[Black])>>sq&1 == 0
+	return !(pos.ByColor[White] | pos.ByColor[Black]).Has(sq)
 }
 
 // Get returns the piece at sq.
@@ -464,6 +460,12 @@ func (pos *Position) Get(sq Square) Piece {
 		}
 	}
 	panic("unreachable: square has color, but no figure")
+}
+
+// PawnThreats returns the set of squares threatened by side's pawns.
+func (pos *Position) PawnThreats(side Color) Bitboard {
+	pawns := Forward(side, pos.ByPiece(side, Pawn))
+	return West(pawns) | East(pawns)
 }
 
 // KnightMobility returns all squares a knight can reach from sq.
@@ -653,12 +655,6 @@ func (pos *Position) UndoMove() {
 	}
 
 	pos.popState()
-}
-
-// PawnThreats returns the set of squares threatened by side's pawns.
-func (pos *Position) PawnThreats(side Color) Bitboard {
-	pawns := Forward(side, pos.ByPiece(side, Pawn))
-	return West(pawns) | East(pawns)
 }
 
 func (pos *Position) genPawnPromotions(kind int, moves *[]Move) {
