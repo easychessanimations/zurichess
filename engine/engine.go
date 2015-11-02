@@ -260,7 +260,7 @@ func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
 // This is a very limited search which considers only violent moves.
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
-func (eng *Engine) searchQuiescence(α, β, depth int32) int32 {
+func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	eng.Stats.Nodes++
 	if score, done := eng.endPosition(); done {
 		return score
@@ -287,7 +287,7 @@ func (eng *Engine) searchQuiescence(α, β, depth int32) int32 {
 		}
 
 		eng.DoMove(move)
-		score := -eng.searchQuiescence(-β, -localα, depth-1)
+		score := -eng.searchQuiescence(-β, -localα)
 		eng.UndoMove()
 
 		if score >= β {
@@ -444,7 +444,7 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
 		// Depth can be < 0 due to aggressive LMR.
-		score := eng.searchQuiescence(α, β, 0)
+		score := eng.searchQuiescence(α, β)
 		eng.updateHash(α, β, depth, score, NullMove)
 		return score
 	}
