@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	DefaultHashTableSizeMB = 128      // default size in MB.
+	DefaultHashTableSizeMB = 64       // default size in MB.
 	GlobalHashTable        *HashTable // global transposition table.
 )
 
