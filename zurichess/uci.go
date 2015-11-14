@@ -6,9 +6,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,8 +17,6 @@ import (
 
 var (
 	errQuit = fmt.Errorf("quit")
-
-	globals = map[string]interface{}{}
 )
 
 // uciLogger outputs search in uci format.
@@ -154,8 +150,6 @@ func (uci *UCI) Execute(line string) error {
 		return uci.go_(line)
 	case "setoption":
 		return uci.setoption(line)
-	case "setvalue":
-		return uci.setvalue(line)
 	default:
 		return fmt.Errorf("unhandled command %s", cmd)
 	}
@@ -386,93 +380,4 @@ func (uci *UCI) setoption(line string) error {
 	default:
 		return fmt.Errorf("unhandled option %s", option[1])
 	}
-}
-
-// setvalue will fatal in case of error because otherwise
-// an error will make tunning useless.
-func (uci *UCI) setvalue(line string) error {
-	args := strings.Fields(line)[1:]
-	if len(args) != 2 {
-		log.Fatalf("expected 2 arguments, got %d", len(args))
-	}
-	n, err := strconv.Atoi(args[1])
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = setvalueHelper(reflect.ValueOf(globals), args[0], n)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return nil
-}
-
-func setvalueHelper(v reflect.Value, fields string, n int) error {
-	switch v.Kind() {
-	case reflect.Int8:
-		fallthrough
-	case reflect.Int16:
-		fallthrough
-	case reflect.Int32:
-		fallthrough
-	case reflect.Int:
-		if fields != "" {
-			return fmt.Errorf("expected struct or slice")
-		}
-		if !v.CanSet() {
-			return fmt.Errorf("cannot set value")
-		}
-		v.SetInt(int64(n))
-	case reflect.Ptr:
-		return setvalueHelper(v.Elem(), fields, n)
-	case reflect.Struct:
-		split := strings.SplitN(fields, ".", 2)
-		if split[0] == "" {
-			return fmt.Errorf("missing field for type %s", v.Type().Name())
-		}
-		field := v.FieldByName(split[0])
-		if !field.IsValid() {
-			return fmt.Errorf("no such field %s for type %s", split[0], v.Type().Name())
-		}
-		if len(split) == 1 {
-			return setvalueHelper(field, "", n)
-		}
-		return setvalueHelper(field, split[1], n)
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-		split := strings.SplitN(fields, ".", 2)
-		if split[0] == "" {
-			return fmt.Errorf("missing index for type %s", v.Type().Name())
-		}
-		index, err := strconv.Atoi(split[0])
-		if err != nil {
-			return err
-		}
-		if index >= v.Len() {
-			return fmt.Errorf("out of bounds")
-		}
-		if len(split) == 1 {
-			return setvalueHelper(v.Index(index), "", n)
-		}
-		return setvalueHelper(v.Index(index), split[1], n)
-	case reflect.Map:
-		split := strings.SplitN(fields, ".", 2)
-		if split[0] == "" {
-			return fmt.Errorf("missing index for type %s", v.Type().Name())
-		}
-		if len(split) == 1 {
-			return fmt.Errorf("expected more fields for type %s", v.Type().Name())
-		}
-		index := v.MapIndex(reflect.ValueOf(split[0]))
-		if !index.IsValid() {
-			return fmt.Errorf("no such map key %v", split[0])
-		}
-		return setvalueHelper(index, split[1], n)
-	case reflect.Interface:
-		return setvalueHelper(reflect.ValueOf(v.Interface()), fields, n)
-	default:
-		fmt.Println("unhandled v.Kind() ==", v.Kind())
-	}
-
-	return nil
 }
