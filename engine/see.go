@@ -80,13 +80,13 @@ func see(pos *Position, m Move) int32 {
 			break
 		}
 
-		bishop = pos.BishopMobility(sq, all)
+		bishop = BishopMobility(sq, all)
 		fig, att = Bishop, bishop&ours&pos.ByFigure[Bishop]
 		if att != 0 {
 			goto makeMove
 		}
 
-		rook = pos.RookMobility(sq, all)
+		rook = RookMobility(sq, all)
 		fig, att = Rook, rook&ours&pos.ByFigure[Rook]
 		if att != 0 {
 			goto makeMove

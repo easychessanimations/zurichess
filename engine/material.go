@@ -132,7 +132,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Knight])
-		mobility := pos.KnightMobility(sq) &^ excl
+		mobility := KnightMobility(sq) &^ excl
 		eval.AddN(wMobility[Knight], mobility.Popcnt())
 	}
 	// Bishop
@@ -140,7 +140,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Bishop])
-		mobility := pos.BishopMobility(sq, all) &^ excl
+		mobility := BishopMobility(sq, all) &^ excl
 		eval.AddN(wMobility[Bishop], mobility.Popcnt())
 		numBishops++
 	}
@@ -150,7 +150,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Rook])
-		mobility := pos.RookMobility(sq, all) &^ excl
+		mobility := RookMobility(sq, all) &^ excl
 		eval.AddN(wMobility[Rook], mobility.Popcnt())
 
 		f := FileBb(sq.File())
@@ -166,7 +166,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Queen])
-		mobility := pos.QueenMobility(sq, all) &^ excl
+		mobility := QueenMobility(sq, all) &^ excl
 		eval.AddN(wMobility[Queen], mobility.Popcnt())
 	}
 
@@ -174,7 +174,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, King); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[King])
-		mobility := pos.KingMobility(sq) &^ excl
+		mobility := KingMobility(sq) &^ excl
 		eval.AddN(wMobility[King], mobility.Popcnt())
 
 		sq = sq.POV(us)

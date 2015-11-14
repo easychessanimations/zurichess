@@ -346,3 +346,29 @@ func initBishopMagic() {
 	// Bishop magics, unlike rook magics are easy to find.
 	wiz.SearchMagics(bishopMagic[:])
 }
+
+// KnightMobility returns all squares a knight can reach from sq.
+func KnightMobility(sq Square) Bitboard {
+	return bbKnightAttack[sq]
+}
+
+// BishopMobility returns the squares a bishop can reach from sq given all pieces.
+func BishopMobility(sq Square, all Bitboard) Bitboard {
+	return bishopMagic[sq].Attack(all)
+}
+
+// RookMobility returns the squares a rook can reach from sq given all pieces.
+func RookMobility(sq Square, all Bitboard) Bitboard {
+	return rookMagic[sq].Attack(all)
+}
+
+// QueenMobility returns the squares a queen can reach from sq given all pieces.
+func QueenMobility(sq Square, all Bitboard) Bitboard {
+	return rookMagic[sq].Attack(all) | bishopMagic[sq].Attack(all)
+}
+
+// KingMobility returns all squares a king can reach from sq.
+// Doesn't include castling.
+func KingMobility(sq Square) Bitboard {
+	return bbKingAttack[sq]
+}

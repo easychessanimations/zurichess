@@ -265,11 +265,11 @@ func (pos *Position) IsValid(m Move) bool {
 	case Knight: // handled above
 		panic("unreachable")
 	case Bishop:
-		return to&pos.BishopMobility(sq, all) != 0
+		return to&BishopMobility(sq, all) != 0
 	case Rook:
-		return to&pos.RookMobility(sq, all) != 0
+		return to&RookMobility(sq, all) != 0
 	case Queen:
-		return to&pos.QueenMobility(sq, all) != 0
+		return to&QueenMobility(sq, all) != 0
 	case King:
 		if m.MoveType() == Normal {
 			return to&bbKingAttack[sq] != 0
@@ -469,32 +469,6 @@ func (pos *Position) Get(sq Square) Piece {
 func (pos *Position) PawnThreats(side Color) Bitboard {
 	pawns := Forward(side, pos.ByPiece(side, Pawn))
 	return West(pawns) | East(pawns)
-}
-
-// KnightMobility returns all squares a knight can reach from sq.
-func (pos *Position) KnightMobility(sq Square) Bitboard {
-	return bbKnightAttack[sq]
-}
-
-// BishopMobility returns the squares a bishop can reach from sq given all pieces.
-func (pos *Position) BishopMobility(sq Square, all Bitboard) Bitboard {
-	return bishopMagic[sq].Attack(all)
-}
-
-// RookMobility returns the squares a rook can reach from sq given all pieces.
-func (pos *Position) RookMobility(sq Square, all Bitboard) Bitboard {
-	return rookMagic[sq].Attack(all)
-}
-
-// QueenMobility returns the squares a queen can reach from sq given all pieces.
-func (pos *Position) QueenMobility(sq Square, all Bitboard) Bitboard {
-	return rookMagic[sq].Attack(all) | bishopMagic[sq].Attack(all)
-}
-
-// KingMobility returns all squares a king can reach from sq.
-// Doesn't include castling.
-func (pos *Position) KingMobility(sq Square) Bitboard {
-	return bbKingAttack[sq]
 }
 
 // HasLegalMoves returns true if current side has any legal moves.
@@ -955,12 +929,12 @@ func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 	}
 	// Bishop
 	all := pos.ByColor[White] | pos.ByColor[Black]
-	bishop := pos.BishopMobility(sq, all)
+	bishop := BishopMobility(sq, all)
 	if enemy&pos.ByFigure[Bishop]&bishop != 0 {
 		return Bishop
 	}
 	// Rook
-	rook := pos.RookMobility(sq, all)
+	rook := RookMobility(sq, all)
 	if enemy&pos.ByFigure[Rook]&rook != 0 {
 		return Rook
 	}
