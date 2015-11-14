@@ -2,6 +2,8 @@
 // zurichess uses magic bitboards to generate sliding pieces moves.
 // A very good description by Pradyumna Kannan can be read at:
 // http://www.pradu.us/old/Nov27_2008/Buzz/research/magic/Bitboards.pdf
+//
+// TODO: move magic generation into an internal package.
 
 package engine
 

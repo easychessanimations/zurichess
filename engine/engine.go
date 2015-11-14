@@ -153,6 +153,7 @@ func (eng *Engine) UndoMove() {
 }
 
 // Score evaluates current position from White's POV.
+// The score is scaled such that one pawn is ~100.
 func (eng *Engine) Score() int32 {
 	score := Evaluate(eng.Position)
 	score = (score + 64) / 128
@@ -544,6 +545,7 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	return bestScore
 }
 
+// inf caps a at -InfinityScore.
 func inf(a int32) int32 {
 	if a <= -InfinityScore {
 		return -InfinityScore
@@ -551,6 +553,7 @@ func inf(a int32) int32 {
 	return a
 }
 
+// sup caps b at +InfinityScore.
 func sup(b int32) int32 {
 	if b >= InfinityScore {
 		return InfinityScore
@@ -628,6 +631,7 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		score = eng.search(depth, score)
 
 		if !eng.stopped {
+			// if eng has not been stopped then this is a legit pv.
 			moves = eng.pvTable.Get(eng.Position)
 			eng.Log.PrintPV(eng.Stats, score, moves)
 		}

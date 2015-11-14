@@ -38,7 +38,7 @@ type state struct {
 	Zobrist         uint64
 	Move            Move      // last move played.
 	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
-	EnpassantSquare [2]Square // enpassant square (polyglot, fen). If none, then SquareA1.
+	EnpassantSquare [2]Square // en passant square (polyglot, fen). If none, then SquareA1.
 	CastlingAbility Castle    // remaining castling rights.
 }
 
@@ -68,6 +68,9 @@ func NewPosition() *Position {
 //
 // fen must contain the position using Forsyth–Edwards Notation
 // http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+//
+// Rejects FEN with only four fields,
+// i.e. no full move counter or have move number.
 func PositionFromFEN(fen string) (*Position, error) {
 	// Split fen into 6 fields.
 	// Same as string.Fields() but creates much less garbage.
@@ -173,12 +176,12 @@ func (pos *Position) SetHalfmoveClock(n int) {
 	pos.curr.HalfmoveClock = n
 }
 
-// IsEnpassantSquare returns truee if sq is the enpassant square
+// IsEnpassantSquare returns true if sq is the en passant square
 func (pos *Position) IsEnpassantSquare(sq Square) bool {
 	return sq != SquareA1 && sq == pos.EnpassantSquare()
 }
 
-// EnpassantSquare returns the enpassant square.
+// EnpassantSquare returns the en passant square.
 func (pos *Position) EnpassantSquare() Square {
 	return pos.curr.EnpassantSquare[1]
 }
@@ -352,9 +355,9 @@ func (pos *Position) Verify() error {
 		}
 	}
 
-	// Verifies that enpassant square is empty.
+	// Verifies that en passant square is empty.
 	if sq := pos.curr.EnpassantSquare[0]; sq != SquareA1 && !pos.IsEmpty(sq) {
-		return fmt.Errorf("Expected empty enpassant square %v, got %v", sq, pos.Get(sq))
+		return fmt.Errorf("Expected empty en passant square %v, got %v", sq, pos.Get(sq))
 	}
 
 	return nil
@@ -378,7 +381,7 @@ func (pos *Position) SetSideToMove(col Color) {
 	pos.curr.Zobrist ^= zobristColor[pos.SideToMove]
 }
 
-// SetEnpassantSquare sets the enpassant square correctly updating the Zobrist key.
+// SetEnpassantSquare sets the en passant square correctly updating the Zobrist key.
 func (pos *Position) SetEnpassantSquare(sq Square) {
 	if sq == pos.curr.EnpassantSquare[1] {
 		// In the trivial case both values are SquareA1
@@ -391,8 +394,8 @@ func (pos *Position) SetEnpassantSquare(sq Square) {
 	pos.curr.EnpassantSquare[1] = sq
 
 	if sq != SquareA1 {
-		// In polyglot the hash key for en passant is updated only if the
-		// an enpassant capture is possible next move. In other words
+		// In polyglot the hash key for en passant is updated only if
+		// an en passant capture is possible next move. In other words
 		// if there is an enemy pawn next to the end square of the move.
 		var theirs Bitboard
 		if sq.Rank() == 2 { // White

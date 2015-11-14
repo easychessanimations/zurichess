@@ -13,7 +13,7 @@ type Eval struct {
 
 func (e *Eval) Make(pos *Position) {
 	e.M, e.E = 0, 0
-	e.Phase = Phase(pos)
+	e.Phase = phase(pos)
 }
 
 func (e *Eval) Feed() int32 {

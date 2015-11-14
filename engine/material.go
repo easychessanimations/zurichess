@@ -214,7 +214,7 @@ func EvaluatePosition(pos *Position, eval *Eval) {
 	evaluateSide(pos, White, eval)
 }
 
-// Evaluate evaluates position from White'env POV.
+// Evaluate evaluates position from White's POV.
 func Evaluate(pos *Position) int32 {
 	var env Eval
 	EvaluatePosition(pos, &env)
@@ -226,7 +226,9 @@ func Evaluate(pos *Position) int32 {
 	return score
 }
 
-func Phase(pos *Position) int32 {
+// phase computes the progress of the game.
+// 0 is opening, 256 is late end game.
+func phase(pos *Position) int32 {
 	total := int32(16*0 + 4*1 + 4*1 + 4*2 + 2*4)
 	curr := total
 	curr -= pos.ByFigure[Pawn].Popcnt() * 0
