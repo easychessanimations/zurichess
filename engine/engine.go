@@ -49,6 +49,7 @@ const (
 
 	initialAspirationWindow = 21  // ~a quarter of a pawn
 	futilityMargin          = 150 // ~one and a halfpawn
+	checkpointStep          = 10000
 )
 
 var (
@@ -115,6 +116,7 @@ type Engine struct {
 
 	timeControl *TimeControl
 	stopped     bool
+	checkpoint  uint64
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -399,8 +401,13 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 
 	// Update statistics.
 	eng.Stats.Nodes++
-	if eng.stopped || eng.Stats.Nodes%32768 == 0 && eng.timeControl.Stopped() {
-		eng.stopped = true
+	if !eng.stopped && eng.Stats.Nodes >= eng.checkpoint {
+		eng.checkpoint = eng.Stats.Nodes + checkpointStep
+		if eng.timeControl.Stopped() {
+			eng.stopped = true
+		}
+	}
+	if eng.stopped {
 		return α
 	}
 	if pvNode && ply > eng.Stats.SelDepth {
@@ -617,6 +624,7 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	eng.rootPly = eng.Position.Ply
 	eng.timeControl = tc
 	eng.stopped = false
+	eng.checkpoint = checkpointStep
 	eng.stack.Reset(eng.Position)
 
 	score := int32(0)
