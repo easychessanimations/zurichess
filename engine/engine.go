@@ -190,7 +190,6 @@ func (eng *Engine) endPosition() (int32, bool) {
 	if r := pos.ThreeFoldRepetition(); eng.ply() > 0 && r >= 2 || r >= 3 {
 		return 0, true
 	}
-	// TODO: Handle 50 moves rule.
 	return 0, false
 }
 
@@ -311,7 +310,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	return localα
 }
 
-// tryMove makes a move a descends on the search tree.
+// tryMove makes a move and descends on the search tree.
 //
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).

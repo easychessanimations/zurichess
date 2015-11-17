@@ -171,6 +171,8 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		mobility := RookMobility(sq, all) &^ excl
 		eval.AddN(wMobility[Rook], mobility.Popcnt())
 
+		// Evaluate rook on open and semi open files.
+		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
 		f := FileBb(sq.File())
 		if pos.ByPiece(us, Pawn)&f == 0 {
 			if pos.ByPiece(them, Pawn)&f == 0 {
