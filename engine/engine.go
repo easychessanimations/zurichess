@@ -345,17 +345,17 @@ func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move)
 
 	score := α + 1
 	if lmr > 0 { // reduce late moves
-		score = -eng.searchTree(-α-1, -α, depth-lmr, true)
+		score = -eng.searchTree(-α-1, -α, depth-lmr)
 	}
 
 	if score > α { // if late move reduction is disabled or has failed
 		if nullWindow {
-			score = -eng.searchTree(-α-1, -α, depth, true)
+			score = -eng.searchTree(-α-1, -α, depth)
 			if α < score && score < β {
-				score = -eng.searchTree(-β, -α, depth, true)
+				score = -eng.searchTree(-β, -α, depth)
 			}
 		} else {
-			score = -eng.searchTree(-β, -α, depth, move != NullMove)
+			score = -eng.searchTree(-β, -α, depth)
 		}
 	}
 
@@ -382,7 +382,6 @@ func min(a, b int32) int32 {
 // α, β represent lower and upper bounds.
 // ply is the move number (increasing).
 // depth is the fractional depth (decreasing)
-// nullMoveAllowed is true if null move is allowed, e.g. to avoid two consecutive null moves.
 //
 // Returns the score of the current position up to depth (modulo reductions/extensions).
 // The returned score is from current player's POV.
@@ -394,7 +393,7 @@ func min(a, b int32) int32 {
 //
 // Assuming this is a maximizing nodes, failing high means that an ancestors
 // minimizing nodes already have a better alternative.
-func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
+func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β
 
@@ -463,8 +462,7 @@ func (eng *Engine) searchTree(α, β, depth int32, nullMoveAllowed bool) int32 {
 	// position is too good, so opponent will not play it.
 	// Verification that we are not in check is done by tryMove
 	// which bails out if after the null move we are still in check.
-	if pos := eng.Position; nullMoveAllowed && // no two consective null moves
-		depth > NullMoveDepthLimit && // not very close to leafs
+	if pos := eng.Position; depth > NullMoveDepthLimit && // not very close to leafs
 		pos.HasNonPawns(sideToMove) && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
@@ -590,7 +588,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 
 	for !eng.stopped {
 		// At root a non-null move is required, cannot prune based on null-move.
-		score = eng.searchTree(α, β, depth, true)
+		score = eng.searchTree(α, β, depth)
 
 		if score <= α {
 			α = inf(α - δ)
