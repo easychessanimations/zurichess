@@ -71,13 +71,21 @@ in alphabetical order.
 
 ### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (development)
 
+The theme of this release is improving evaluation.
+
 * Implement fifty-move draw rule. Add HasLegalMoves and InsufficientMaterial methods.
 * Improve move ordering: add killer phase; remove sorting.
+* Improve time control: add more time when the move is predicted.
+* Add basic futility pruning.
+* Switch tuning to using [TensorFlow](http://tensorflow.org/) framework. txt is now deprecated.
+* Evaluate rooks on open and half-open files.
+* Improved mobility calculation.
 * Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (stable)
 
 The theme of this release is tuning the evaluation, search and move generation.
+ELO is about 2441 on CCRL 40/40.
 
 * Move to the new page http://bitbucket.org/zurichess/zurichess.
 * Evaluate passed, connected and isolated pawns. Tuning was done
