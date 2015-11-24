@@ -13,13 +13,14 @@
 //   * Aspiration window - https://chessprogramming.wikispaces.com/Aspiration+Windows
 //   * Check extension - https://chessprogramming.wikispaces.com/Check+Extensions
 //   * Fail soft - https://chessprogramming.wikispaces.com/Fail-Soft
+//   * Futility Pruning - https://chessprogramming.wikispaces.com/Futility+pruning
 //   * Killer move heuristic - /https://chessprogramming.wikispaces.com/Killer+Heuristic
 //   * Late move redution (LMR) - https://chessprogramming.wikispaces.com/Late+Move+Reductions
+//   * Mate distance pruning - https://chessprogramming.wikispaces.com/Mate+Distance+Pruning
 //   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 //   * Null move prunning (NMP) - https://chessprogramming.wikispaces.com/Null+Move+Pruning
 //   * Principal variation search (PVS) - https://chessprogramming.wikispaces.com/Principal+Variation+Search
 //   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
-//   * Mate distance pruning - https://chessprogramming.wikispaces.com/Mate+Distance+Pruning
 //   * Static Single Evaluation - https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
 //   * Zobrist hashing - https://chessprogramming.wikispaces.com/Zobrist+Hashing
 //
@@ -201,7 +202,7 @@ func (eng *Engine) retrieveHash() hashEntry {
 		eng.Stats.CacheMiss++
 		return hashEntry{}
 	}
-	if entry.move != NullMove && !eng.Position.IsValid(entry.move) {
+	if entry.move != NullMove && !eng.Position.IsPseudoLegal(entry.move) {
 		eng.Stats.CacheMiss++
 		return hashEntry{}
 	}
@@ -391,8 +392,8 @@ func min(a, b int32) int32 {
 //   else if score >= β then the search failed high and the score is a lower bound.
 //   else score is exact.
 //
-// Assuming this is a maximizing nodes, failing high means that an ancestors
-// minimizing nodes already have a better alternative.
+// Assuming this is a maximizing nodes, failing high means that a
+// minimizing ancestor node already has a better alternative.
 func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β

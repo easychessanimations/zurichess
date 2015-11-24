@@ -7,15 +7,15 @@ import (
 )
 
 const (
-	KnownWinScore  int32 = 25000000       // All scores strictly greater than KnownWinScore are sure wins.
-	KnownLossScore int32 = -KnownWinScore // All scores strictly lower than KnownLossScore are sure losses.
-	MateScore      int32 = 30000000       // MateScore - N is mate env N plies.
-	MatedScore     int32 = -MateScore     // MatedScore + N is mated env N plies.
-	InfinityScore  int32 = 32000000       // Maximum possible score. -InfinityScore is the minimum possible score.
+	KnownWinScore  int32 = 25000000       // KnownWinScore is strictly greater than all evaluation scores (mate not included).
+	KnownLossScore int32 = -KnownWinScore // KnownLossScore is strictly smaller than all evaluation scores (mated not included).
+	MateScore      int32 = 30000000       // MateScore - N is mate in N plies.
+	MatedScore     int32 = -MateScore     // MatedScore + N is mated in N plies.
+	InfinityScore  int32 = 32000000       // InfinityScore is possible score. -InfinityScore is the minimum possible score.
 )
 
 var (
-	// All weights under one array for easy handling.
+	// Weights stores all evaluation parameters under one array for easy handling.
 	Weights = [94]Score{
 		{M: 3481, E: 5706}, {M: 4520, E: 7387}, {M: 45831, E: 31782}, {M: 49213, E: 35926}, {M: 67581, E: 66240},
 		{M: 159356, E: 116233}, {M: 2206, E: 8019}, {M: 7814, E: 7480}, {M: 775, E: 2896}, {M: 1189, E: 1449},

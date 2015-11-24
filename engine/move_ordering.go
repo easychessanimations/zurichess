@@ -166,7 +166,7 @@ func (st *stack) PopMove() Move {
 		case msHash:
 			// Return the hash move directly without generating the pseudo legal moves.
 			ms.state = msGenViolent
-			if st.position.IsValid(ms.hash) {
+			if st.position.IsPseudoLegal(ms.hash) {
 				return ms.hash
 			}
 
@@ -210,7 +210,7 @@ func (st *stack) PopMove() Move {
 				ms.state = msGenRest
 			} else if m == ms.hash {
 				break
-			} else if st.position.IsValid(m) {
+			} else if st.position.IsPseudoLegal(m) {
 				return m
 			}
 

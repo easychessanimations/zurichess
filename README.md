@@ -69,7 +69,7 @@ binaries should be stable for any kind of testing.
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (development)
+### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (stable)
 
 The theme of this release is improving evaluation.
 
@@ -79,10 +79,11 @@ The theme of this release is improving evaluation.
 * Add basic futility pruning.
 * Switch tuning to using [TensorFlow](http://tensorflow.org/) framework. txt is now deprecated.
 * Evaluate rooks on open and half-open files.
-* Improved mobility calculation.
+* Improve mobility calculation.
+* Tweak null-move conditions: allow double null-moves.
 * Usual code clean ups, speed ups and bug fixes.
 
-### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg) (stable)
+### zurichess - [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg)
 
 The theme of this release is tuning the evaluation, search and move generation.
 ELO is about 2441 on CCRL 40/40.

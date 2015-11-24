@@ -7,18 +7,18 @@ import (
 )
 
 const (
-	// No capture, no castling, no promotion.
+	// Quiet indicates no capture, no castling, no promotion.
 	Quiet int = 1 << iota
-	// Castling and underpromotions (including captures).
+	// Tactical indicates castling and underpromotions (including captures).
 	Tactical
-	// Captures and queen promotions.
+	// Violent indicates captures and queen promotions.
 	Violent
-	// All moves.
+	// All indicates all moves.
 	All = Quiet | Tactical | Violent
 )
 
 var (
-	// Starting position.
+	// FENStartPos is the FEN string of the starting position.
 	FENStartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 	// Which castle rights are lost when pieces are moved.
@@ -35,14 +35,14 @@ func init() {
 }
 
 type state struct {
-	Zobrist         uint64
+	Zobrist         uint64    // Zobrist key
 	Move            Move      // last move played.
 	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
 	EnpassantSquare [2]Square // en passant square (polyglot, fen). If none, then SquareA1.
 	CastlingAbility Castle    // remaining castling rights.
 }
 
-// Position encodes the chess board.
+// Position represents the chess board and keeps track of the move history.
 type Position struct {
 	ByFigure   [FigureArraySize]Bitboard // bitboards of square occupancy by figure.
 	ByColor    [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
@@ -139,12 +139,12 @@ func (pos *Position) String() string {
 	return s
 }
 
-// prev returns state at previous Ply.
+// prev returns state at previous ply.
 func (pos *Position) prev() *state {
 	return &pos.states[len(pos.states)-1]
 }
 
-// popState pops one Ply.
+// popState pops one ply.
 func (pos *Position) popState() {
 	len := len(pos.states) - 1
 	pos.states = pos.states[:len]
@@ -152,7 +152,7 @@ func (pos *Position) popState() {
 	pos.Ply--
 }
 
-// pushState adds one Ply.
+// pushState adds one ply.
 func (pos *Position) pushState() {
 	len := len(pos.states)
 	pos.states = append(pos.states, pos.states[len-1])
@@ -176,7 +176,7 @@ func (pos *Position) SetHalfmoveClock(n int) {
 	pos.curr.HalfmoveClock = n
 }
 
-// IsEnpassantSquare returns true if sq is the en passant square
+// IsEnpassantSquare returns true if sq is the en passant square.
 func (pos *Position) IsEnpassantSquare(sq Square) bool {
 	return sq != SquareA1 && sq == pos.EnpassantSquare()
 }
@@ -191,7 +191,7 @@ func (pos *Position) CastlingAbility() Castle {
 	return pos.curr.CastlingAbility
 }
 
-// Move returns the last move played, if any.
+// LastMove returns the last move played, if any.
 func (pos *Position) LastMove() Move {
 	return pos.curr.Move
 }
@@ -213,8 +213,10 @@ func (pos *Position) HasNonPawns(col Color) bool {
 	return pos.ByColor[col]&^pos.ByFigure[Pawn]&^pos.ByFigure[King] != 0
 }
 
-// IsValid returns true if m is a valid move for pos.
-func (pos *Position) IsValid(m Move) bool {
+// IsPseudoLegal returns true if m is a pseudo legal move for pos.
+// It returns true iff m can be executed even if own king is in check
+// after the move. NullMove is not a valid move.
+func (pos *Position) IsPseudoLegal(m Move) bool {
 	if m == NullMove {
 		return false
 	}
@@ -472,7 +474,7 @@ func (pos *Position) PawnThreats(side Color) Bitboard {
 }
 
 // HasLegalMoves returns true if current side has any legal moves.
-// Very expensive because it executes all moves.
+// This function is very expensive.
 func (pos *Position) HasLegalMoves() bool {
 	var moves []Move
 	pos.GenerateMoves(All, &moves)

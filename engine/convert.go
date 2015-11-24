@@ -128,6 +128,7 @@ func FormatPiecePlacement(pos *Position) string {
 	return s
 }
 
+// ParseEnpassantSquare parses the en passant square from str.
 func ParseEnpassantSquare(str string, pos *Position) error {
 	if str[:1] == "-" {
 		pos.SetEnpassantSquare(SquareA1)

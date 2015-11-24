@@ -72,6 +72,7 @@ func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 	}
 }
 
+// NewFixedDepthTimeControl returns a TimeControl which limits the search depth.
 func NewFixedDepthTimeControl(pos *Position, depth int32) *TimeControl {
 	tc := NewTimeControl(pos, false)
 	tc.Depth = depth
@@ -79,6 +80,7 @@ func NewFixedDepthTimeControl(pos *Position, depth int32) *TimeControl {
 	return tc
 }
 
+// NewDeadlineTimeControl returns a TimeControl corresponding to a single move before deadline.
 func NewDeadlineTimeControl(pos *Position, deadline time.Duration) *TimeControl {
 	tc := NewTimeControl(pos, false)
 	tc.WTime = deadline

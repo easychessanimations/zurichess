@@ -249,7 +249,7 @@ func (pi Piece) Figure() Figure {
 	return Figure(pi) >> 1
 }
 
-// An 8x8 bitboard.
+// Bitboard is a set representing the 8x8 chess board squares.
 type Bitboard uint64
 
 const (
@@ -337,7 +337,7 @@ func Forward(col Color, bb Bitboard) Bitboard {
 	return bb
 }
 
-// Forward returns bb shifted one rank backward wrt color.
+// Backward returns bb shifted one rank backward wrt color.
 func Backward(col Color, bb Bitboard) Bitboard {
 	if col == White {
 		return bb >> 8
@@ -426,7 +426,7 @@ func (bb *Bitboard) Pop() Square {
 	return Square(debrujin64[sq*debrujinMul>>debrujinShift])
 }
 
-// Move type.
+// MoveType defines the move type.
 type MoveType uint8
 
 const (
@@ -438,6 +438,7 @@ const (
 )
 
 const (
+	// NullMove is a move that does nothing. Has value to 0.
 	NullMove = Move(0)
 )
 
@@ -556,20 +557,22 @@ func (m Move) String() string {
 	return m.LAN()
 }
 
-// Castling rights mask.
+// Castle represents the castling rights mask.
 type Castle uint8
 
 const (
-	// White can castle on King side.
+	// WhiteOO indicates that White can castle on King side.
 	WhiteOO Castle = 1 << iota
-	// White can castle on Queen side.
+	// WhiteOOO indicates that White can castle on Queen side.
 	WhiteOOO
-	// Black can castle on King side.
+	// BlackOO indicates that Black can castle on King side.
 	BlackOO
-	// Black can castle on Queen side.
+	// BlackOOO indicates that Black can castle on Queen side.
 	BlackOOO
 
-	NoCastle  Castle = 0
+	// NoCastle indicates no castling rights.
+	NoCastle Castle = 0
+	// AnyCastle indicates all castling rights.
 	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
 
 	CastleArraySize = int(AnyCastle + 1)

@@ -2,10 +2,12 @@
 
 package engine
 
+// Score represents a pair of mid and end game scores.
 type Score struct {
 	M, E int32 // mid game, end game
 }
 
+// Eval is a sum of scores.
 type Eval struct {
 	M, E  int32 // mid game, end game
 	Phase int32

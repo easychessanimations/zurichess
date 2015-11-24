@@ -227,7 +227,7 @@ func (pos *Position) UCIToMove(s string) (Move, error) {
 	}
 
 	move := MakeMove(moveType, from, to, capt, target)
-	if !pos.IsValid(move) {
+	if !pos.IsPseudoLegal(move) {
 		return NullMove, fmt.Errorf("%s is not a valid move", s)
 	}
 	return move, nil

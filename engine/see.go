@@ -21,7 +21,9 @@ func seeSign(pos *Position, m Move) bool {
 // https://chessprogramming.wikispaces.com/SEE+-+The+Swap+Algorithm
 //
 // The implementation here is optimized for the common case when there
-// isn't any capture following the move.
+// isn't any capture following the move. The score returned is based
+// on some fixed values for figures, different from the ones
+// defined in material.go.
 func see(pos *Position, m Move) int32 {
 	us := pos.SideToMove
 	them := us.Opposite()
@@ -110,12 +112,13 @@ func see(pos *Position, m Move) int32 {
 			goto makeMove
 		}
 
+		// No attack found.
+		break
+
 	makeMove:
 		if att != 0 {
 			// Make a new pseudo-legal move of the smallest attacker.
 			m = MakeMove(mt, att.Pop(), sq, m.Target(), ColorFigure(us, fig))
-		} else {
-			break
 		}
 	}
 

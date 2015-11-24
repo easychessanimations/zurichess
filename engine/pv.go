@@ -1,9 +1,8 @@
 package engine
 
 const (
-	pvTableSizeShift = 13
-	pvTableSize      = 1 << pvTableSizeShift
-	pvTableMask      = pvTableSize - 1
+	pvTableSize = 1 << 13
+	pvTableMask = pvTableSize - 1
 )
 
 // TODO: Unexport pvEntry fields.
