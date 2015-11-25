@@ -132,7 +132,7 @@ func TestScore(t *testing.T) {
 		moves := strings.Fields(game)
 		for _, move := range moves {
 			m, _ := pos.UCIToMove(move)
-			if !pos.IsValid(m) {
+			if !pos.IsPseudoLegal(m) {
 				// t.Fatalf("bad bad bad")
 			}
 

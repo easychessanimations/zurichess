@@ -868,7 +868,7 @@ func TestGenerateMovesColor(t *testing.T) {
 	}
 }
 
-func TestIsValid(t *testing.T) {
+func TestIsPseudoLegal(t *testing.T) {
 	data := []struct {
 		fen  string
 		move Move
@@ -881,7 +881,7 @@ func TestIsValid(t *testing.T) {
 
 	for i, d := range data {
 		pos, _ := PositionFromFEN(d.fen)
-		if pos.IsValid(d.move) {
+		if pos.IsPseudoLegal(d.move) {
 			t.Errorf("#%d for %s move %v is invalid", i, d.fen, d.move)
 		}
 	}
