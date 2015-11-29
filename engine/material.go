@@ -76,8 +76,30 @@ func init() {
 	w = chunk(w, wKingFile[:])
 	w = chunk(w, wFlags[:])
 
+	fixPSqT(wPawn[:], &wFigure[Pawn])
+
 	if len(w) != 0 {
 		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
+	}
+}
+
+// fixPSqT fixes psqt to have the average 0.
+// adjusts figure with the corresponding amount.
+func fixPSqT(psqt []Score, figure *Score) {
+	var avg Score
+	for i := range psqt {
+		avg.M += psqt[i].M
+		avg.E += psqt[i].E
+	}
+	n := int32(len(psqt))
+	avg.M = (avg.M + n/2) / n
+	avg.E = (avg.E + n/2) / n
+
+	figure.M += avg.M
+	figure.E += avg.E
+	for i := range psqt {
+		psqt[i].M -= avg.M
+		psqt[i].E -= avg.E
 	}
 }
 
@@ -244,6 +266,12 @@ func Evaluate(pos *Position) int32 {
 			score, KnownLossScore, KnownWinScore))
 	}
 	return score
+}
+
+// ScaleToCentiPawn scales the score returned by Evaluate
+// such that one pawn ~= 100.
+func ScaleToCentiPawn(score int32) int32 {
+	return (score + 64) / 128
 }
 
 // phase computes the progress of the game.

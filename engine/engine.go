@@ -46,7 +46,7 @@ const (
 	NullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
 	PVSDepthLimit          int32 = 0 // do not do PVS below and including this limit
 	LMRDepthLimit          int32 = 3 // do not do LMR below and including this limit
-	FutilityDepthLimit     int32 = 2 // maximum depth to do futility pruning.
+	FutilityDepthLimit     int32 = 3 // maximum depth to do futility pruning.
 
 	initialAspirationWindow = 21  // ~a quarter of a pawn
 	futilityMargin          = 150 // ~one and a halfpawn
@@ -155,11 +155,10 @@ func (eng *Engine) UndoMove() {
 	eng.Position.UndoMove()
 }
 
-// Score evaluates current position from White's POV.
-// The score is scaled such that one pawn is ~100.
+// Score evaluates current position from current player's POV.
 func (eng *Engine) Score() int32 {
 	score := Evaluate(eng.Position)
-	score = (score + 64) / 128
+	score = ScaleToCentiPawn(score)
 	return scoreMultiplier[eng.Position.SideToMove] * score
 }
 
@@ -323,26 +322,6 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 // Returns the score from the deeper search.
 func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move) int32 {
 	depth--
-	pos := eng.Position // shortcut
-	us := pos.SideToMove
-	them := us.Opposite()
-
-	eng.DoMove(move)
-	if pos.IsChecked(us) {
-		// Exit early if we throw the king in check.
-		eng.UndoMove()
-		return -InfinityScore
-	}
-	if pos.IsChecked(them) {
-		lmr = 0 // tactical, dangerous
-
-		// Extend the search when our move gives check.
-		// However do not extend if we can just take the undefended piece.
-		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
-		if pos.GetAttacker(move.To(), them) == NoFigure || pos.GetAttacker(move.To(), us) != NoFigure {
-			depth += CheckDepthExtension
-		}
-	}
 
 	score := α + 1
 	if lmr > 0 { // reduce late moves
@@ -369,11 +348,29 @@ func (eng *Engine) ply() int32 {
 	return int32(eng.Position.Ply - eng.rootPly)
 }
 
-func min(a, b int32) int32 {
-	if a <= b {
-		return a
+// passed returns true if a passed pawn appears or disappears.
+//
+// Expects the move to be already executed.
+// The heuristic is incomplete. In particular if there is a friendly
+// pawn on the adjacent files the pawn is not considered passed.
+func passed(pos *Position, m Move) bool {
+	if m.Piece().Figure() == Pawn {
+		// Checks no pawns are in front on its and adjacent files.
+		bb := m.To().Bitboard()
+		bb = West(bb) | bb | East(bb)
+		if ForwardSpan(m.SideToMove(), bb)&pos.ByFigure[Pawn] == 0 {
+			return true
+		}
 	}
-	return b
+	if m.Capture().Figure() == Pawn {
+		// Checks no pawns are in front on its and adjacent files.
+		bb := m.To().Bitboard()
+		bb = West(bb) | bb | East(bb)
+		if BackwardSpan(m.SideToMove(), bb)&pos.ByFigure[Pawn] == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // searchTree implements searchTree framework.
@@ -397,6 +394,8 @@ func min(a, b int32) int32 {
 func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β
+	pos := eng.Position
+	us := pos.SideToMove
 
 	// Update statistics.
 	eng.Stats.Nodes++
@@ -414,7 +413,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	// Verify that this is not already an endgame.
-	sideToMove := eng.Position.SideToMove
 	if score, done := eng.endPosition(); done {
 		return score
 	}
@@ -433,7 +431,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			// Simply return if the score is exact.
 			// Update principal variation table if possible.
 			if α < entry.score && entry.score < β {
-				eng.pvTable.Put(eng.Position, hash)
+				eng.pvTable.Put(pos, hash)
 			}
 			return entry.score
 		}
@@ -463,29 +461,45 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// position is too good, so opponent will not play it.
 	// Verification that we are not in check is done by tryMove
 	// which bails out if after the null move we are still in check.
-	if pos := eng.Position; depth > NullMoveDepthLimit && // not very close to leafs
-		pos.HasNonPawns(sideToMove) && // at least one minor/major piece.
+	if depth > NullMoveDepthLimit && // not very close to leafs
+		pos.HasNonPawns(us) && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
 		reduction := NullMoveDepthReduction
-		if pos.NumNonPawns(sideToMove) >= 3 {
+		if pos.NumNonPawns(us) >= 3 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
 		}
+
+		eng.DoMove(NullMove)
+		if pos.IsChecked(us) {
+			// Don't leave the king in check.
+			eng.UndoMove()
+			goto SkipNullMove
+		}
+
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β {
 			return score
 		}
 	}
+SkipNullMove:
 
-	sideIsChecked := eng.Position.IsChecked(sideToMove)
+	sideIsChecked := pos.IsChecked(us)
+	bestMove, bestScore := NullMove, -InfinityScore
 
 	// Futility pruning at frontier nodes.
 	// Disable when in check or when searching for a mate.
-	if !sideIsChecked && depth <= FutilityDepthLimit && !pvNode &&
-		KnownLossScore < α && β < KnownWinScore {
-		if futility := eng.Score() - depth*futilityMargin; futility >= β {
-			return futility
+	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
+	futilityLimit := int32(0)
+	if depth <= FutilityDepthLimit && // enable when close to the frontier
+		!sideIsChecked && // disable in check
+		!pvNode && // disable in pv nodes
+		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
+		static := eng.Score()
+		futilityLimit = α - static - depth*futilityMargin
+		if futilityLimit > 0 {
+			bestScore = static
 		}
 	}
 
@@ -496,13 +510,16 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
 	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
 
+	// dropped true if not all moves were searched.
+	// Mate cannot be declared unless all moves were tested.
+	dropped := false
 	numQuiet := int32(0)
 	localα := α
-	bestMove, bestScore := NullMove, -InfinityScore
 
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Reduce most quiet moves and bad captures.
+		// TODO: Do not compute see when in check.
 		lmr := int32(0)
 		if allowLateMove && move != hash && !eng.stack.IsKiller(move) {
 			if move.IsQuiet() {
@@ -511,13 +528,60 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 				// Large depth means reductions are less risky.
 				numQuiet++
 				lmr = 1 + min(depth, numQuiet)/5
-			} else if seeSign(eng.Position, move) {
+			} else if seeSign(pos, move) {
 				// Bad captures (SEE<0) can be reduced, too.
 				lmr = 1
 			}
 		}
 
-		score := eng.tryMove(localα, β, depth, lmr, nullWindow, move)
+		newDepth := depth
+		eng.DoMove(move)
+
+		// Skip illegal moves that leave the king in check.
+		if pos.IsChecked(us) {
+			eng.UndoMove()
+			continue
+		}
+
+		// Extend the search when our move gives check.
+		// However do not extend if we can just take the undefended piece.
+		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
+		givesCheck := pos.IsChecked(us.Opposite())
+		if givesCheck {
+			lmr = 0 // tactical, dangerous
+			if pos.GetAttacker(move.To(), us.Opposite()) == NoFigure ||
+				pos.GetAttacker(move.To(), us) != NoFigure {
+				newDepth += CheckDepthExtension
+			}
+		}
+
+		// Prune moves that do not raise alphas.
+		if futilityLimit > 0 {
+			if givesCheck {
+				// Tactically dangerous.
+				goto SkipFutilityPruning
+			}
+			if move.MoveType() == Promotion || passed(pos, move) {
+				// Passed pawns have high chance to raise alpha.
+				// TODO: account for positional score change.
+				goto SkipFutilityPruning
+			}
+			fig := move.Capture().Figure()
+			capture := max(wFigure[fig].M, wFigure[fig].E)
+			capture = ScaleToCentiPawn(capture)
+			if capture >= futilityLimit {
+				// Accounts for material change.
+				goto SkipFutilityPruning
+			}
+
+			// Prune futile moves.
+			dropped = true
+			eng.UndoMove()
+			continue
+		}
+	SkipFutilityPruning:
+
+		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
 		if score >= β { // Fail high, cut node.
 			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)
@@ -532,19 +596,20 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
-	// If no move was found then the game is over.
-	if bestMove == NullMove {
-		if sideIsChecked {
-			bestScore = MatedScore + ply
-		} else {
-			bestScore = 0
+	if !dropped {
+		// If no move was found then the game is over.
+		if bestMove == NullMove {
+			if sideIsChecked {
+				bestScore = MatedScore + ply
+			} else {
+				bestScore = 0
+			}
 		}
-	}
-
-	// Update hash and principal variation tables.
-	eng.updateHash(α, β, depth, bestScore, bestMove)
-	if α < bestScore && bestScore < β {
-		eng.pvTable.Put(eng.Position, bestMove)
+		// Update hash and principal variation tables.
+		eng.updateHash(α, β, depth, bestScore, bestMove)
+		if α < bestScore && bestScore < β {
+			eng.pvTable.Put(pos, bestMove)
+		}
 	}
 
 	return bestScore
@@ -562,6 +627,20 @@ func inf(a int32) int32 {
 func sup(b int32) int32 {
 	if b >= InfinityScore {
 		return InfinityScore
+	}
+	return b
+}
+
+func max(a, b int32) int32 {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int32) int32 {
+	if a <= b {
+		return a
 	}
 	return b
 }
