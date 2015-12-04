@@ -556,10 +556,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
-	hasGoodMoves := hash != NullMove || eng.stack.HasKiller()
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
-	allowNullWindow := pvNode && hasGoodMoves && depth > PVSDepthLimit
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
 	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
 
@@ -650,7 +648,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			return score
 		}
 		if score > bestScore {
-			nullWindow = allowNullWindow
+			nullWindow = true
 			bestMove, bestScore = move, score
 			if score > localα {
 				localα = score
