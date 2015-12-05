@@ -457,11 +457,14 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		return score
 	}
 
+	sideIsChecked := pos.IsChecked(us)
+
 	// Do a null move. If the null move fails high then the current
 	// position is too good, so opponent will not play it.
 	// Verification that we are not in check is done by tryMove
 	// which bails out if after the null move we are still in check.
 	if depth > NullMoveDepthLimit && // not very close to leafs
+		!sideIsChecked && // nullmove is illegal when in check
 		pos.HasNonPawns(us) && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
@@ -472,20 +475,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 
 		eng.DoMove(NullMove)
-		if pos.IsChecked(us) {
-			// Don't leave the king in check.
-			eng.UndoMove()
-			goto SkipNullMove
-		}
-
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β {
 			return score
 		}
 	}
-SkipNullMove:
 
-	sideIsChecked := pos.IsChecked(us)
 	bestMove, bestScore := NullMove, -InfinityScore
 
 	// Futility pruning at frontier nodes.
