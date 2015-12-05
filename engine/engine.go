@@ -378,8 +378,7 @@ func passed(pos *Position, m Move) bool {
 // searchTree fails soft, i.e. the score returned can be outside the bounds.
 //
 // α, β represent lower and upper bounds.
-// ply is the move number (increasing).
-// depth is the fractional depth (decreasing)
+// depth is the search depth (decreasing)
 //
 // Returns the score of the current position up to depth (modulo reductions/extensions).
 // The returned score is from current player's POV.

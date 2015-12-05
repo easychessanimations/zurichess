@@ -29,10 +29,10 @@ than the latest stable version.
 
 ## Build and Compile
 
-First you need to get the latest version of Go (currently 1.4). For
+First you need to get the latest version of Go (currently 1.5.2). For
 instructions how to download and install Go for your OS see
-[documentation](https://golang.org/doc/install). After Go 1.4 is
-installed, a workspace needs to be created:
+[documentation](https://golang.org/doc/install). After the Go compiler
+is installed, create a workspace:
 
 ```
 #!bash
@@ -64,10 +64,19 @@ binaries should be stable for any kind of testing.
 
 [zuritest](https://bitbucket.org/zurichess/zuritest) is the framework used to test zurichess.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## History
 
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
+
+### zurichess - [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (development)
+
+* Improve futility conditions. Geneva's futility is a bit too agressive
+and causes lots of tactical mistakes.
 
 ### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (stable)
 
