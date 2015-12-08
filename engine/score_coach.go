@@ -2,6 +2,8 @@
 
 package engine
 
+const disableCache = true
+
 // Score represents a pair of mid and end game scores.
 type Score struct {
 	M, E int32 // mid game, end game
@@ -10,21 +12,12 @@ type Score struct {
 
 // Eval is a sum of scores.
 type Eval struct {
-	M, E   int32 // mid game, end game
-	Phase  int32
-	Values []int32
+	M, E   int32   // mid game, end game
+	Values []int32 // input values
 }
 
-func (e *Eval) Make(pos *Position) {
-	e.M, e.E = 0, 0
-	e.Phase = phase(pos)
-	for i := range e.Values {
-		e.Values[i] = 0
-	}
-}
-
-func (e *Eval) Feed() int32 {
-	return (e.M*(256-e.Phase) + e.E*e.Phase) / 256
+func (e *Eval) Feed(phase int32) int32 {
+	return (e.M*(256-phase) + e.E*phase) / 256
 }
 
 func (e *Eval) Recompute() {
@@ -58,10 +51,6 @@ func (e *Eval) Neg() {
 	for i, v := range e.Values {
 		e.Values[i] = -v
 	}
-}
-
-func evaluatePawnsCached(pos *Position, us Color, eval *Eval) {
-	evaluatePawns(pos, us, eval)
 }
 
 func initWeights() {

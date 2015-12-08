@@ -46,6 +46,9 @@ var (
 	wKingRank   [8]Score
 	wKingFile   [8]Score
 	wFlags      [8]Score // see flags defined below
+
+	// Evaluation caches.
+	pawnsAndShelterCache *cache
 )
 
 const (
@@ -60,6 +63,9 @@ const (
 )
 
 func init() {
+	// Initialize caches.
+	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
+
 	initWeights()
 
 	chunk := func(w []Score, out []Score) []Score {
@@ -103,7 +109,28 @@ func fixPSqT(psqt []Score, figure *Score) {
 	}
 }
 
-func evaluatePawns(pos *Position, us Color, eval *Eval) {
+func hashPawnsAndShelter(pos *Position, us Color) uint64 {
+	h := murmurSeed[us]
+	h = murmurMix(h, uint64(pos.ByPiece(us, Pawn)))
+	h = murmurMix(h, uint64(pos.ByPiece(us.Opposite(), Pawn)))
+	h = murmurMix(h, uint64(pos.ByPiece(us, King)))
+	if pos.ByPiece(us.Opposite(), Queen) != 0 {
+		// Mixes in something to signal queen's presence.
+		h = murmurMix(h, murmurSeed[NoColor])
+	}
+	return h
+}
+
+func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
+	eval := evaluatePawns(pos, us)
+	temp := evaluateShelter(pos, us)
+	eval.M += temp.M
+	eval.E += temp.E
+	return eval
+}
+
+func evaluatePawns(pos *Position, us Color) Eval {
+	var eval Eval
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(us.Opposite(), Pawn)
 
@@ -153,11 +180,41 @@ func evaluatePawns(pos *Position, us Color, eval *Eval) {
 			eval.Add(wFlags[fIsolatedPawn])
 		}
 	}
+
+	return eval
+}
+
+func evaluateShelter(pos *Position, us Color) Eval {
+	var eval Eval
+	pawns := pos.ByPiece(us, Pawn)
+	king := pos.ByPiece(us, King)
+
+	sq := king.AsSquare().POV(us)
+	eval.Add(wKingFile[sq.File()])
+	eval.Add(wKingRank[sq.Rank()])
+
+	if pos.ByPiece(us.Opposite(), Queen) != 0 {
+		king = ForwardSpan(us, king)
+		file := sq.File()
+		if file > 0 && West(king)&pawns == 0 {
+			eval.Add(wFlags[fKingShelter])
+		}
+		if king&pawns == 0 {
+			eval.AddN(wFlags[fKingShelter], 2)
+		}
+		if file < 7 && East(king)&pawns == 0 {
+			eval.Add(wFlags[fKingShelter])
+		}
+	}
+	return eval
 }
 
 // evaluateSide evaluates position for a single side.
 func evaluateSide(pos *Position, us Color, eval *Eval) {
-	evaluatePawnsCached(pos, us, eval)
+	tmp := pawnsAndShelterCache.load(pos, us)
+	eval.M += tmp.M
+	eval.E += tmp.E
+
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
 
@@ -218,49 +275,22 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.Add(wFigure[King])
 		mobility := KingMobility(sq) &^ excl
 		eval.AddN(wMobility[King], mobility.Popcnt())
-
-		sq = sq.POV(us)
-		eval.Add(wKingFile[sq.File()])
-		eval.Add(wKingRank[sq.Rank()])
-	}
-
-	if pos.ByPiece(them, Queen) != 0 {
-		pawns := pos.ByPiece(us, Pawn)
-		king := pos.ByPiece(us, King)
-		file := king.AsSquare().File()
-
-		// TODO: Should we include adjacent pawns in the computation?
-		if us == White {
-			king = NorthSpan(king)
-		} else /* if us == Black */ {
-			king = SouthSpan(king)
-		}
-
-		if file > 0 && West(king)&pawns == 0 {
-			eval.Add(wFlags[fKingShelter])
-		}
-		if king&pawns == 0 {
-			eval.AddN(wFlags[fKingShelter], 2)
-		}
-		if file < 7 && East(king)&pawns == 0 {
-			eval.Add(wFlags[fKingShelter])
-		}
 	}
 }
 
 // evaluatePosition evalues position.
-func EvaluatePosition(pos *Position, eval *Eval) {
-	eval.Make(pos)
-	evaluateSide(pos, Black, eval)
+func EvaluatePosition(pos *Position) Eval {
+	var eval Eval
+	evaluateSide(pos, Black, &eval)
 	eval.Neg()
-	evaluateSide(pos, White, eval)
+	evaluateSide(pos, White, &eval)
+	return eval
 }
 
 // Evaluate evaluates position from White's POV.
 func Evaluate(pos *Position) int32 {
-	var env Eval
-	EvaluatePosition(pos, &env)
-	score := env.Feed()
+	eval := EvaluatePosition(pos)
+	score := eval.Feed(phase(pos))
 	if KnownLossScore >= score || score >= KnownWinScore {
 		panic(fmt.Sprintf("score %d should be between %d and %d",
 			score, KnownLossScore, KnownWinScore))
