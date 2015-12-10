@@ -8,6 +8,7 @@ import (
 const (
 	defaultMovesToGo = 30 // default number of more moves expected to play
 	infinite         = 1000000000 * time.Second
+	overhead         = 15 * time.Millisecond
 )
 
 // atomicFlag is an atomic bool that can only be set.
@@ -38,11 +39,14 @@ type TimeControl struct {
 	MovesToGo   int           // number of remaining moves
 
 	sideToMove Color
-	predicted  bool       // true if this move was predicted
-	branch     int        // branching factor
-	currDepth  int32      // current depth searched
-	stopped    atomicFlag // true to stop the search
-	ponderhit  atomicFlag // true if ponder was successful
+	time, inc  time.Duration // time and increment for us
+	limit      time.Duration
+
+	predicted bool       // true if this move was predicted
+	branch    int        // branching factor
+	currDepth int32      // current depth searched
+	stopped   atomicFlag // true to stop the search
+	ponderhit atomicFlag // true if ponder was successful
 
 	searchTime     time.Duration // alocated time for this move
 	searchDeadline time.Time     // don't go to the next depth after this deadline
@@ -92,17 +96,10 @@ func NewDeadlineTimeControl(pos *Position, deadline time.Duration) *TimeControl 
 // thinkingTime calculates how much time to think this round.
 // t is the remaining time, i is the increment.
 func (tc *TimeControl) thinkingTime() time.Duration {
-	var t, i time.Duration // our time, inc
-	if tc.sideToMove == White {
-		t, i = tc.WTime, tc.WInc
-	} else {
-		t, i = tc.BTime, tc.BInc
-	}
-
 	// The formula allows engine to use more of time in the begining
 	// and rely more on the increment later.
 	tmp := time.Duration(tc.MovesToGo)
-	tt := (t + (tmp-1)*i) / tmp
+	tt := (tc.time + (tmp-1)*tc.inc) / tmp
 
 	if tc.predicted {
 		tt = tt * 4 / 3
@@ -110,15 +107,28 @@ func (tc *TimeControl) thinkingTime() time.Duration {
 	if tt < 0 {
 		return 0
 	}
-	if tt < t {
+	if tt < tc.limit {
 		return tt
 	}
-	return t
+	return tc.limit
 }
 
 // Start starts the timer.
 // Should start as soon as possible to set the correct time.
 func (tc *TimeControl) Start(ponder bool) {
+	if tc.sideToMove == White {
+		tc.time, tc.inc = tc.WTime, tc.WInc
+	} else {
+		tc.time, tc.inc = tc.BTime, tc.BInc
+	}
+
+	// Calcuates the last moment when the search should be stopped.
+	if tc.time > overhead {
+		tc.limit = tc.time - overhead
+	} else {
+		tc.limit = tc.time
+	}
+
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
 	for i := 4; i > 0; i /= 2 {
@@ -131,11 +141,17 @@ func (tc *TimeControl) Start(ponder bool) {
 	tc.ponderhit = atomicFlag{flag: !ponder}
 
 	// searchDeadline is the last moment when search can start a new iteration.
-	// stopDeadline is when to abort the search in case of an explosion.
 	now := time.Now()
 	tc.searchTime = tc.thinkingTime()
 	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
-	tc.stopDeadline = now.Add(tc.searchTime * 4)
+
+	// stopDeadline is when to abort the search in case of an explosion.
+	// We give a large overhead here so the search is not aborted very often.
+	deadline := tc.searchTime * 4
+	if deadline > tc.limit {
+		deadline = tc.limit
+	}
+	tc.stopDeadline = now.Add(deadline)
 }
 
 // NextDepth returns true if search can start at depth.
