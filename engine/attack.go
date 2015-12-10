@@ -111,10 +111,11 @@ func spell(magic uint64, shift uint, bb Bitboard) uint {
 }
 
 type magicInfo struct {
-	store []Bitboard
-	mask  Bitboard
-	magic uint64
-	shift uint
+	store []Bitboard // attack boards of size 1<<(64-shift)
+	mask  Bitboard   // square's mask.
+	magic uint64     // magic multiplier
+	shift uint       // shift bits to index store
+	pad   [2]uint64  // padding so the structure has 32 bytes.
 }
 
 func (mi *magicInfo) Attack(ref Bitboard) Bitboard {

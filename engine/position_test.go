@@ -935,3 +935,25 @@ func TestLastMove(t *testing.T) {
 		}
 	}
 }
+
+func TestHalfMoveClock(t *testing.T) {
+	data := []struct {
+		fen  string
+		move string
+		hmvc int
+	}{
+		{"8/K5p1/1P1k1p1p/5P1P/2R3P1/8/8/8 b - - 0 78", "d6d5", 1},
+		{"6k1/Qp1r1pp1/p1rP3p/P3q3/2Bnb1P1/1P3PNP/4p1K1/R1R5 b - - 15 1", "e5g3", 0},
+		{"6k1/Qp1r1pp1/p1rP3p/P3q3/2Bnb1P1/1P3PNP/4p1K1/R1R5 b - - 15 1", "d7d8", 16},
+	}
+
+	for i, d := range data {
+		pos, _ := PositionFromFEN(d.fen)
+		move, _ := pos.UCIToMove(d.move)
+		pos.DoMove(move)
+		if d.hmvc != pos.HalfmoveClock() {
+			t.Errorf("#%d got pos.HalfMoveClock() == %d, wanted %d for move %s",
+				i, pos.HalfmoveClock(), d.hmvc, move)
+		}
+	}
+}

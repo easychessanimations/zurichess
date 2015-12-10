@@ -585,22 +585,20 @@ func (pos *Position) DoMove(move Move) {
 	}
 	// Update halfmove clock.
 	pos.curr.HalfmoveClock++
-	if move.Capture() != NoPiece || pi.Figure() == Pawn {
+	if pi.Figure() == Pawn || move.Capture() != NoPiece {
 		pos.curr.HalfmoveClock = 0
+	}
+	// Set Enpassant square for capturing.
+	if pi.Figure() == Pawn && move.From().Rank()^move.To().Rank() == 2 {
+		pos.SetEnpassantSquare((move.From() + move.To()) / 2)
+	} else if pos.EnpassantSquare() != SquareA1 {
+		pos.SetEnpassantSquare(SquareA1)
 	}
 	// Move rook on castling.
 	if move.MoveType() == Castling {
 		rook, start, end := CastlingRook(move.To())
 		pos.Remove(start, rook)
 		pos.Put(end, rook)
-	}
-	// Set Enpassant square for capturing.
-	if pi.Figure() == Pawn &&
-		move.From().Bitboard()&BbPawnStartRank != 0 &&
-		move.To().Bitboard()&BbPawnDoubleRank != 0 {
-		pos.SetEnpassantSquare((move.From() + move.To()) / 2)
-	} else {
-		pos.SetEnpassantSquare(SquareA1)
 	}
 
 	// Update the pieces on the chess board.

@@ -269,10 +269,9 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.AddN(wMobility[Queen], mobility.Popcnt())
 	}
 
-	// King
-	for bb := pos.ByPiece(us, King); bb > 0; {
-		sq := bb.Pop()
-		eval.Add(wFigure[King])
+	// King, each side has one.
+	{
+		sq := pos.ByPiece(us, King).AsSquare()
 		mobility := KingMobility(sq) &^ excl
 		eval.AddN(wMobility[King], mobility.Popcnt())
 	}
@@ -307,9 +306,8 @@ func ScaleToCentiPawn(score int32) int32 {
 // phase computes the progress of the game.
 // 0 is opening, 256 is late end game.
 func phase(pos *Position) int32 {
-	total := int32(16*0 + 4*1 + 4*1 + 4*2 + 2*4)
+	total := int32(4*1 + 4*1 + 4*2 + 2*4)
 	curr := total
-	curr -= pos.ByFigure[Pawn].Popcnt() * 0
 	curr -= pos.ByFigure[Knight].Popcnt() * 1
 	curr -= pos.ByFigure[Bishop].Popcnt() * 1
 	curr -= pos.ByFigure[Rook].Popcnt() * 2
