@@ -18,6 +18,11 @@ func (e *Eval) Feed(phase int32) int32 {
 	return (e.M*(256-phase) + e.E*phase) / 256
 }
 
+func (e *Eval) Merge(o Eval) {
+	e.M += o.M
+	e.E += o.E
+}
+
 func (e *Eval) Add(s Score) {
 	e.M += s.M
 	e.E += s.E

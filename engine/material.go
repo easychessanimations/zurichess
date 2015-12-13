@@ -122,10 +122,9 @@ func hashPawnsAndShelter(pos *Position, us Color) uint64 {
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
-	eval := evaluatePawns(pos, us)
-	temp := evaluateShelter(pos, us)
-	eval.M += temp.M
-	eval.E += temp.E
+	var eval Eval
+	eval.Merge(evaluatePawns(pos, us))
+	eval.Merge(evaluateShelter(pos, us))
 	return eval
 }
 
@@ -211,10 +210,7 @@ func evaluateShelter(pos *Position, us Color) Eval {
 
 // evaluateSide evaluates position for a single side.
 func evaluateSide(pos *Position, us Color, eval *Eval) {
-	tmp := pawnsAndShelterCache.load(pos, us)
-	eval.M += tmp.M
-	eval.E += tmp.E
-
+	eval.Merge(pawnsAndShelterCache.load(pos, us))
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
 
@@ -289,7 +285,7 @@ func EvaluatePosition(pos *Position) Eval {
 // Evaluate evaluates position from White's POV.
 func Evaluate(pos *Position) int32 {
 	eval := EvaluatePosition(pos)
-	score := eval.Feed(phase(pos))
+	score := eval.Feed(Phase(pos))
 	if KnownLossScore >= score || score >= KnownWinScore {
 		panic(fmt.Sprintf("score %d should be between %d and %d",
 			score, KnownLossScore, KnownWinScore))
@@ -303,9 +299,9 @@ func ScaleToCentiPawn(score int32) int32 {
 	return (score + 64) / 128
 }
 
-// phase computes the progress of the game.
+// Phase computes the progress of the game.
 // 0 is opening, 256 is late end game.
-func phase(pos *Position) int32 {
+func Phase(pos *Position) int32 {
 	total := int32(4*1 + 4*1 + 4*2 + 2*4)
 	curr := total
 	curr -= pos.ByFigure[Knight].Popcnt() * 1

@@ -12,37 +12,32 @@ type Score struct {
 
 // Eval is a sum of scores.
 type Eval struct {
-	M, E   int32   // mid game, end game
-	Values []int32 // input values
+	M, E   int32              // mid game, end game
+	Values [len(Weights)]int8 // input values
 }
 
 func (e *Eval) Feed(phase int32) int32 {
 	return (e.M*(256-phase) + e.E*phase) / 256
 }
 
-func (e *Eval) Recompute() {
-	e.M, e.E = 0, 0
-	for i := range Weights {
-		s, n := Weights[i], e.Values[i]
-		e.M += s.M * n
-		e.E += s.E * n
+func (e *Eval) Merge(o Eval) {
+	e.M += o.M
+	e.E += o.E
+	for i := range o.Values {
+		e.Values[i] += o.Values[i]
 	}
 }
 
 func (e *Eval) Add(s Score) {
 	e.M += s.M
 	e.E += s.E
-	if e.Values != nil {
-		e.Values[s.I] += 1
-	}
+	e.Values[s.I] += 1
 }
 
 func (e *Eval) AddN(s Score, n int32) {
 	e.M += s.M * n
 	e.E += s.E * n
-	if e.Values != nil {
-		e.Values[s.I] += n
-	}
+	e.Values[s.I] += int8(n)
 }
 
 func (e *Eval) Neg() {
