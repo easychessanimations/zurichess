@@ -104,6 +104,61 @@ func (nl *NulLogger) EndSearch() {
 func (nl *NulLogger) PrintPV(stats Stats, score int32, pv []Move) {
 }
 
+// historyEntry keeps counts of how well move performed in the past.
+type historyEntry struct {
+	counter [2]int
+	move    Move
+}
+
+// historyTable is a hash table that contains history of moves.
+//
+// old moves are automatically evicted when new moves are inserted
+// so this cache is approx. LRU.
+type historyTable []historyEntry
+
+func newHistoryTable() historyTable {
+	return make([]historyEntry, 1024)
+}
+
+// historyHash hashes the move and returns an index into the history table.
+func historyHash(m Move) uint32 {
+	// This is a murmur inspired hash so upper bits are better
+	// mixed than the lower bits. The hash multiplier was chosen
+	// to minimize the number of misses.
+	h := uint32(m) * 438650727
+	return (h + (h << 17)) >> 22
+}
+
+// get returns counters for m, i.e. pair of (bad, good)
+//
+// TODO: consider returning only if the move is good or bad.
+func (ht historyTable) get(m Move) (int, int) {
+	h := historyHash(m)
+	if ht[h].move != m {
+		return 0, 0
+	}
+	return ht[h].counter[0], ht[h].counter[1]
+}
+
+// inc increments the counters for m.
+//
+// Evicts an old move if necessary.
+// Counters start from 1 so probability is correctly estimated. TODO: insert reference.
+func (ht historyTable) inc(m Move, good bool) {
+	h := historyHash(m)
+	if ht[h].move != m {
+		ht[h] = historyEntry{
+			counter: [2]int{1, 1},
+			move:    m,
+		}
+	}
+	if good {
+		ht[h].counter[1]++
+	} else {
+		ht[h].counter[0]++
+	}
+}
+
 // Engine implements the logic to search the best move for a position.
 type Engine struct {
 	Options  Options   // engine options
@@ -111,9 +166,10 @@ type Engine struct {
 	Stats    Stats     // search statistics
 	Position *Position // current Position
 
-	rootPly int     // position's ply at the start of the search
-	stack   stack   // stack of moves
-	pvTable pvTable // principal variation table
+	rootPly int          // position's ply at the start of the search
+	stack   stack        // stack of moves
+	pvTable pvTable      // principal variation table
+	history historyTable // keeps history of moves
 
 	timeControl *TimeControl
 	stopped     bool
@@ -130,6 +186,7 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 		Options: options,
 		Log:     log,
 		pvTable: newPvTable(),
+		history: newHistoryTable(),
 	}
 	eng.SetPosition(pos)
 	return eng
@@ -481,6 +538,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	bestMove, bestScore := NullMove, -InfinityScore
+	allowHistoryPrunning := false
 
 	// Futility pruning at frontier nodes.
 	// Disable when in check or when searching for a mate.
@@ -490,6 +548,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		!sideIsChecked && // disable in check
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
+		allowHistoryPrunning = true
 		static := eng.Score()
 		futilityLimit = α - static - depth*futilityMargin
 		if futilityLimit > 0 {
@@ -540,6 +599,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// Extend the search when our move gives check.
 		// However do not extend if we can just take the undefended piece.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
+		// When the move gives check, history pruning and futility pruning are also disabled.
 		givesCheck := pos.IsChecked(us.Opposite())
 		if givesCheck {
 			lmr = 0 // tactical, dangerous
@@ -549,12 +609,19 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 
-		// Prune moves that do not raise alphas.
-		if futilityLimit > 0 {
-			if givesCheck {
-				// Tactically dangerous.
-				goto SkipFutilityPruning
+		// Prune quiet leaf moves that performed bad historically.
+		historyPruning := false
+		if allowHistoryPrunning && !givesCheck && move.IsQuiet() {
+			historyPruning = true
+			if bad, good := eng.history.get(move); bad > 16*good {
+				dropped = true
+				eng.UndoMove()
+				continue
 			}
+		}
+
+		// Prune moves that do not raise alphas.
+		if futilityLimit > 0 && !givesCheck {
 			if move.MoveType() == Promotion || passed(pos, move) {
 				// Passed pawns have high chance to raise alpha.
 				// TODO: account for positional score change.
@@ -567,8 +634,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 				// Accounts for material change.
 				goto SkipFutilityPruning
 			}
-
-			// Prune futile moves.
 			dropped = true
 			eng.UndoMove()
 			continue
@@ -576,6 +641,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	SkipFutilityPruning:
 
 		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
+		if historyPruning { // Update history scores.
+			eng.history.inc(move, score > α)
+		}
 		if score >= β { // Fail high, cut node.
 			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)
