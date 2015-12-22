@@ -611,9 +611,10 @@ func (pos *Position) DoMove(move Move) {
 // UndoMove takes back the last move.
 func (pos *Position) UndoMove() {
 	move := pos.LastMove()
-	pos.SetCastlingAbility(pos.prev().CastlingAbility)
-	pos.SetEnpassantSquare(pos.prev().EnpassantSquare[1])
 	pos.SetSideToMove(pos.SideToMove.Opposite())
+	// CastlingAbility and EnpassantSquare are restored by pos.popState().
+	// pos.SetCastlingAbility(pos.prev().CastlingAbility)
+	// pos.SetEnpassantSquare(pos.prev().EnpassantSquare[1])
 
 	// Modify the chess board.
 	pi := move.Piece()
