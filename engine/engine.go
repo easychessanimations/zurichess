@@ -613,9 +613,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 		// Prune quiet leaf moves that performed bad historically.
 		historyPruning := false
-		if allowHistoryPrunning && !givesCheck && move.IsQuiet() {
+		if allowHistoryPrunning && !givesCheck {
 			historyPruning = true
-			if bad, good := eng.history.get(move); bad > 16*good {
+			if bad, good := eng.history.get(move); bad > 16*good && (move.IsQuiet() || seeSign(pos, move)) {
 				dropped = true
 				eng.UndoMove()
 				continue
