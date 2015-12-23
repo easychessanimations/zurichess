@@ -572,21 +572,22 @@ func (pos *Position) PrettyPrint() {
 // DoMove executes a legal move.
 func (pos *Position) DoMove(move Move) {
 	pos.pushState()
-	pos.curr.Move = move
+	curr := pos.curr
+	curr.Move = move
 
 	// Update castling rights.
 	pi := move.Piece()
 	if pi != NoPiece { // nullmove cannot change castling ability
-		pos.SetCastlingAbility(pos.curr.CastlingAbility &^ lostCastleRights[move.From()] &^ lostCastleRights[move.To()])
+		pos.SetCastlingAbility(curr.CastlingAbility &^ lostCastleRights[move.From()] &^ lostCastleRights[move.To()])
 	}
 	// update fullmove counter.
 	if pos.SideToMove == Black {
 		pos.fullmoveCounter++
 	}
 	// Update halfmove clock.
-	pos.curr.HalfmoveClock++
+	curr.HalfmoveClock++
 	if pi.Figure() == Pawn || move.Capture() != NoPiece {
-		pos.curr.HalfmoveClock = 0
+		curr.HalfmoveClock = 0
 	}
 	// Set Enpassant square for capturing.
 	if pi.Figure() == Pawn && move.From().Rank()^move.To().Rank() == 2 {

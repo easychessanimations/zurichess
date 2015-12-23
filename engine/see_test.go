@@ -10,13 +10,7 @@ func seeSlow(pos *Position, m Move, score int32) int32 {
 	}
 
 	// Compute the score change.
-	score += seeScore[m.Capture().Figure()]
-	if m.MoveType() == Promotion {
-		score -= seeScore[Pawn]
-		score += seeScore[m.Target().Figure()]
-	}
-
-	pos.DoMove(m)
+	score += seeScore(m)
 
 	// Find the smallest attacker.
 	var moves []Move
@@ -35,6 +29,7 @@ func seeSlow(pos *Position, m Move, score int32) int32 {
 	}
 
 	// Recursively compute the see.
+	pos.DoMove(next)
 	see := -seeSlow(pos, next, -score)
 	pos.UndoMove()
 
@@ -51,8 +46,11 @@ func TestSEE(t *testing.T) {
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(All, &moves)
 		for _, m := range moves {
+			pos.DoMove(m)
 			actual := see(pos, m)
 			expected := seeSlow(pos, m, 0)
+			pos.UndoMove()
+
 			if expected != actual {
 				t.Errorf("#%d expected %d, got %d\nfor %v on %v", i, expected, actual, m, fen)
 				bad++

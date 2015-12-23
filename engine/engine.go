@@ -344,11 +344,12 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
+		eng.DoMove(move)
 		if move.MoveType() == Normal && seeSign(eng.Position, move) {
+			eng.UndoMove()
 			continue // Discard losing captures.
 		}
 
-		eng.DoMove(move)
 		score := -eng.searchQuiescence(-β, -localα)
 		eng.UndoMove()
 
@@ -569,20 +570,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		// Reduce most quiet moves and bad captures.
-		// TODO: Do not compute see when in check.
-		lmr := int32(0)
-		if allowLateMove && move != hash && !eng.stack.IsKiller(move) {
-			if move.IsQuiet() {
-				// Reduce quiet moves more at high depths and after many quiet moves.
-				// Large numQuiet means it's likely not a CUT node.
-				// Large depth means reductions are less risky.
-				numQuiet++
-				lmr = 1 + min(depth, numQuiet)/5
-			} else if seeSign(pos, move) {
-				// Bad captures (SEE<0) can be reduced, too.
-				lmr = 1
-			}
+		critical := move == hash || eng.stack.IsKiller(move)
+		if allowLateMove && !critical && move.IsQuiet() {
+			numQuiet++ // TODO: Move from here.
 		}
 
 		newDepth := depth
@@ -600,10 +590,24 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// When the move gives check, history pruning and futility pruning are also disabled.
 		givesCheck := pos.IsChecked(us.Opposite())
 		if givesCheck {
-			lmr = 0 // tactical, dangerous
 			if pos.GetAttacker(move.To(), us.Opposite()) == NoFigure ||
 				pos.GetAttacker(move.To(), us) != NoFigure {
 				newDepth += CheckDepthExtension
+			}
+		}
+
+		// Reduce late quiet moves and bad captures.
+		// TODO: Do not compute see when in check.
+		lmr := int32(0)
+		if allowLateMove && !givesCheck && !critical {
+			if move.IsQuiet() {
+				// Reduce quiet moves more at high depths and after many quiet moves.
+				// Large numQuiet means it's likely not a CUT node.
+				// Large depth means reductions are less risky.
+				lmr = 1 + min(depth, numQuiet)/5
+			} else if seeSign(pos, move) {
+				// Bad captures (SEE<0) can be reduced, too.
+				lmr = 1
 			}
 		}
 
