@@ -77,6 +77,9 @@ in alphabetical order.
 
 * Improve futility conditions. Geneva's futility is a bit too agressive
 and causes lots of tactical mistakes.
+* Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
+* Improve pawn evaluation caching. Also cache shelter evaluation.
+* Usual code clean ups, speed ups and bug fixes.
 
 ### zurichess - [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (stable)
 
