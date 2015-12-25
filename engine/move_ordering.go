@@ -4,61 +4,36 @@
 
 package engine
 
-var (
-	// MVVLVATable stores the ordering scores.
-	//
-	// MVV/LVA stands for "Most valuable victim, Least valuable attacker".
-	// See https://chessprogramming.wikispaces.com/MVV-LVA.
-	//
-	// In zurichess the MVV/LVA formula is not used,
-	// but the values are optimized and stored in this array.
-	// Capturing the king should have a very high value
-	// to prevent searching positions with other side in check.
-	//
-	// MVVLVATable[attacker * FigureSize + victim]
-	MVVLVATable = [FigureArraySize * FigureArraySize]int{
-		250, 254, 535, 757, 919, 1283, 20000, // Promotion
-		250, 863, 1380, 1779, 2307, 2814, 20000, // Pawn
-		250, 781, 1322, 1654, 1766, 2414, 20000, // Knight
-		250, 409, 810, 1411, 2170, 3000, 20000, // Bishop
-		250, 393, 1062, 1199, 2117, 2988, 20000, // Rook
-		250, 349, 948, 1355, 1631, 2314, 20000, // Queen
-		250, 928, 1088, 1349, 1593, 2417, 20000, // King
-	}
-)
-
 const (
 	// Move generation states.
 
-	msHash = iota // return hash move
+	msHash          = iota // return hash move
+	msGenViolent           // generate violent moves
+	msReturnViolent        // return violent moves in order
+	msGenKiller            // generate killer moves
+	msReturnKiller         // return killer moves  in order
+	msGenRest              // generate remaining moves
+	msReturnRest           // return remaining moves in order
+	msDone                 // all moves returned
+)
 
-	// Generate violent and return one by one in order.
-	msGenViolent    // generate moves
-	msReturnViolent // return best moves in order
-
-	// Generate tactical&quiet, return best, sort, return one by one.
-	msGenKiller
-	msReturnKiller
-
-	msGenRest    // generate moves
-	msReturnRest // return in order
-
-	msDone // all moves returned
+var (
+	// mvvlva values based on one pawn = 10.
+	mvvlvaBonus = [...]int16{0, 10, 40, 45, 68, 145, 256}
 )
 
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
 func mvvlva(m Move) int16 {
-	a := int(m.Piece().Figure())
+	a := int(m.Target().Figure())
 	v := int(m.Capture().Figure())
-	p := int(m.Promotion().Figure())
-	return int16(MVVLVATable[a*FigureArraySize+v] + MVVLVATable[p])
+	return int16(mvvlvaBonus[v]*64 - mvvlvaBonus[a])
 }
 
 // movesStack is a stack of moves.
 type moveStack struct {
-	moves []Move
-	order []int16
+	moves []Move  // list of moves
+	order []int16 // weight of each move for comparison
 
 	kind   int     // violent or all
 	state  int     // current generation state
@@ -93,7 +68,7 @@ func (st *stack) get() *moveStack {
 // GenerateMoves generates all moves of kind.
 func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms := st.get()
-	ms.moves = ms.moves[:0]
+	ms.moves = ms.moves[:0] // clear the array, but keep the backing memory
 	ms.order = ms.order[:0]
 	ms.kind = kind
 	ms.state = msHash
@@ -110,8 +85,6 @@ func (st *stack) generateMoves(kind int) {
 	if ms.kind&kind == 0 {
 		return
 	}
-
-	// Awards bonus for hash and killer moves.
 	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
 	for _, m := range ms.moves {
 		ms.order = append(ms.order, mvvlva(m))
