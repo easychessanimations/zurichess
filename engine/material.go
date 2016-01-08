@@ -16,6 +16,15 @@ const (
 
 var (
 	// Weights stores all evaluation parameters under one array for easy handling.
+	//
+	// Zurichess' evaluation is a very simple neural network with no hidden layers,
+	// and one output node y = W_m * x * (1-p) + W_e * x * p where W_m are
+	// middle game weights, W_e are endgame weights, x is input, p is phase between
+	// middle game and end game, and y is the score.
+	// The network has |x| = len(Weights) inputs corresponding to features
+	// extracted from the position. These features are symmetrical wrt to colors.
+	// The network is trained using the Texel's Tuning Method
+	// https://chessprogramming.wikispaces.com/Texel%27s+Tuning+Method.
 	Weights = [94]Score{
 		{M: 4402, E: 2138}, {M: 6150, E: 5321}, {M: 50472, E: 31259}, {M: 52963, E: 35144}, {M: 71547, E: 66427},
 		{M: 181692, E: 110704}, {M: 2139, E: 9130}, {M: 9001, E: 1690}, {M: 1049, E: 2824}, {M: 1288, E: 1453},
