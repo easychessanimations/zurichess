@@ -59,7 +59,7 @@ func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 	// Branch more when there are more pieces. With fewer pieces
 	// there is less mobility and hash table kicks in more often.
 	branch := 2
-	for np := (pos.ByColor[White] | pos.ByColor[Black]).Popcnt(); np > 0; np /= 6 {
+	for np := (pos.ByColor[White] | pos.ByColor[Black]).Count(); np > 0; np /= 6 {
 		branch++
 	}
 

@@ -225,9 +225,9 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 
 	// Pawn
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
-	eval.AddN(wMobility[Pawn], mobility.Popcnt())
+	eval.AddN(wMobility[Pawn], mobility.Count())
 	mobility = pos.PawnThreats(us) & pos.ByColor[us.Opposite()]
-	eval.AddN(wFlags[fPawnThreat], mobility.Popcnt())
+	eval.AddN(wFlags[fPawnThreat], mobility.Count())
 
 	// Knight
 	excl := pos.ByPiece(us, Pawn) | pos.PawnThreats(them)
@@ -235,7 +235,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		sq := bb.Pop()
 		eval.Add(wFigure[Knight])
 		mobility := KnightMobility(sq) &^ excl
-		eval.AddN(wMobility[Knight], mobility.Popcnt())
+		eval.AddN(wMobility[Knight], mobility.Count())
 	}
 	// Bishop
 	numBishops := int32(0)
@@ -243,7 +243,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		sq := bb.Pop()
 		eval.Add(wFigure[Bishop])
 		mobility := BishopMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Bishop], mobility.Popcnt())
+		eval.AddN(wMobility[Bishop], mobility.Count())
 		numBishops++
 	}
 	eval.AddN(wFlags[fBishopPair], numBishops/2)
@@ -253,7 +253,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		sq := bb.Pop()
 		eval.Add(wFigure[Rook])
 		mobility := RookMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Rook], mobility.Popcnt())
+		eval.AddN(wMobility[Rook], mobility.Count())
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
@@ -271,14 +271,14 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		sq := bb.Pop()
 		eval.Add(wFigure[Queen])
 		mobility := QueenMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Queen], mobility.Popcnt())
+		eval.AddN(wMobility[Queen], mobility.Count())
 	}
 
 	// King, each side has one.
 	{
 		sq := pos.ByPiece(us, King).AsSquare()
 		mobility := KingMobility(sq) &^ excl
-		eval.AddN(wMobility[King], mobility.Popcnt())
+		eval.AddN(wMobility[King], mobility.Count())
 	}
 }
 
@@ -313,9 +313,9 @@ func ScaleToCentiPawn(score int32) int32 {
 func Phase(pos *Position) int32 {
 	total := int32(4*1 + 4*1 + 4*2 + 2*4)
 	curr := total
-	curr -= pos.ByFigure[Knight].Popcnt() * 1
-	curr -= pos.ByFigure[Bishop].Popcnt() * 1
-	curr -= pos.ByFigure[Rook].Popcnt() * 2
-	curr -= pos.ByFigure[Queen].Popcnt() * 4
+	curr -= pos.ByFigure[Knight].Count() * 1
+	curr -= pos.ByFigure[Bishop].Count() * 1
+	curr -= pos.ByFigure[Rook].Count() * 2
+	curr -= pos.ByFigure[Queen].Count() * 4
 	return (curr*256 + total/2) / total
 }

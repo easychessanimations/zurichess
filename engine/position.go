@@ -205,7 +205,7 @@ func (pos *Position) Zobrist() uint64 {
 
 // NumNonPawns returns the number of minor and major pieces.
 func (pos *Position) NumNonPawns(col Color) int {
-	return int((pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]).Popcnt())
+	return int((pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]).Count())
 }
 
 // HasNonPawns returns whether col has at least some minor or major pieces.
@@ -501,7 +501,7 @@ func (pos *Position) InsufficientMaterial() bool {
 		return true
 	}
 	// KN vs K is theoretical draw.
-	if noKings == pos.ByFigure[Knight] && pos.ByFigure[Knight].HasOne() {
+	if noKings == pos.ByFigure[Knight] && pos.ByFigure[Knight].CountMax2() == 1 {
 		return true
 	}
 	// KB* vs KB* is theoretical draw if all bishops are on the same square color.

@@ -406,16 +406,6 @@ func (bb Bitboard) Has(sq Square) bool {
 	return bb>>sq&1 != 0
 }
 
-// HasOne returns true if the bitboard has exactly one square occupied.
-func (bb Bitboard) HasOne() bool {
-	return bb != 0 && bb&(bb-1) == 0
-}
-
-// HasMoreThanOne returns true if the bitboard has more than one square occupied.
-func (bb Bitboard) HasMoreThanOne() bool {
-	return bb&(bb-1) != 0
-}
-
 // AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
@@ -429,8 +419,19 @@ func (bb Bitboard) LSB() Bitboard {
 	return bb & (-bb)
 }
 
-// Popcnt counts number of squares set in bb.
-func (bb Bitboard) Popcnt() int32 {
+// CountMax2 is equivalent to, but faster than, min(bb.Count(), 2).
+func (bb Bitboard) CountMax2() int32 {
+	if bb == 0 {
+		return 0
+	}
+	if bb&(bb-1) == 0 {
+		return 1
+	}
+	return 2
+}
+
+// Count counts number of squares set in bb.
+func (bb Bitboard) Count() int32 {
 	// same as popcnt.
 	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
 	bb = bb - ((bb >> 1) & k1)
