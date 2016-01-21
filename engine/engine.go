@@ -14,7 +14,8 @@
 //   * Check extension - https://chessprogramming.wikispaces.com/Check+Extensions
 //   * Fail soft - https://chessprogramming.wikispaces.com/Fail-Soft
 //   * Futility Pruning - https://chessprogramming.wikispaces.com/Futility+pruning
-//   * Killer move heuristic - /https://chessprogramming.wikispaces.com/Killer+Heuristic
+//   * History leaf pruning - https://chessprogramming.wikispaces.com/History+Leaf+Pruning
+//   * Killer move heuristic - https://chessprogramming.wikispaces.com/Killer+Heuristic
 //   * Late move redution (LMR) - https://chessprogramming.wikispaces.com/Late+Move+Reductions
 //   * Mate distance pruning - https://chessprogramming.wikispaces.com/Mate+Distance+Pruning
 //   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
@@ -332,24 +333,36 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	// TODO: Some suggest to not stand pat when in check.
 	// However, I did several tests and handling checks in quiescence
 	// doesn't help at all.
-	score := eng.Score()
-	if score >= β {
-		return score
+	static := eng.Score()
+	if static >= β {
+		return static
 	}
 	localα := α
-	if score > localα {
-		localα = score
+	if static > localα {
+		localα = static
 	}
+
+	pos := eng.Position
+	us := pos.SideToMove
+	inCheck := pos.IsChecked(us)
 
 	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		eng.DoMove(move)
-		if move.MoveType() == Normal && seeSign(eng.Position, move) {
-			eng.UndoMove()
-			continue // Discard losing captures.
+		// Prune futile moves that would anyway result in a stand-pat
+		// at that next depth.
+		if !inCheck && isFutile(pos, static, localα, futilityMargin, move) {
+			// TODO: should it update localα?
+			continue
 		}
 
+		// Discard illegal or losing captures.
+		eng.DoMove(move)
+		if eng.Position.IsChecked(us) ||
+			!inCheck && move.MoveType() == Normal && seeSign(pos, move) {
+			eng.UndoMove()
+			continue
+		}
 		score := -eng.searchQuiescence(-β, -localα)
 		eng.UndoMove()
 
@@ -539,22 +552,18 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	bestMove, bestScore := NullMove, -InfinityScore
-	allowHistoryPrunning := false
 
-	// Futility pruning at frontier nodes.
-	// Disable when in check or when searching for a mate.
+	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
-	futilityLimit := int32(0)
+	// Based on History Leaf Pruning https://chessprogramming.wikispaces.com/History+Leaf+Pruning
+	static := int32(0)
+	allowLeafsPruning := false
 	if depth <= FutilityDepthLimit && // enable when close to the frontier
 		!sideIsChecked && // disable in check
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
-		allowHistoryPrunning = true
-		static := eng.Score()
-		futilityLimit = α - static - depth*futilityMargin
-		if futilityLimit > 0 {
-			bestScore = static
-		}
+		allowLeafsPruning = true
+		static = eng.Score()
 	}
 
 	// Principal variation search: search with a null window if there is already a good move.
@@ -611,39 +620,25 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 
-		// Prune quiet leaf moves that performed bad historically.
-		historyPruning := false
-		if allowHistoryPrunning && !givesCheck {
-			historyPruning = true
+		// Prune moves close to frontier.
+		if allowLeafsPruning && !givesCheck {
+			// Prune quiet moves that performed bad historically.
 			if bad, good := eng.history.get(move); bad > 16*good && (move.IsQuiet() || seeSign(pos, move)) {
+				dropped = true
+				eng.UndoMove()
+				continue
+			}
+			// Prune moves that do not raise alphas.
+			if isFutile(pos, static, localα, depth*futilityMargin, move) {
+				bestScore = max(bestScore, static)
 				dropped = true
 				eng.UndoMove()
 				continue
 			}
 		}
 
-		// Prune moves that do not raise alphas.
-		if futilityLimit > 0 && !givesCheck {
-			if move.MoveType() == Promotion || passed(pos, move) {
-				// Passed pawns have high chance to raise alpha.
-				// TODO: account for positional score change.
-				goto SkipFutilityPruning
-			}
-			fig := move.Capture().Figure()
-			capture := max(wFigure[fig].M, wFigure[fig].E)
-			capture = ScaleToCentiPawn(capture)
-			if capture >= futilityLimit {
-				// Accounts for material change.
-				goto SkipFutilityPruning
-			}
-			dropped = true
-			eng.UndoMove()
-			continue
-		}
-	SkipFutilityPruning:
-
 		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
-		if historyPruning { // Update history scores.
+		if allowLeafsPruning && !givesCheck { // Update history scores.
 			eng.history.inc(move, score > α)
 		}
 		if score >= β { // Fail high, cut node.
@@ -654,9 +649,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if score > bestScore {
 			nullWindow = true
 			bestMove, bestScore = move, score
-			if score > localα {
-				localα = score
-			}
+			localα = max(localα, score)
 		}
 	}
 
@@ -724,8 +717,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 
 	if depth < 4 {
 		// Disable aspiration window for very low search depths.
-		// This wastes lots of time especially for depth == 0 which is
-		// used for tunning.
+		// This wastes a lot of time when for tunning.
 		α = -InfinityScore
 		β = +InfinityScore
 	}
@@ -788,4 +780,18 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 
 	eng.Log.EndSearch()
 	return moves
+}
+
+// isFutile return true if m cannot raise current static
+// evaluation above α. This is just an heuristic and mistakes
+// can happen.
+func isFutile(pos *Position, static, α, margin int32, m Move) bool {
+	if m.MoveType() == Promotion {
+		// Promotion and passed pawns can increase static evaluation
+		// by more than futilityMargin.
+		return false
+	}
+	f := m.Capture().Figure()
+	δ := ScaleToCentiPawn(max(wFigure[f].M, wFigure[f].E))
+	return static+δ+margin < α && !passed(pos, m)
 }
