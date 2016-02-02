@@ -8,7 +8,7 @@ import (
 const (
 	defaultMovesToGo = 30 // default number of more moves expected to play
 	infinite         = 1000000000 * time.Second
-	overhead         = 15 * time.Millisecond
+	overhead         = 20 * time.Millisecond
 )
 
 // atomicFlag is an atomic bool that can only be set.
@@ -101,11 +101,11 @@ func (tc *TimeControl) thinkingTime() time.Duration {
 	tmp := time.Duration(tc.MovesToGo)
 	tt := (tc.time + (tmp-1)*tc.inc) / tmp
 
-	if tc.predicted {
-		tt = tt * 4 / 3
-	}
 	if tt < 0 {
 		return 0
+	}
+	if tc.predicted {
+		tt = tt * 4 / 3
 	}
 	if tt < tc.limit {
 		return tt
@@ -123,8 +123,10 @@ func (tc *TimeControl) Start(ponder bool) {
 	}
 
 	// Calcuates the last moment when the search should be stopped.
-	if tc.time > overhead {
+	if tc.time > 2*overhead {
 		tc.limit = tc.time - overhead
+	} else if tc.time > overhead {
+		tc.limit = overhead
 	} else {
 		tc.limit = tc.time
 	}
@@ -140,9 +142,12 @@ func (tc *TimeControl) Start(ponder bool) {
 	tc.stopped = atomicFlag{flag: false}
 	tc.ponderhit = atomicFlag{flag: !ponder}
 
-	// searchDeadline is the last moment when search can start a new iteration.
-	now := time.Now()
 	tc.searchTime = tc.thinkingTime()
+	tc.updateDeadlines() // deadlines are ignored while pondering (ponderHit == false)
+}
+
+func (tc *TimeControl) updateDeadlines() {
+	now := time.Now()
 	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
 
 	// stopDeadline is when to abort the search in case of an explosion.
@@ -155,6 +160,7 @@ func (tc *TimeControl) Start(ponder bool) {
 }
 
 // NextDepth returns true if search can start at depth.
+// In any case Stopped() will return false.
 func (tc *TimeControl) NextDepth(depth int32) bool {
 	tc.currDepth = depth
 	return tc.currDepth <= tc.Depth && !tc.hasStopped(tc.searchDeadline)
@@ -162,9 +168,7 @@ func (tc *TimeControl) NextDepth(depth int32) bool {
 
 // PonderHit switch to our time control.
 func (tc *TimeControl) PonderHit() {
-	now := time.Now()
-	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
-	tc.stopDeadline = now.Add(tc.searchTime * 4)
+	tc.updateDeadlines()
 	tc.ponderhit.set()
 }
 
@@ -175,22 +179,27 @@ func (tc *TimeControl) Stop() {
 
 func (tc *TimeControl) hasStopped(deadline time.Time) bool {
 	if tc.currDepth <= 2 {
+		// Run for at few depths at least otherwise mates can be missed.
 		return false
 	}
 	if tc.stopped.get() {
+		// Use a cached value if available.
 		return true
 	}
 	if tc.ponderhit.get() && time.Now().After(deadline) {
+		// Stop search if no longer pondering and deadline as passed.
 		return true
 	}
 	return false
 }
 
-// Stopped returns true if the search has stopped.
+// Stopped returns true if the search has stopped because
+// Stop() was called or the time has ran out.
 func (tc *TimeControl) Stopped() bool {
 	if !tc.hasStopped(tc.stopDeadline) {
 		return false
 	}
+	// Time has ran out so flip the stopped flag.
 	tc.stopped.set()
 	return true
 }
