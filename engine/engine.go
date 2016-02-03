@@ -421,15 +421,14 @@ func (eng *Engine) ply() int32 {
 
 // passed returns true if a passed pawn appears or disappears.
 //
-// Expects the move to be already executed.
-// The heuristic is incomplete. In particular if there is a friendly
-// pawn on the adjacent files the pawn is not considered passed.
+// TODO: The heuristic is incomplete and doesn't handled discovered passed pawns.
 func passed(pos *Position, m Move) bool {
 	if m.Piece().Figure() == Pawn {
 		// Checks no pawns are in front on its and adjacent files.
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
-		if ForwardSpan(m.SideToMove(), bb)&pos.ByFigure[Pawn] == 0 {
+		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
+		if ForwardSpan(m.SideToMove(), bb)&pawns == 0 {
 			return true
 		}
 	}
@@ -437,7 +436,8 @@ func passed(pos *Position, m Move) bool {
 		// Checks no pawns are in front on its and adjacent files.
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
-		if BackwardSpan(m.SideToMove(), bb)&pos.ByFigure[Pawn] == 0 {
+		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
+		if BackwardSpan(m.SideToMove(), bb)&pawns == 0 {
 			return true
 		}
 	}
