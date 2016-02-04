@@ -33,3 +33,19 @@ func popcnt(x uint64) int {
 	x = (x * kf) >> 56
 	return int(x)
 }
+
+// max returns maximum of a and b.
+func max(a, b int32) int32 {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+// min returns minimum of a and b.
+func min(a, b int32) int32 {
+	if a <= b {
+		return a
+	}
+	return b
+}

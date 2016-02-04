@@ -672,36 +672,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	return bestScore
 }
 
-// inf caps a at -InfinityScore.
-func inf(a int32) int32 {
-	if a <= -InfinityScore {
-		return -InfinityScore
-	}
-	return a
-}
-
-// sup caps b at +InfinityScore.
-func sup(b int32) int32 {
-	if b >= InfinityScore {
-		return InfinityScore
-	}
-	return b
-}
-
-func max(a, b int32) int32 {
-	if a >= b {
-		return a
-	}
-	return b
-}
-
-func min(a, b int32) int32 {
-	if a <= b {
-		return a
-	}
-	return b
-}
-
 // search starts the search up to depth depth.
 // The returned score is from current side to move POV.
 // estimated is the score from previous depths.
@@ -712,7 +682,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	// and Stockfish and it is explained here:
 	// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=499768&t=46624
 	γ, δ := estimated, int32(initialAspirationWindow)
-	α, β := inf(γ-δ), sup(γ+δ)
+	α, β := max(γ-δ, -InfinityScore), min(γ+δ, InfinityScore)
 	score := estimated
 
 	if depth < 4 {
@@ -725,12 +695,11 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	for !eng.stopped {
 		// At root a non-null move is required, cannot prune based on null-move.
 		score = eng.searchTree(α, β, depth)
-
 		if score <= α {
-			α = inf(α - δ)
+			α = max(α-δ, -InfinityScore)
 			δ += δ / 2
 		} else if score >= β {
-			β = sup(β + δ)
+			β = min(β+δ, InfinityScore)
 			δ += δ / 2
 		} else {
 			return score
