@@ -1,10 +1,10 @@
 // Methods here are exported because they are used also by the notation package.
-// TODO: Find a way to hide these.
 
 package engine
 
 import (
 	"fmt"
+	"strconv"
 )
 
 type castleInfo struct {
@@ -14,9 +14,9 @@ type castleInfo struct {
 }
 
 var (
-	itoa               = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8"} // shortcut for Itoa
-	colorToSymbol      = []string{"", "b", "w"}
-	pieceToSymbol      = []string{".", "?", "p", "P", "n", "N", "b", "B", "r", "R", "q", "Q", "k", "K"}
+	itoa               = "0123456789" // shortcut for Itoa
+	colorToSymbol      = "?bw"
+	pieceToSymbol      = ".?pPnNbBrRqQkK"
 	symbolToCastleInfo = map[rune]castleInfo{
 		'K': castleInfo{
 			Castle: WhiteOO,
@@ -59,6 +59,69 @@ var (
 		'K': WhiteKing,
 	}
 )
+
+// PositionFromFEN parses fen and returns the position.
+//
+// fen must contain the position using Forsyth–Edwards Notation
+// http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+//
+// Rejects FEN with only four fields,
+// i.e. no full move counter or have move number.
+func PositionFromFEN(fen string) (*Position, error) {
+	// Split fen into 6 fields.
+	// Same as string.Fields() but creates much less garbage.
+	// The optimization is important when a huge number of positions
+	// need to be evaluated.
+	f, p := [6]string{}, 0
+	for i := 0; i < len(fen); {
+		// Find the start and end of the token.
+		for ; i < len(fen) && fen[i] == ' '; i++ {
+		}
+		start := i
+		for ; i < len(fen) && fen[i] != ' '; i++ {
+		}
+		limit := i
+
+		if start == limit {
+			continue
+		}
+		if p >= len(f) {
+			return nil, fmt.Errorf("fen has too many fields")
+		}
+		f[p] = fen[start:limit]
+		p++
+	}
+	if p < len(f) {
+		return nil, fmt.Errorf("fen has too few fields")
+	}
+
+	// Parse each field.
+	pos := NewPosition()
+	if err := ParsePiecePlacement(f[0], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseSideToMove(f[1], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseCastlingAbility(f[2], pos); err != nil {
+		return nil, err
+	}
+	if err := ParseEnpassantSquare(f[3], pos); err != nil {
+		return nil, err
+	}
+	var err error
+	if pos.curr.HalfmoveClock, err = strconv.Atoi(f[4]); err != nil {
+		return nil, err
+	}
+	if pos.fullmoveCounter, err = strconv.Atoi(f[5]); err != nil {
+		return nil, err
+	}
+	pos.Ply = (pos.fullmoveCounter - 1) * 2
+	if pos.SideToMove == Black {
+		pos.Ply++
+	}
+	return pos, nil
+}
 
 // ParsePiecePlacement parse pieces from str (FEN like) into pos.
 func ParsePiecePlacement(str string, pos *Position) error {
@@ -111,15 +174,15 @@ func FormatPiecePlacement(pos *Position) string {
 				space++
 			} else {
 				if space != 0 {
-					s += itoa[space]
+					s += itoa[space:][:1]
 					space = 0
 				}
-				s += pieceToSymbol[pi]
+				s += pieceToSymbol[pi:][:1]
 			}
 		}
 
 		if space != 0 {
-			s += itoa[space]
+			s += itoa[space:][:1]
 		}
 		if r != 0 {
 			s += "/"
@@ -161,7 +224,7 @@ func ParseSideToMove(str string, pos *Position) error {
 
 // FormatSideToMove returns "w" for white to play or "b" for black to play.
 func FormatSideToMove(pos *Position) string {
-	return colorToSymbol[pos.SideToMove]
+	return colorToSymbol[pos.SideToMove:][:1]
 }
 
 // ParseCastlingAbility sets castling ability for pos from str.

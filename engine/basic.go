@@ -584,44 +584,28 @@ func (m Move) String() string {
 type Castle uint8
 
 const (
-	// WhiteOO indicates that White can castle on King side.
-	WhiteOO Castle = 1 << iota
-	// WhiteOOO indicates that White can castle on Queen side.
-	WhiteOOO
-	// BlackOO indicates that Black can castle on King side.
-	BlackOO
-	// BlackOOO indicates that Black can castle on Queen side.
-	BlackOOO
+	WhiteOO  Castle = 1 << iota // WhiteOO indicates that White can castle on King side.
+	WhiteOOO                    // WhiteOOO indicates that White can castle on Queen side.
+	BlackOO                     // BlackOO indicates that Black can castle on King side.
+	BlackOOO                    // BlackOOO indicates that Black can castle on Queen side.
 
-	// NoCastle indicates no castling rights.
-	NoCastle Castle = 0
-	// AnyCastle indicates all castling rights.
-	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
+	NoCastle  Castle = 0                                       // NoCastle indicates no castling rights.
+	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO // AnyCastle indicates all castling rights.
 
 	CastleArraySize = int(AnyCastle + 1)
 	CastleMinValue  = NoCastle
 	CastleMaxValue  = AnyCastle
 )
 
-var castleToSymbol = map[Castle]byte{
-	WhiteOO:  'K',
-	WhiteOOO: 'Q',
-	BlackOO:  'k',
-	BlackOOO: 'q',
+var castleToString = [...]string{
+	"-", "K", "Q", "KQ", "k", "Kk", "Qk", "KQk", "q", "Kq", "Qq", "KQq", "kq", "Kkq", "Qkq", "KQkq",
 }
 
 func (c Castle) String() string {
-	if c == 0 {
-		return "-"
+	if c < NoCastle || c > AnyCastle {
+		return fmt.Sprintf("Castle(%d)", c)
 	}
-
-	var r []byte
-	for c > 0 {
-		k := c & (-c)
-		r = append(r, castleToSymbol[k])
-		c -= k
-	}
-	return string(r)
+	return castleToString[c]
 }
 
 // CastlingRook returns the rook moved during castling

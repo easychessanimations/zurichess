@@ -64,69 +64,6 @@ func NewPosition() *Position {
 	return pos
 }
 
-// PositionFromFEN parses fen and returns the position.
-//
-// fen must contain the position using Forsyth–Edwards Notation
-// http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
-//
-// Rejects FEN with only four fields,
-// i.e. no full move counter or have move number.
-func PositionFromFEN(fen string) (*Position, error) {
-	// Split fen into 6 fields.
-	// Same as string.Fields() but creates much less garbage.
-	// The optimization is important when a huge number of positions
-	// need to be evaluated.
-	f, p := [6]string{}, 0
-	for i := 0; i < len(fen); {
-		// Find the start and end of the token.
-		for ; i < len(fen) && fen[i] == ' '; i++ {
-		}
-		start := i
-		for ; i < len(fen) && fen[i] != ' '; i++ {
-		}
-		limit := i
-
-		if start == limit {
-			continue
-		}
-		if p >= len(f) {
-			return nil, fmt.Errorf("fen has too many fields")
-		}
-		f[p] = fen[start:limit]
-		p++
-	}
-	if p < len(f) {
-		return nil, fmt.Errorf("fen has too few fields")
-	}
-
-	// Parse each field.
-	pos := NewPosition()
-	if err := ParsePiecePlacement(f[0], pos); err != nil {
-		return nil, err
-	}
-	if err := ParseSideToMove(f[1], pos); err != nil {
-		return nil, err
-	}
-	if err := ParseCastlingAbility(f[2], pos); err != nil {
-		return nil, err
-	}
-	if err := ParseEnpassantSquare(f[3], pos); err != nil {
-		return nil, err
-	}
-	var err error
-	if pos.curr.HalfmoveClock, err = strconv.Atoi(f[4]); err != nil {
-		return nil, err
-	}
-	if pos.fullmoveCounter, err = strconv.Atoi(f[5]); err != nil {
-		return nil, err
-	}
-	pos.Ply = (pos.fullmoveCounter - 1) * 2
-	if pos.SideToMove == Black {
-		pos.Ply++
-	}
-	return pos, nil
-}
-
 // String returns position in FEN format.
 // For table format use PrettyPrint.
 func (pos *Position) String() string {
@@ -217,33 +154,21 @@ func (pos *Position) HasNonPawns(col Color) bool {
 // It returns true iff m can be executed even if own king is in check
 // after the move. NullMove is not a valid move.
 func (pos *Position) IsPseudoLegal(m Move) bool {
-	if m == NullMove {
-		return false
-	}
-	if m.SideToMove() != pos.SideToMove {
-		return false
-	}
-	if pos.Get(m.From()) != m.Piece() {
-		return false
-	}
-	if pos.Get(m.CaptureSquare()) != m.Capture() {
-		return false
-	}
-	if m.Piece().Color() == m.Capture().Color() {
+	if m == NullMove ||
+		m.SideToMove() != pos.SideToMove ||
+		pos.Get(m.From()) != m.Piece() ||
+		pos.Get(m.CaptureSquare()) != m.Capture() ||
+		m.Piece().Color() == m.Capture().Color() {
 		return false
 	}
 
 	if m.Piece().Figure() == Pawn {
 		// Pawn move is tested above. Promotion is always correct.
-		if m.MoveType() == Enpassant {
-			if !pos.IsEnpassantSquare(m.To()) {
-				return false
-			}
+		if m.MoveType() == Enpassant && !pos.IsEnpassantSquare(m.To()) {
+			return false
 		}
-		if BbPawnStartRank.Has(m.From()) && BbPawnDoubleRank.Has(m.To()) {
-			if !pos.IsEmpty((m.From() + m.To()) / 2) {
-				return false
-			}
+		if BbPawnStartRank.Has(m.From()) && BbPawnDoubleRank.Has(m.To()) && !pos.IsEmpty((m.From()+m.To())/2) {
+			return false
 		}
 		return true
 	}
@@ -286,19 +211,24 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 		}
 		if m.SideToMove() == White && m.To() == SquareC1 {
 			if pos.CastlingAbility()&WhiteOOO == 0 ||
-				!pos.IsEmpty(SquareB1) || !pos.IsEmpty(SquareC1) || !pos.IsEmpty(SquareD1) {
+				!pos.IsEmpty(SquareB1) ||
+				!pos.IsEmpty(SquareC1) ||
+				!pos.IsEmpty(SquareD1) {
 				return false
 			}
 		}
 		if m.SideToMove() == Black && m.To() == SquareG8 {
 			if pos.CastlingAbility()&BlackOO == 0 ||
-				!pos.IsEmpty(SquareF8) || !pos.IsEmpty(SquareG8) {
+				!pos.IsEmpty(SquareF8) ||
+				!pos.IsEmpty(SquareG8) {
 				return false
 			}
 		}
 		if m.SideToMove() == Black && m.To() == SquareC8 {
 			if pos.CastlingAbility()&BlackOOO == 0 ||
-				!pos.IsEmpty(SquareB8) || !pos.IsEmpty(SquareC8) || !pos.IsEmpty(SquareD8) {
+				!pos.IsEmpty(SquareB8) ||
+				!pos.IsEmpty(SquareC8) ||
+				!pos.IsEmpty(SquareD8) {
 				return false
 			}
 		}
@@ -506,10 +436,8 @@ func (pos *Position) InsufficientMaterial() bool {
 	}
 	// KB* vs KB* is theoretical draw if all bishops are on the same square color.
 	if bishops := pos.ByFigure[Bishop]; noKings == bishops {
-		if bishops&BbWhiteSquares == bishops {
-			return true
-		}
-		if bishops&BbBlackSquares == bishops {
+		if bishops&BbWhiteSquares == bishops ||
+			bishops&BbBlackSquares == bishops {
 			return true
 		}
 	}
