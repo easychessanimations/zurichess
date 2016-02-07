@@ -129,7 +129,7 @@ func (pos *Position) SANToMove(s string) (Move, error) {
 		if err != nil {
 			return Move(0), err
 		}
-		if pos.IsEnpassantSquare(to) {
+		if target.Figure() == Pawn && pos.IsEnpassantSquare(to) {
 			moveType = Enpassant
 			capture = ColorFigure(pos.SideToMove.Opposite(), Pawn)
 		} else {
