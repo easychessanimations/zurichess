@@ -48,48 +48,56 @@ var (
 	}
 
 	// Named chunks of Weights
-	wFigure     [FigureArraySize]Score
-	wMobility   [FigureArraySize]Score
-	wPawn       [48]Score
-	wPassedPawn [8]Score
-	wKingRank   [8]Score
-	wKingFile   [8]Score
-	wFlags      [8]Score // see flags defined below
+	wFigure             [FigureArraySize]Score
+	wMobility           [FigureArraySize]Score
+	wPawn               [48]Score
+	wPassedPawn         [8]Score
+	wKingRank           [8]Score
+	wKingFile           [8]Score
+	wConnectedPawn      Score
+	wDoublePawn         Score
+	wIsolatedPawn       Score
+	wPawnThreat         Score
+	wKingShelter        Score
+	wBishopPair         Score
+	wRookOnOpenFile     Score
+	wRookOnHalfOpenFile Score
 
 	// Evaluation caches.
 	pawnsAndShelterCache *cache
 )
 
-const (
-	fConnectedPawn = iota
-	fDoublePawn
-	fIsolatedPawn
-	fPawnThreat
-	fKingShelter
-	fBishopPair
-	fRookOnOpenFile
-	fRookOnHalfOpenFile
-)
+const ()
 
 func init() {
 	// Initialize caches.
 	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
-
 	initWeights()
 
-	chunk := func(w []Score, out []Score) []Score {
+	slice := func(w []Score, out []Score) []Score {
 		copy(out, w)
 		return w[len(out):]
 	}
+	entry := func(w []Score, out *Score) []Score {
+		*out = w[0]
+		return w[1:]
+	}
 
 	w := Weights[:]
-	w = chunk(w, wFigure[:])
-	w = chunk(w, wMobility[:])
-	w = chunk(w, wPawn[:])
-	w = chunk(w, wPassedPawn[:])
-	w = chunk(w, wKingRank[:])
-	w = chunk(w, wKingFile[:])
-	w = chunk(w, wFlags[:])
+	w = slice(w, wFigure[:])
+	w = slice(w, wMobility[:])
+	w = slice(w, wPawn[:])
+	w = slice(w, wPassedPawn[:])
+	w = slice(w, wKingRank[:])
+	w = slice(w, wKingFile[:])
+	w = entry(w, &wConnectedPawn)
+	w = entry(w, &wDoublePawn)
+	w = entry(w, &wIsolatedPawn)
+	w = entry(w, &wPawnThreat)
+	w = entry(w, &wKingShelter)
+	w = entry(w, &wBishopPair)
+	w = entry(w, &wRookOnOpenFile)
+	w = entry(w, &wRookOnHalfOpenFile)
 
 	if len(w) != 0 {
 		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
@@ -157,13 +165,13 @@ func evaluatePawns(pos *Position, us Color) Eval {
 			eval.Add(wPassedPawn[rank])
 		}
 		if connected.Has(sq) {
-			eval.Add(wFlags[fConnectedPawn])
+			eval.Add(wConnectedPawn)
 		}
 		if double.Has(sq) {
-			eval.Add(wFlags[fDoublePawn])
+			eval.Add(wDoublePawn)
 		}
 		if isolated.Has(sq) {
-			eval.Add(wFlags[fIsolatedPawn])
+			eval.Add(wIsolatedPawn)
 		}
 	}
 
@@ -183,13 +191,13 @@ func evaluateShelter(pos *Position, us Color) Eval {
 		king = ForwardSpan(us, king)
 		file := sq.File()
 		if file > 0 && West(king)&pawns == 0 {
-			eval.Add(wFlags[fKingShelter])
+			eval.Add(wKingShelter)
 		}
 		if king&pawns == 0 {
-			eval.AddN(wFlags[fKingShelter], 2)
+			eval.AddN(wKingShelter, 2)
 		}
 		if file < 7 && East(king)&pawns == 0 {
-			eval.Add(wFlags[fKingShelter])
+			eval.Add(wKingShelter)
 		}
 	}
 	return eval
@@ -205,7 +213,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
 	eval.AddN(wMobility[Pawn], mobility.Count())
 	mobility = pos.PawnThreats(us) & pos.ByColor[us.Opposite()]
-	eval.AddN(wFlags[fPawnThreat], mobility.Count())
+	eval.AddN(wPawnThreat, mobility.Count())
 
 	// Knight
 	excl := pos.ByPiece(us, Pawn) | pos.PawnThreats(them)
@@ -224,7 +232,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.AddN(wMobility[Bishop], mobility.Count())
 		numBishops++
 	}
-	eval.AddN(wFlags[fBishopPair], numBishops/2)
+	eval.AddN(wBishopPair, numBishops/2)
 
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
@@ -238,9 +246,9 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		f := FileBb(sq.File())
 		if pos.ByPiece(us, Pawn)&f == 0 {
 			if pos.ByPiece(them, Pawn)&f == 0 {
-				eval.Add(wFlags[fRookOnOpenFile])
+				eval.Add(wRookOnOpenFile)
 			} else {
-				eval.Add(wFlags[fRookOnHalfOpenFile])
+				eval.Add(wRookOnHalfOpenFile)
 			}
 		}
 	}
