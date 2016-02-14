@@ -580,7 +580,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		critical := move == hash || eng.stack.IsKiller(move)
-		if allowLateMove && !critical && move.IsQuiet() {
+		if move.IsQuiet() {
 			numQuiet++ // TODO: Move from here.
 		}
 
