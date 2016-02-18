@@ -209,15 +209,6 @@ func (st *stack) PopMove() Move {
 	}
 }
 
-// HasKiller returns true if there is a killer at this ply.
-func (st *stack) HasKiller() bool {
-	if st.position.Ply < len(st.moves) {
-		ms := &st.moves[st.position.Ply]
-		return ms.killer[0] != NullMove
-	}
-	return false
-}
-
 // IsKiller returns true if m is a killer move for currenty ply.
 func (st *stack) IsKiller(m Move) bool {
 	ms := &st.moves[st.position.Ply]
