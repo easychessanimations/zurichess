@@ -497,7 +497,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	entry := eng.retrieveHash()
 	hash := entry.move
 	if entry.kind != noEntry && depth <= int32(entry.depth) {
-		if ply > 0 && entry.kind == exact {
+		if entry.kind == exact {
 			// Simply return if the score is exact.
 			// Update principal variation table if possible.
 			if α < entry.score && entry.score < β {
