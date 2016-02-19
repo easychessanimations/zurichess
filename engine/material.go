@@ -25,26 +25,20 @@ var (
 	// extracted from the position. These features are symmetrical wrt to colors.
 	// The network is trained using the Texel's Tuning Method
 	// https://chessprogramming.wikispaces.com/Texel%27s+Tuning+Method.
-	Weights = [94]Score{
-		{M: 1034, E: 5770}, {M: 5363, E: 9844}, {M: 39652, E: 54153}, {M: 42277, E: 58849}, {M: 57185, E: 103947},
-		{M: 140637, E: 189061}, {M: 4799, E: 7873}, {M: 9625, E: 9558}, {M: 950, E: 2925}, {M: 1112, E: 1908},
-		{M: 806, E: 1167}, {M: 732, E: 824}, {M: 168, E: 1149}, {M: -879, E: -359}, {M: 3495, E: 7396},
-		{M: 2193, E: 7557}, {M: 1909, E: 7559}, {M: 3903, E: 3354}, {M: 3372, E: 6143}, {M: 7773, E: 5680},
-		{M: 6441, E: 4512}, {M: 2974, E: 2896}, {M: 3912, E: 6372}, {M: 2689, E: 6273}, {M: 3266, E: 4799},
-		{M: 3581, E: 4578}, {M: 4765, E: 6213}, {M: 5273, E: 5606}, {M: 5775, E: 4043}, {M: 3817, E: 4274},
-		{M: 3708, E: 8782}, {M: 2391, E: 7627}, {M: 5072, E: 4626}, {M: 6109, E: 3746}, {M: 5668, E: 5198},
-		{M: 3913, E: 5131}, {M: 2830, E: 5977}, {M: 2266, E: 5967}, {M: 3516, E: 10438}, {M: 3637, E: 8738},
-		{M: 4903, E: 5959}, {M: 5655, E: 3593}, {M: 5049, E: 5557}, {M: 5400, E: 4573}, {M: 3630, E: 7749},
-		{M: 2604, E: 7455}, {M: 5493, E: 12869}, {M: 5021, E: 10574}, {M: 8042, E: 6544}, {M: 10390, E: -1256},
-		{M: 11098, E: -2344}, {M: 12808, E: 4315}, {M: 8494, E: 9675}, {M: 7990, E: 9444}, {M: 13836, E: 17481},
-		{M: 12537, E: 16982}, {M: 11116, E: 10810}, {M: 15238, E: 3620}, {M: 10331, E: 2338}, {M: 6943, E: 8458},
-		{M: -835, E: 14771}, {M: -1276, E: 18329}, {M: 7371, E: 5198}, {M: 256, E: 1926}, {M: -53, E: 2965},
-		{M: -254, E: 6546}, {M: 2463, E: 10465}, {M: 5507, E: 19296}, {M: 11056, E: 20099}, {M: 8034, E: 5202},
-		{M: 4857, E: -3126}, {M: 3065, E: 3432}, {M: -137, E: 6127}, {M: -2620, E: 8577}, {M: -9391, E: 12415},
-		{M: -3313, E: 12592}, {M: 7738, E: 8987}, {M: 18783, E: -215}, {M: -526, E: 755}, {M: 6310, E: 5426},
-		{M: 5263, E: 7710}, {M: -2482, E: 10646}, {M: 2399, E: 8982}, {M: -607, E: 9555}, {M: 7854, E: 5619},
-		{M: 5386, E: 402}, {M: 1228, E: 866}, {M: -991, E: 178}, {M: -1070, E: -1129}, {M: 2183, E: 362},
-		{M: -2259, E: -681}, {M: 3854, E: 9184}, {M: 4472, E: 890}, {M: 1300, E: 1524},
+	Weights = [98]Score{
+		{M: -135, E: 17}, {M: 10544, E: 11687}, {M: 47875, E: 34564}, {M: 51128, E: 37621}, {M: 70354, E: 70354}, {M: 171465, E: 117599}, {M: 48, E: -327}, {M: 20, E: 17},
+		{M: 888, E: 3220}, {M: 1241, E: 1456}, {M: 802, E: 1073}, {M: 741, E: 664}, {M: 190, E: 913}, {M: -375, E: -867}, {M: -558, E: 1357}, {M: -1759, E: 1096},
+		{M: -2155, E: 338}, {M: 95, E: -3144}, {M: -1265, E: -616}, {M: 3341, E: -592}, {M: 1872, E: -1220}, {M: -1682, E: -1957}, {M: -391, E: 1293}, {M: -1561, E: 0},
+		{M: -1082, E: -656}, {M: -907, E: -1525}, {M: 531, E: 189}, {M: 146, E: 213}, {M: 1551, E: -1304}, {M: -1058, E: -581}, {M: -397, E: 2308}, {M: -1567, E: 1148},
+		{M: 423, E: -812}, {M: 1750, E: -1391}, {M: 1314, E: -239}, {M: -318, E: -581}, {M: -1474, E: 667}, {M: -2105, E: 864}, {M: 486, E: 4145}, {M: -712, E: 2383},
+		{M: -175, E: 828}, {M: 1601, E: -2025}, {M: 517, E: -63}, {M: 1732, E: -963}, {M: -208, E: 1552}, {M: -2700, E: 2492}, {M: 1007, E: 5541}, {M: 122, E: 3713},
+		{M: 1906, E: 2919}, {M: 3304, E: -2060}, {M: 4432, E: -5123}, {M: 7167, E: -1328}, {M: 5340, E: -104}, {M: 3641, E: 1931}, {M: 8812, E: 2226}, {M: 7298, E: 1284},
+		{M: -160, E: 746}, {M: 672, E: -3497}, {M: 501, E: -6772}, {M: -6509, E: -3396}, {M: -473, E: 45}, {M: -4848, E: 99}, {M: -11, E: 47}, {M: -641, E: 2432},
+		{M: -600, E: 3039}, {M: 558, E: 5455}, {M: 2796, E: 8245}, {M: 8440, E: 14164}, {M: 21462, E: 18791}, {M: 58, E: 116}, {M: -4, E: -6315}, {M: -1591, E: -52},
+		{M: -2972, E: 1142}, {M: -668, E: 1466}, {M: -12, E: 2058}, {M: 11970, E: 829}, {M: 14974, E: -778}, {M: 27941, E: -4722}, {M: -51, E: -5507}, {M: 2657, E: -30},
+		{M: 2127, E: 1340}, {M: -4446, E: 2665}, {M: -1074, E: 1983}, {M: -3807, E: 2885}, {M: 5046, E: -587}, {M: 2643, E: -5545}, {M: 136, E: -148}, {M: 1316, E: -306},
+		{M: 4394, E: -1701}, {M: 5640, E: -2135}, {M: 1297, E: 361}, {M: -1796, E: 940}, {M: -886, E: -1392}, {M: 2752, E: 191}, {M: -2537, E: 588}, {M: 3655, E: 7497},
+		{M: 4506, E: 188}, {M: 1607, E: 473},
 	}
 
 	// Named chunks of Weights
@@ -54,6 +48,7 @@ var (
 	wPassedPawn         [8]Score
 	wKingRank           [8]Score
 	wKingFile           [8]Score
+	wKingAttack         [4]Score
 	wConnectedPawn      Score
 	wDoublePawn         Score
 	wIsolatedPawn       Score
@@ -88,6 +83,7 @@ func init() {
 	w = slice(w, wPassedPawn[:])
 	w = slice(w, wKingRank[:])
 	w = slice(w, wKingFile[:])
+	w = slice(w, wKingAttack[:])
 	w = entry(w, &wConnectedPawn)
 	w = entry(w, &wDoublePawn)
 	w = entry(w, &wIsolatedPawn)
@@ -207,28 +203,44 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
 
-	// Pawn
+	theirPawns := pos.ByPiece(them, Pawn)
+	theirKing := pos.ByPiece(them, King)
+	theirKingArea := bbKingArea[theirKing.AsSquare()]
+	numAttackers := 0
+	attackStrength := int32(0)
+
+	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
 	eval.AddN(wMobility[Pawn], mobility.Count())
-	mobility = pos.PawnThreats(us) & pos.ByColor[us.Opposite()]
-	eval.AddN(wPawnThreat, mobility.Count())
+	mobility = pos.PawnThreats(us)
+	eval.AddN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
 
 	// Knight
 	excl := pos.ByPiece(us, Pawn) | pos.PawnThreats(them)
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Knight])
-		mobility := KnightMobility(sq) &^ excl
-		eval.AddN(wMobility[Knight], mobility.Count())
+		mobility := KnightMobility(sq)
+		eval.AddN(wMobility[Knight], (mobility &^ excl).Count())
+
+		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+			numAttackers++
+			attackStrength += a.CountMax2()
+		}
 	}
 	// Bishop
 	numBishops := int32(0)
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Bishop])
-		mobility := BishopMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Bishop], mobility.Count())
+		mobility := BishopMobility(sq, all)
+		eval.AddN(wMobility[Bishop], (mobility &^ excl).Count())
 		numBishops++
+
+		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+			numAttackers++
+			attackStrength += a.CountMax2()
+		}
 	}
 	eval.AddN(wBishopPair, numBishops/2)
 
@@ -236,8 +248,8 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Rook])
-		mobility := RookMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Rook], mobility.Count())
+		mobility := RookMobility(sq, all)
+		eval.AddN(wMobility[Rook], (mobility &^ excl).Count())
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
@@ -249,13 +261,23 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 				eval.Add(wRookOnHalfOpenFile)
 			}
 		}
+
+		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+			numAttackers++
+			attackStrength += a.CountMax2()
+		}
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		eval.Add(wFigure[Queen])
 		mobility := QueenMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Queen], mobility.Count())
+		eval.AddN(wMobility[Queen], (mobility &^ excl).Count())
+
+		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+			numAttackers++
+			attackStrength += a.CountMax2()
+		}
 	}
 
 	// King, each side has one.
@@ -264,6 +286,12 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		mobility := KingMobility(sq) &^ excl
 		eval.AddN(wMobility[King], mobility.Count())
 	}
+
+	// Evaluate attacking the king
+	if numAttackers >= len(wKingAttack) {
+		numAttackers = len(wKingAttack) - 1
+	}
+	eval.AddN(wKingAttack[numAttackers], attackStrength)
 }
 
 // evaluatePosition evalues position.
@@ -295,12 +323,12 @@ func ScaleToCentiPawn(score int32) int32 {
 // Phase computes the progress of the game.
 // 0 is opening, 256 is late end game.
 func Phase(pos *Position) int32 {
-	total := int32(4*1 + 4*1 + 4*2 + 2*4)
+	total := int32(4*1 + 4*1 + 4*3 + 2*6)
 	curr := total
 	curr -= pos.ByFigure[Knight].Count() * 1
 	curr -= pos.ByFigure[Bishop].Count() * 1
-	curr -= pos.ByFigure[Rook].Count() * 2
-	curr -= pos.ByFigure[Queen].Count() * 4
+	curr -= pos.ByFigure[Rook].Count() * 3
+	curr -= pos.ByFigure[Queen].Count() * 6
 	return (curr*256 + total/2) / total
 }
 
