@@ -67,8 +67,6 @@ var (
 	pawnsAndShelterCache *cache
 )
 
-const ()
-
 func init() {
 	// Initialize caches.
 	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
@@ -151,7 +149,7 @@ func evaluatePawns(pos *Position, us Color) Eval {
 
 	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
 	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
-	passed := ours &^ block                                   // no pawn env front and no enemy on the adjacent files
+	passed := passedPawns(pos, us)                            // no pawn env front and no enemy on the adjacent files
 
 	for bb := ours; bb != 0; {
 		sq := bb.Pop()
@@ -304,4 +302,13 @@ func Phase(pos *Position) int32 {
 	curr -= pos.ByFigure[Rook].Count() * 2
 	curr -= pos.ByFigure[Queen].Count() * 4
 	return (curr*256 + total/2) / total
+}
+
+// passedPawns returns all passed pawns of us in pos.
+func passedPawns(pos *Position, us Color) Bitboard {
+	ours := pos.ByPiece(us, Pawn)
+	theirs := pos.ByPiece(us.Opposite(), Pawn)
+	theirs |= East(theirs) | West(theirs)
+	block := BackwardSpan(us, theirs|ours)
+	return ours &^ block
 }

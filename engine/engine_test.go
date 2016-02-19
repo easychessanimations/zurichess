@@ -80,30 +80,16 @@ func TestEndGamePosition(t *testing.T) {
 	}
 }
 
-func passedPawns(pos *Position) Bitboard {
-	wp := pos.ByPiece(White, Pawn)
-	bp := pos.ByPiece(Black, Pawn)
-	wpp := wp &^ SouthSpan(wp)
-	bpp := bp &^ NorthSpan(bp)
-
-	wp |= East(wp) | West(wp)
-	bp |= East(bp) | West(bp)
-	wpp = wpp &^ SouthSpan(bp)
-	bpp = bpp &^ NorthSpan(wp)
-
-	return wpp | bpp
-}
-
 func TestPassed(t *testing.T) {
 	for _, fen := range testFENs {
 		pos, _ := PositionFromFEN(fen)
 		var moves []Move
 		pos.GenerateMoves(All, &moves)
-		before := passedPawns(pos)
+		before := passedPawns(pos, White) | passedPawns(pos, Black)
 
 		for _, m := range moves {
 			pos.DoMove(m)
-			after := passedPawns(pos)
+			after := passedPawns(pos, White) | passedPawns(pos, Black)
 			if passed(pos, m) && before == after {
 				t.Errorf("expected no passed pawn, got passed pawn: move = %v, position = %v", m, pos)
 			}
