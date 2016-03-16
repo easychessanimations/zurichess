@@ -113,6 +113,18 @@ func (pos *Position) SetHalfmoveClock(n int) {
 	pos.curr.HalfmoveClock = n
 }
 
+// Us returns the current player to move.
+//
+// Us/Them is based on Glaurung terminology.
+func (pos *Position) Us() Color {
+	return pos.SideToMove
+}
+
+// Them returns the player awaiting to move.
+func (pos *Position) Them() Color {
+	return pos.SideToMove.Opposite()
+}
+
 // IsEnpassantSquare returns true if sq is the en passant square.
 func (pos *Position) IsEnpassantSquare(sq Square) bool {
 	return sq != SquareA1 && sq == pos.EnpassantSquare()
