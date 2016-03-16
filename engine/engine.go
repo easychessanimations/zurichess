@@ -217,7 +217,7 @@ func (eng *Engine) UndoMove() {
 func (eng *Engine) Score() int32 {
 	score := Evaluate(eng.Position)
 	score = ScaleToCentiPawn(score)
-	return scoreMultiplier[eng.Position.SideToMove] * score
+	return scoreMultiplier[eng.Position.Us()] * score
 }
 
 // endPosition determines whether the current position is an end game.
@@ -229,10 +229,10 @@ func (eng *Engine) endPosition() (int32, bool) {
 		return 0, true
 	}
 	if pos.ByPiece(White, King) == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MatedScore + eng.ply()), true
+		return scoreMultiplier[pos.Us()] * (MatedScore + eng.ply()), true
 	}
 	if pos.ByPiece(Black, King) == 0 {
-		return scoreMultiplier[pos.SideToMove] * (MateScore - eng.ply()), true
+		return scoreMultiplier[pos.Us()] * (MateScore - eng.ply()), true
 	}
 	// Neither side cannot mate.
 	if pos.InsufficientMaterial() {
@@ -343,7 +343,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	}
 
 	pos := eng.Position
-	us := pos.SideToMove
+	us := pos.Us()
 	inCheck := pos.IsChecked(us)
 
 	var bestMove Move
@@ -465,7 +465,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β
 	pos := eng.Position
-	us := pos.SideToMove
+	us, them := pos.Us(), pos.Them()
 
 	// Update statistics.
 	eng.Stats.Nodes++
@@ -597,9 +597,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// However do not extend if we can just take the undefended piece.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
 		// When the move gives check, history pruning and futility pruning are also disabled.
-		givesCheck := pos.IsChecked(us.Opposite())
+		givesCheck := pos.IsChecked(them)
 		if givesCheck {
-			if pos.GetAttacker(move.To(), us.Opposite()) == NoFigure ||
+			if pos.GetAttacker(move.To(), them) == NoFigure ||
 				pos.GetAttacker(move.To(), us) != NoFigure {
 				newDepth += CheckDepthExtension
 			}
