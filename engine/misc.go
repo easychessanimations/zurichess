@@ -25,13 +25,13 @@ const (
 )
 
 // popcnt counts number of bits set in n.
-func popcnt(x uint64) int {
+func popcnt(x uint64) int32 {
 	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
 	x = x - ((x >> 1) & k1)
 	x = (x & k2) + ((x >> 2) & k2)
 	x = (x + (x >> 4)) & k4
 	x = (x * kf) >> 56
-	return int(x)
+	return int32(x)
 }
 
 // max returns maximum of a and b.

@@ -432,21 +432,14 @@ func (bb Bitboard) CountMax2() int32 {
 
 // Count counts number of squares set in bb.
 func (bb Bitboard) Count() int32 {
-	// same as popcnt.
-	// Code adapted from https://chessprogramming.wikispaces.com/Population+Count.
-	bb = bb - ((bb >> 1) & k1)
-	bb = (bb & k2) + ((bb >> 2) & k2)
-	bb = (bb + (bb >> 4)) & k4
-	bb = (bb * kf) >> 56
-	return int32(bb)
+	return popcnt(uint64(bb))
 }
 
 // Pop pops a set square from the bitboard.
 func (bb *Bitboard) Pop() Square {
 	sq := *bb & (-*bb)
 	*bb -= sq
-	// same as logN(sq)
-	return Square(debrujin64[sq*debrujinMul>>debrujinShift])
+	return Square(logN(uint64(sq)))
 }
 
 // MoveType defines the move type.

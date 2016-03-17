@@ -145,7 +145,7 @@ func evaluatePawns(pos *Position, us Color) Eval {
 
 	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
 	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
-	passed := passedPawns(pos, us)                            // no pawn env front and no enemy on the adjacent files
+	passed := passedPawns(pos, us)                            // no pawn in front and no enemy on the adjacent files
 
 	for bb := ours; bb != 0; {
 		sq := bb.Pop()
