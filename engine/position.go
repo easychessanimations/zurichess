@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 )
 
@@ -23,16 +24,18 @@ var (
 
 	// Which castle rights are lost when pieces are moved.
 	lostCastleRights [64]Castle
-)
 
-func init() {
-	lostCastleRights[SquareA1] = WhiteOOO
-	lostCastleRights[SquareE1] = WhiteOOO | WhiteOO
-	lostCastleRights[SquareH1] = WhiteOO
-	lostCastleRights[SquareA8] = BlackOOO
-	lostCastleRights[SquareE8] = BlackOOO | BlackOO
-	lostCastleRights[SquareH8] = BlackOO
-}
+	// The zobrist* arrays contain magic numbers used for Zobrist hashing.
+	// More information on Zobrist hashing can be found in the paper:
+	// http://research.cs.wisc.edu/techreports/1970/TR88.pdf
+	// For correctness testing and the posibility to add
+	// book handling code later zurichess uses Polyglot hashes
+	// and key computing algorithm.
+	zobristPiece     [PieceArraySize][SquareArraySize]uint64
+	zobristEnpassant [SquareArraySize]uint64
+	zobristCastle    [CastleArraySize]uint64
+	zobristColor     [ColorArraySize]uint64
+)
 
 type state struct {
 	Zobrist         uint64    // Zobrist key
@@ -936,4 +939,57 @@ func (pos *Position) GenerateFigureMoves(fig Figure, kind int, moves *[]Move) {
 		pos.genKingMovesNear(mask, moves)
 		pos.genKingCastles(kind, moves)
 	}
+}
+
+func init() {
+	lostCastleRights[SquareA1] = WhiteOOO
+	lostCastleRights[SquareE1] = WhiteOOO | WhiteOO
+	lostCastleRights[SquareH1] = WhiteOO
+	lostCastleRights[SquareA8] = BlackOOO
+	lostCastleRights[SquareE8] = BlackOOO | BlackOO
+	lostCastleRights[SquareH8] = BlackOO
+
+	r := rand.New(rand.NewSource(5))
+	f := func() uint64 { return uint64(r.Int63())<<32 ^ uint64(r.Int63()) }
+	initZobristPiece(f)
+	initZobristEnpassant(f)
+	initZobristCastle(f)
+	initZobristColor(f)
+}
+
+func initZobristPiece(f func() uint64) {
+	for pi := PieceMinValue; pi <= PieceMaxValue; pi++ {
+		for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
+			zobristPiece[pi][sq] = f()
+		}
+	}
+}
+
+func initZobristEnpassant(f func() uint64) {
+	for i := 0; i < 8; i++ {
+		zobristEnpassant[SquareA3+Square(i)] = f()
+		zobristEnpassant[SquareA6+Square(i)] = f()
+	}
+}
+
+func initZobristCastle(f func() uint64) {
+	r := [...]uint64{f(), f(), f(), f()}
+	for i := CastleMinValue; i <= CastleMaxValue; i++ {
+		if i&WhiteOO != 0 {
+			zobristCastle[i] ^= r[0]
+		}
+		if i&WhiteOOO != 0 {
+			zobristCastle[i] ^= r[1]
+		}
+		if i&BlackOO != 0 {
+			zobristCastle[i] ^= r[2]
+		}
+		if i&BlackOOO != 0 {
+			zobristCastle[i] ^= r[3]
+		}
+	}
+}
+
+func initZobristColor(f func() uint64) {
+	zobristColor[White] = f()
 }
