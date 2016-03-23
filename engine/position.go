@@ -852,10 +852,8 @@ EndCastleOOO:
 func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 	enemy := pos.ByColor[them]
 	// Pawn
-	if enemy&bbPawnAttack[sq]&pos.ByFigure[Pawn] != 0 {
-		if att := sq.Bitboard() & pos.PawnThreats(them); att != 0 {
-			return Pawn
-		}
+	if pos.PawnThreats(them).Has(sq) {
+		return Pawn
 	}
 	// Knight
 	if enemy&bbKnightAttack[sq]&pos.ByFigure[Knight] != 0 {
