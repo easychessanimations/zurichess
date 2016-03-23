@@ -757,8 +757,15 @@ func TestNullMoveEnpassantSquare(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("d2d4")
+	te.Move("b8c6")
+	te.Move("d4d5")
+	te.Move("e7e5")
+	if SquareE6 != pos.EnpassantSquare() {
+		t.Fatalf("bad nullmove EnpassantSquare. expected %v, got %v", SquareD3, pos.EnpassantSquare())
+	}
+
 	te.Move("")
-	if White != pos.SideToMove {
+	if Black != pos.SideToMove {
 		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", White, pos.SideToMove)
 	}
 	if SquareA1 != pos.EnpassantSquare() {
@@ -766,10 +773,9 @@ func TestNullMoveEnpassantSquare(t *testing.T) {
 	}
 
 	te.Undo()
-	if SquareD3 != pos.EnpassantSquare() {
+	if SquareE6 != pos.EnpassantSquare() {
 		t.Fatalf("bad nullmove EnpassantSquare. expected %v, got %v", SquareD3, pos.EnpassantSquare())
 	}
-	te.Undo()
 }
 
 func TestNullMoveCastlingAbility(t *testing.T) {

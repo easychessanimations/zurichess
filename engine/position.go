@@ -38,11 +38,11 @@ var (
 )
 
 type state struct {
-	Zobrist         uint64    // Zobrist key
-	Move            Move      // last move played.
-	HalfmoveClock   int       // last ply when a pawn was moved or a capture was made.
-	EnpassantSquare [2]Square // en passant square (polyglot, fen). If none, then SquareA1.
-	CastlingAbility Castle    // remaining castling rights.
+	Zobrist         uint64 // Zobrist key
+	Move            Move   // last move played.
+	HalfmoveClock   int    // last ply when a pawn was moved or a capture was made.
+	EnpassantSquare Square // en passant square. If no e.p, then SquareA1.
+	CastlingAbility Castle // remaining castling rights.
 }
 
 // Position represents the chess board and keeps track of the move history.
@@ -134,8 +134,11 @@ func (pos *Position) IsEnpassantSquare(sq Square) bool {
 }
 
 // EnpassantSquare returns the en passant square.
+// If none, return SquareA1.
+// This uses the polyglot definition: if the en. passant square is
+// not attacked by the enemy, then EnpassantSquare() returns SquareA1.
 func (pos *Position) EnpassantSquare() Square {
-	return pos.curr.EnpassantSquare[1]
+	return pos.curr.EnpassantSquare
 }
 
 // CastlingAbility returns kings' castling ability.
@@ -303,7 +306,7 @@ func (pos *Position) Verify() error {
 	}
 
 	// Verifies that en passant square is empty.
-	if sq := pos.curr.EnpassantSquare[0]; sq != SquareA1 && !pos.IsEmpty(sq) {
+	if sq := pos.curr.EnpassantSquare; sq != SquareA1 && !pos.IsEmpty(sq) {
 		return fmt.Errorf("Expected empty en passant square %v, got %v", sq, pos.Get(sq))
 	}
 
@@ -329,36 +332,29 @@ func (pos *Position) SetSideToMove(col Color) {
 }
 
 // SetEnpassantSquare sets the en passant square correctly updating the Zobrist key.
-func (pos *Position) SetEnpassantSquare(sq Square) {
-	if sq == pos.curr.EnpassantSquare[1] {
-		// In the trivial case both values are SquareA1
-		// and zobrist value doesn't change.
-		return
-	}
-
-	pos.curr.Zobrist ^= zobristEnpassant[pos.curr.EnpassantSquare[0]]
-	pos.curr.EnpassantSquare[0] = sq
-	pos.curr.EnpassantSquare[1] = sq
-
-	if sq != SquareA1 {
+func (pos *Position) SetEnpassantSquare(epsq Square) {
+	if epsq != SquareA1 {
 		// In polyglot the hash key for en passant is updated only if
 		// an en passant capture is possible next move. In other words
 		// if there is an enemy pawn next to the end square of the move.
 		var theirs Bitboard
-		if sq.Rank() == 2 { // White
-			theirs, sq = pos.ByPiece(Black, Pawn), RankFile(3, sq.File())
-		} else if sq.Rank() == 5 { // Black
-			theirs, sq = pos.ByPiece(White, Pawn), RankFile(4, sq.File())
+		var sq Square
+		if epsq.Rank() == 2 { // White
+			theirs, sq = pos.ByPiece(Black, Pawn), RankFile(3, epsq.File())
+		} else if epsq.Rank() == 5 { // Black
+			theirs, sq = pos.ByPiece(White, Pawn), RankFile(4, epsq.File())
 		} else {
 			panic("bad en passant square")
 		}
 
 		if (sq.File() == 0 || !theirs.Has(sq-1)) && (sq.File() == 7 || !theirs.Has(sq+1)) {
-			pos.curr.EnpassantSquare[0] = SquareA1
+			epsq = SquareA1
 		}
 	}
 
-	pos.curr.Zobrist ^= zobristEnpassant[pos.curr.EnpassantSquare[0]]
+	pos.curr.Zobrist ^= zobristEnpassant[pos.curr.EnpassantSquare]
+	pos.curr.EnpassantSquare = epsq
+	pos.curr.Zobrist ^= zobristEnpassant[pos.curr.EnpassantSquare]
 }
 
 // ByPiece is a shortcut for ByColor[col]&ByFigure[fig].
@@ -705,8 +701,8 @@ func (pos *Position) genPawnAttackMoves(kind int, moves *[]Move) {
 	}
 
 	theirs := pos.ByColor[pos.SideToMove.Opposite()]
-	if pos.curr.EnpassantSquare[0] != SquareA1 {
-		theirs |= pos.curr.EnpassantSquare[0].Bitboard()
+	if pos.curr.EnpassantSquare != SquareA1 {
+		theirs |= pos.curr.EnpassantSquare.Bitboard()
 	}
 
 	forward := 0
