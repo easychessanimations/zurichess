@@ -124,7 +124,8 @@ func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
 func spell(magic uint64, bb Bitboard) uint {
 	shift := uint(magic >> 60)
 	mul := magic * uint64(bb)
-	return uint(mul >> ((64 - shift) & 63)) // &63 is to let the compiler know the shift fits 6 bits
+	return uint(mul >> ((64 - shift) & 63))
+	// &63 lets the compiler now that shift fits 6 bits and should not generate CMPQ, SBBQ, ANDQ instructions on amd64
 }
 
 type magicInfo struct {
