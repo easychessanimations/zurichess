@@ -216,8 +216,8 @@ func (eng *Engine) UndoMove() {
 // Score evaluates current position from current player's POV.
 func (eng *Engine) Score() int32 {
 	score := Evaluate(eng.Position)
-	score = ScaleToCentiPawn(score)
-	return scoreMultiplier[eng.Position.Us()] * score
+	score *= scoreMultiplier[eng.Position.Us()]
+	return score
 }
 
 // endPosition determines whether the current position is an end game.
@@ -269,11 +269,11 @@ func (eng *Engine) retrieveHash() hashEntry {
 	// hash table was updated.
 	if entry.score < KnownLossScore {
 		if entry.kind == exact {
-			entry.score += eng.ply()
+			entry.score += int16(eng.ply())
 		}
 	} else if entry.score > KnownWinScore {
 		if entry.kind == exact {
-			entry.score -= eng.ply()
+			entry.score -= int16(eng.ply())
 		}
 	}
 
@@ -312,7 +312,7 @@ func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
 
 	GlobalHashTable.put(eng.Position, hashEntry{
 		kind:  kind,
-		score: score,
+		score: int16(score),
 		depth: int8(depth),
 		move:  move,
 	})
@@ -497,25 +497,24 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	entry := eng.retrieveHash()
 	hash := entry.move
 	if entry.kind != noEntry && depth <= int32(entry.depth) {
+		score := int32(entry.score)
 		if entry.kind == exact {
 			// Simply return if the score is exact.
 			// Update principal variation table if possible.
-			if α < entry.score && entry.score < β {
+			if α < score && score < β {
 				eng.pvTable.Put(pos, hash)
 			}
-			return entry.score
+			return score
 		}
-		if entry.kind == failedLow && entry.score <= α {
-			// Previously the move failed low so the actual score
-			// is at most entry.score. If that's lower than α
-			// this will also fail low.
-			return entry.score
+		if entry.kind == failedLow && score <= α {
+			// Previously the move failed low so the actual score is at most
+			// entry.score. If that's lower than α this will also fail low.
+			return score
 		}
-		if entry.kind == failedHigh && entry.score >= β {
-			// Previously the move failed high so the actual score
-			// is at least entry.score. If that's higher than β
-			// this will also fail high.
-			return entry.score
+		if entry.kind == failedHigh && score >= β {
+			// Previously the move failed high so the actual score is at least
+			// entry.score. If that's higher than β this will also fail high.
+			return score
 		}
 	}
 
@@ -551,11 +550,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
-	bestMove, bestScore := NullMove, -InfinityScore
+	bestMove, bestScore := NullMove, int32(-InfinityScore)
 
 	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
 	// Based on History Leaf Pruning https://chessprogramming.wikispaces.com/History+Leaf+Pruning
+	// Statically evaluates the position. Use static evaluation from hash if available.
 	static := int32(0)
 	allowLeafsPruning := false
 	if depth <= FutilityDepthLimit && // enable when close to the frontier
@@ -756,11 +756,10 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 // can happen.
 func isFutile(pos *Position, static, α, margin int32, m Move) bool {
 	if m.MoveType() == Promotion {
-		// Promotion and passed pawns can increase static evaluation
+		// Promotion and passed pawns can increase the static evaluation
 		// by more than futilityMargin.
 		return false
 	}
-	f := m.Capture().Figure()
-	δ := ScaleToCentiPawn(max(wFigure[f].M, wFigure[f].E))
+	δ := futilityFigureBonus[m.Capture().Figure()]
 	return static+δ+margin < α && !passed(pos, m)
 }

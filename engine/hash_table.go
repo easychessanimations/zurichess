@@ -22,11 +22,12 @@ const (
 
 // hashEntry is a value in the transposition table.
 type hashEntry struct {
-	lock  uint32   // lock is used to handle hashing conflicts.
-	move  Move     // best move
-	score int32    // score of the position. if mate, score is relative to current position.
-	depth int8     // remaining search depth
-	kind  hashKind // type of hash
+	lock   uint32   // lock is used to handle hashing conflicts.
+	move   Move     // best move
+	score  int16    // score of the position. if mate, score is relative to current position.
+	static int16    // static score of the position (not yet used)
+	depth  int8     // remaining search depth
+	kind   hashKind // type of hash
 }
 
 // HashTable is a transposition table.

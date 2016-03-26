@@ -7,15 +7,16 @@ import (
 )
 
 const (
-	KnownWinScore  int32 = 25000000       // KnownWinScore is strictly greater than all evaluation scores (mate not included).
-	KnownLossScore int32 = -KnownWinScore // KnownLossScore is strictly smaller than all evaluation scores (mated not included).
-	MateScore      int32 = 30000000       // MateScore - N is mate in N plies.
-	MatedScore     int32 = -MateScore     // MatedScore + N is mated in N plies.
-	InfinityScore  int32 = 32000000       // InfinityScore is possible score. -InfinityScore is the minimum possible score.
+	KnownWinScore  = 25000          // KnownWinScore is strictly greater than all evaluation scores (mate not included).
+	KnownLossScore = -KnownWinScore // KnownLossScore is strictly smaller than all evaluation scores (mated not included).
+	MateScore      = 30000          // MateScore - N is mate in N plies.
+	MatedScore     = -MateScore     // MatedScore + N is mated in N plies.
+	InfinityScore  = 32000          // InfinityScore is possible score. -InfinityScore is the minimum possible score.
 )
 
 var (
 	// Weights stores all evaluation parameters under one array for easy handling.
+	// All numbers are multiplied by 128.
 	//
 	// Zurichess' evaluation is a very simple neural network with no hidden layers,
 	// and one output node y = W_m * x * (1-p) + W_e * x * p where W_m are
@@ -60,13 +61,14 @@ var (
 
 	// Evaluation caches.
 	pawnsAndShelterCache *cache
+
+	// Figure bonuses to use when computing the futility margin.
+	futilityFigureBonus [FigureArraySize]int32
 )
 
 func init() {
-	// Initialize caches.
-	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
+	// Initializes weights.
 	initWeights()
-
 	slice := func(w []Score, out []Score) []Score {
 		copy(out, w)
 		return w[len(out):]
@@ -95,6 +97,18 @@ func init() {
 
 	if len(w) != 0 {
 		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
+	}
+
+	// Initialize caches.
+	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
+
+	// Initializes futility figure bonus
+	for i, w := range wFigure {
+		if w.M >= w.E {
+			futilityFigureBonus[i] = scaleToCentipawn(w.M)
+		} else {
+			futilityFigureBonus[i] = scaleToCentipawn(w.E)
+		}
 	}
 }
 
@@ -304,20 +318,11 @@ func EvaluatePosition(pos *Position) Eval {
 }
 
 // Evaluate evaluates position from White's POV.
+// Scores fits into a int16.
 func Evaluate(pos *Position) int32 {
 	eval := EvaluatePosition(pos)
 	score := eval.Feed(Phase(pos))
-	if KnownLossScore >= score || score >= KnownWinScore {
-		panic(fmt.Sprintf("score %d should be between %d and %d",
-			score, KnownLossScore, KnownWinScore))
-	}
-	return score
-}
-
-// ScaleToCentiPawn scales the score returned by Evaluate
-// such that one pawn ~= 100.
-func ScaleToCentiPawn(score int32) int32 {
-	return (score + 64) / 128
+	return scaleToCentipawn(score)
 }
 
 // Phase computes the progress of the game.
@@ -339,4 +344,10 @@ func passedPawns(pos *Position, us Color) Bitboard {
 	theirs |= East(theirs) | West(theirs)
 	block := BackwardSpan(us, theirs|ours)
 	return ours &^ block
+}
+
+// scaleToCentipawn scales a score in the original scale to centipawns.
+func scaleToCentipawn(score int32) int32 {
+	// Divides by 128 and rounds to the nearest integer.
+	return (score + score>>31<<6) >> 7
 }

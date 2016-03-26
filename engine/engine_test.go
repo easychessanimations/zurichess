@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-var ()
-
 func TestGame(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	eng := NewEngine(pos, nil, Options{})
@@ -102,25 +100,6 @@ func TestPassed(t *testing.T) {
 	}
 }
 
-func BenchmarkStallingFENs(b *testing.B) {
-	fens := []string{
-		// Causes quiscence search to explode.
-		"rnb1kbnr/pppp1ppp/8/8/3PPp1q/6P1/PPP4P/RNBQKBNR b KQkq -1 0 4",
-		"r2qr1k1/2pn1ppp/pp2pn2/3b4/3P4/B2BPN2/P1P1QPPP/R4RK1 w - -1 4 13",
-		"r1bq2k1/ppp4p/2n5/2bpPr2/5pQ1/2P5/PP4PP/RNB1NR1K b - -1 4 15",
-	}
-
-	for i := 0; i < b.N; i++ {
-		for _, fen := range fens {
-			pos, _ := PositionFromFEN(fen)
-			eng := NewEngine(pos, nil, Options{})
-			tc := NewFixedDepthTimeControl(pos, 5)
-			tc.Start(false)
-			eng.Play(tc)
-		}
-	}
-}
-
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)
@@ -130,30 +109,6 @@ func BenchmarkGame(b *testing.B) {
 			tc.Start(false)
 			move := eng.Play(tc)
 			eng.DoMove(move[0])
-		}
-	}
-}
-
-func BenchmarkScore(b *testing.B) {
-	pos, _ := PositionFromFEN(FENStartPos)
-	eng := NewEngine(pos, nil, Options{})
-
-	for i := 0; i < b.N; i++ {
-		for _, g := range testGames {
-			var done []Move
-			todo := strings.Fields(g)
-
-			for j := range todo {
-				move, _ := eng.Position.UCIToMove(todo[j])
-				done = append(done, move)
-				eng.DoMove(move)
-				_ = eng.Score()
-			}
-
-			for range done {
-				eng.UndoMove()
-				_ = eng.Score()
-			}
 		}
 	}
 }
