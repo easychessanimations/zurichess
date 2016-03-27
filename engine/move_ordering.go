@@ -25,8 +25,8 @@ var (
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
 func mvvlva(m Move) int16 {
-	a := int(m.Target().Figure())
-	v := int(m.Capture().Figure())
+	a := m.Target().Figure()
+	v := m.Capture().Figure()
 	return int16(mvvlvaBonus[v]*64 - mvvlvaBonus[a])
 }
 

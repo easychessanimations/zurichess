@@ -104,11 +104,7 @@ func init() {
 
 	// Initializes futility figure bonus
 	for i, w := range wFigure {
-		if w.M >= w.E {
-			futilityFigureBonus[i] = scaleToCentipawn(w.M)
-		} else {
-			futilityFigureBonus[i] = scaleToCentipawn(w.E)
-		}
+		futilityFigureBonus[i] = scaleToCentipawn(max(w.M, w.E))
 	}
 }
 
@@ -301,7 +297,8 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.AddN(wMobility[King], mobility.Count())
 	}
 
-	// Evaluate attacking the king
+	// Evaluate attacking the king. See more at:
+	// https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
 	if numAttackers >= len(wKingAttack) {
 		numAttackers = len(wKingAttack) - 1
 	}
