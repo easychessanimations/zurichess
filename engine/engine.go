@@ -65,9 +65,7 @@ type Options struct {
 	AnalyseMode bool // true to display info strings
 }
 
-// Stats stores some basic stats of the search.
-//
-// Statistics are reset every iteration of the iterative deepening search.
+// Stats stores statistics about the search.
 type Stats struct {
 	CacheHit  uint64 // number of times the position was found transposition table
 	CacheMiss uint64 // number of times the position was not found in the transposition table
@@ -76,7 +74,7 @@ type Stats struct {
 	SelDepth  int32  // maximum depth reached on PV (doesn't include the hash moves)
 }
 
-// CacheHitRatio returns the ration of hits over total number of lookups.
+// CacheHitRatio returns the ratio of transposition table hits over total number of lookups.
 func (s *Stats) CacheHitRatio() float32 {
 	return float32(s.CacheHit) / float32(s.CacheHit+s.CacheMiss)
 }

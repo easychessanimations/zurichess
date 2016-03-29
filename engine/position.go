@@ -152,8 +152,6 @@ func (pos *Position) LastMove() Move {
 }
 
 // Zobrist returns the zobrist key of the position.
-// The returned value is equal to polyglot book key
-// (http://hgm.nubati.net/book_format.html).
 func (pos *Position) Zobrist() uint64 {
 	return pos.curr.Zobrist
 }

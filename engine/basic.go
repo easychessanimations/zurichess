@@ -353,7 +353,7 @@ func Fill(bb Bitboard) Bitboard {
 	return NorthFill(bb) | SouthFill(bb)
 }
 
-// ForwardSpan computes forward span wrt to color.
+// ForwardSpan computes forward span wrt color.
 func ForwardSpan(col Color, bb Bitboard) Bitboard {
 	if col == White {
 		return NorthSpan(bb)
@@ -364,7 +364,7 @@ func ForwardSpan(col Color, bb Bitboard) Bitboard {
 	return bb
 }
 
-// BackwardSpan computes backward span wrt to color.
+// BackwardSpan computes backward span wrt color.
 func BackwardSpan(col Color, bb Bitboard) Bitboard {
 	if col == White {
 		return SouthSpan(bb)
@@ -431,7 +431,7 @@ func (bb Bitboard) CountMax2() int32 {
 	return 2
 }
 
-// Count counts number of squares set in bb.
+// Count returns the number of squares set in bb.
 func (bb Bitboard) Count() int32 {
 	return popcnt(uint64(bb))
 }
