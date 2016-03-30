@@ -156,9 +156,9 @@ func (pos *Position) Zobrist() uint64 {
 	return pos.curr.Zobrist
 }
 
-// NumNonPawns returns the number of minor and major pieces.
-func (pos *Position) NumNonPawns(col Color) int {
-	return int((pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]).Count())
+// NonPawns returns a bitboard minor and major pieces.
+func (pos *Position) MinorsAndMajors(col Color) Bitboard {
+	return pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]
 }
 
 // HasNonPawns returns whether col has at least some minor or major pieces.

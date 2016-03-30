@@ -25,7 +25,7 @@ var (
 )
 
 // Square identifies the location on the board.
-type Square uint8
+type Square uint
 
 const (
 	SquareA1 = Square(iota)
@@ -208,7 +208,7 @@ func (c Color) KingHomeRank() int {
 }
 
 // Piece is a figure owned by one side.
-type Piece uint8
+type Piece uint
 
 // Piece constants must stay in sync with ColorFigure
 // The order of pieces must match Polyglot format:
@@ -410,8 +410,7 @@ func (bb Bitboard) Has(sq Square) bool {
 // AsSquare returns the occupied square if the bitboard has a single piece.
 // If the board has more then one piece the result is undefined.
 func (bb Bitboard) AsSquare() Square {
-	// same as logN(bb)
-	return Square(debrujin64[bb*debrujinMul>>debrujinShift])
+	return Square(logN(uint64(bb)))
 }
 
 // LSB picks a square in the board.

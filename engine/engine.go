@@ -536,7 +536,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
 		reduction := NullMoveDepthReduction
-		if pos.NumNonPawns(us) >= 3 {
+		if pos.MinorsAndMajors(us).Count() >= 3 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
 		}
