@@ -468,8 +468,8 @@ const (
 // Move stores a position dependent move.
 //
 // Bit representation
-//   00.00.00.ff - from
-//   00.00.ff.00 - to
+//   00.00.00.3f - from
+//   00.00.3f.00 - to
 //   00.0f.00.00 - move type
 //   00.f0.00.00 - target
 //   0f.00.00.00 - capture
@@ -493,12 +493,12 @@ func MakeMove(moveType MoveType, from, to Square, capture, target Piece) Move {
 
 // From returns the starting square.
 func (m Move) From() Square {
-	return Square(m >> 0 & 0xff)
+	return Square(m >> 0 & 0x3f)
 }
 
 // To returns the destination square.
 func (m Move) To() Square {
-	return Square(m >> 8 & 0xff)
+	return Square(m >> 8 & 0x3f)
 }
 
 // MoveType returns the move type.
