@@ -170,3 +170,19 @@ func TestKingHomeRank(t *testing.T) {
 		}
 	}
 }
+
+func TestMultiplier(t *testing.T) {
+	data := []struct {
+		col Color
+		mul int32
+	}{
+		{White, +1},
+		{Black, -1},
+	}
+
+	for _, d := range data {
+		if d.mul != d.col.Multiplier() {
+			t.Errorf("wanted multiplier %d, got %d for color %v", d.mul, d.col.Multiplier(), d.col)
+		}
+	}
+}

@@ -207,6 +207,13 @@ func (c Color) KingHomeRank() int {
 	return kingHomeRank[c]
 }
 
+// Multiplier returns -1 for Black, 1 for White. Useful
+// to compute the position score relative to current player.
+// Result is undefined if c is not White or Black.
+func (c Color) Multiplier() int32 {
+	return int32(int(c)*2 - 3)
+}
+
 // Piece is a figure owned by one side.
 type Piece uint
 

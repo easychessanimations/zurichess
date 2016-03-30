@@ -54,12 +54,6 @@ const (
 	checkpointStep          = 10000
 )
 
-var (
-	// scoreMultiplier is used to compute the score from side
-	// to move POV from given the score from white POV.
-	scoreMultiplier = [ColorArraySize]int32{0, -1, 1}
-)
-
 // Options keeps engine's options.
 type Options struct {
 	AnalyseMode bool // true to display info strings
@@ -214,7 +208,7 @@ func (eng *Engine) UndoMove() {
 // Score evaluates current position from current player's POV.
 func (eng *Engine) Score() int32 {
 	score := Evaluate(eng.Position)
-	score *= scoreMultiplier[eng.Position.Us()]
+	score *= eng.Position.Us().Multiplier()
 	return score
 }
 
@@ -227,10 +221,10 @@ func (eng *Engine) endPosition() (int32, bool) {
 		return 0, true
 	}
 	if pos.ByPiece(White, King) == 0 {
-		return scoreMultiplier[pos.Us()] * (MatedScore + eng.ply()), true
+		return pos.Us().Multiplier() * (MatedScore + eng.ply()), true
 	}
 	if pos.ByPiece(Black, King) == 0 {
-		return scoreMultiplier[pos.Us()] * (MateScore - eng.ply()), true
+		return pos.Us().Multiplier() * (MateScore - eng.ply()), true
 	}
 	// Neither side cannot mate.
 	if pos.InsufficientMaterial() {
