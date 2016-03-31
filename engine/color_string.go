@@ -6,16 +6,11 @@ import "fmt"
 
 const _Color_name = "NoColorBlackWhite"
 
-var _Color_index = [...]uint8{7, 12, 17}
+var _Color_index = [...]uint8{0, 7, 12, 17}
 
 func (i Color) String() string {
-	if i >= Color(len(_Color_index)) {
+	if i >= Color(len(_Color_index)-1) {
 		return fmt.Sprintf("Color(%d)", i)
 	}
-	hi := _Color_index[i]
-	lo := uint8(0)
-	if i > 0 {
-		lo = _Color_index[i-1]
-	}
-	return _Color_name[lo:hi]
+	return _Color_name[_Color_index[i]:_Color_index[i+1]]
 }

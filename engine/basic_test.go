@@ -186,3 +186,12 @@ func TestMultiplier(t *testing.T) {
 		}
 	}
 }
+
+func TestArraySize(t *testing.T) {
+	if PieceArraySize != 16 {
+		t.Errorf("wanted PieceArraySize == 16, got %d", PieceArraySize)
+	}
+	if ColorArraySize != 4 {
+		t.Errorf("wanted ColorArraySize == 4, got %d", ColorArraySize)
+	}
+}

@@ -185,6 +185,7 @@ const (
 	NoColor Color = iota
 	Black
 	White
+	_
 
 	ColorArraySize = int(iota)
 	ColorMinValue  = Black
@@ -235,6 +236,8 @@ const (
 	WhiteQueen
 	BlackKing
 	WhiteKing
+	_
+	_
 
 	PieceArraySize = int(iota)
 	PieceMinValue  = BlackPawn

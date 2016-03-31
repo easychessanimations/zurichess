@@ -6,16 +6,11 @@ import "fmt"
 
 const _Figure_name = "NoFigurePawnKnightBishopRookQueenKing"
 
-var _Figure_index = [...]uint8{8, 12, 18, 24, 28, 33, 37}
+var _Figure_index = [...]uint8{0, 8, 12, 18, 24, 28, 33, 37}
 
 func (i Figure) String() string {
-	if i >= Figure(len(_Figure_index)) {
+	if i >= Figure(len(_Figure_index)-1) {
 		return fmt.Sprintf("Figure(%d)", i)
 	}
-	hi := _Figure_index[i]
-	lo := uint8(0)
-	if i > 0 {
-		lo = _Figure_index[i-1]
-	}
-	return _Figure_name[lo:hi]
+	return _Figure_name[_Figure_index[i]:_Figure_index[i+1]]
 }

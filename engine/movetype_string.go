@@ -6,16 +6,11 @@ import "fmt"
 
 const _MoveType_name = "NoMoveNormalPromotionCastlingEnpassant"
 
-var _MoveType_index = [...]uint8{6, 12, 21, 29, 38}
+var _MoveType_index = [...]uint8{0, 6, 12, 21, 29, 38}
 
 func (i MoveType) String() string {
-	if i >= MoveType(len(_MoveType_index)) {
+	if i >= MoveType(len(_MoveType_index)-1) {
 		return fmt.Sprintf("MoveType(%d)", i)
 	}
-	hi := _MoveType_index[i]
-	lo := uint8(0)
-	if i > 0 {
-		lo = _MoveType_index[i-1]
-	}
-	return _MoveType_name[lo:hi]
+	return _MoveType_name[_MoveType_index[i]:_MoveType_index[i+1]]
 }
