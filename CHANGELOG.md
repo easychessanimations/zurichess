@@ -5,18 +5,21 @@ in alphabetical order.
 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (development)
 
-* Improve futility conditions. Geneva's futility is a bit too agressive
-and causes lots of tactical mistakes.
+* Improve futility conditions. Geneva's futility is a bit too agressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
 * Improve pawn evaluation caching. Also cache shelter evaluation.
+* Improve king safety using number of simultaneous attackers.
 * Small tunining of LMR and NMP conditions.
+* Micro-optimize the code for the future Go compiler. Next version will see big speed up.
+* Move Position.SANToMove to https://bitbucket.org/zurichess/notation
+* Move Polyglot hashing to https://bitbucket.org/zurichess/hashing
 * Usual code clean ups, speed ups and bug fixes.
 
 ## zurichess [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (stable)
 04.Dec.2015
 
 The theme of this release is improving evaluation.
-ELO is about 2475 on CCRL 40/40.
+ELO is about 2475 on CCRL 40/40 and 2320 on CEGT 40/4.
 
 * Implement fifty-move draw rule. Add HasLegalMoves and InsufficientMaterial methods.
 * Improve move ordering: add killer phase; remove sorting.
