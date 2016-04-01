@@ -580,7 +580,7 @@ func (m Move) String() string {
 }
 
 // Castle represents the castling rights mask.
-type Castle uint8
+type Castle uint
 
 const (
 	WhiteOO  Castle = 1 << iota // WhiteOO indicates that White can castle on King side.
