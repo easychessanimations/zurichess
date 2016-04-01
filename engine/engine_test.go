@@ -19,7 +19,7 @@ func TestGame(t *testing.T) {
 func TestMateIn1(t *testing.T) {
 	for i, d := range mateIn1 {
 		pos, _ := PositionFromFEN(d.fen)
-		bm, err := pos.SANToMove(d.bm)
+		bm, err := pos.UCIToMove(d.bm)
 		if err != nil {
 			t.Errorf("#%d cannot parse move %s", i, d.bm)
 			continue

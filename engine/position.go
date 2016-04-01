@@ -35,6 +35,23 @@ var (
 	zobristEnpassant [SquareArraySize]uint64
 	zobristCastle    [CastleArraySize]uint64
 	zobristColor     [ColorArraySize]uint64
+
+	// Maps runes to figures.
+	symbolToFigure = map[rune]Figure{
+		'p': Pawn,
+		'n': Knight,
+		'b': Bishop,
+		'r': Rook,
+		'q': Queen,
+		'k': King,
+
+		'P': Pawn,
+		'N': Knight,
+		'B': Bishop,
+		'R': Rook,
+		'Q': Queen,
+		'K': King,
+	}
 )
 
 type state struct {
@@ -503,6 +520,56 @@ func (pos *Position) PrettyPrint() {
 		log.Println(line)
 	}
 
+}
+
+// UCIToMove parses a move given in UCI format.
+// s can be "a2a4" or "h7h8Q" for pawn promotion.
+func (pos *Position) UCIToMove(s string) (Move, error) {
+	if len(s) < 4 {
+		return NullMove, fmt.Errorf("%s is too short", s)
+	}
+
+	from, err := SquareFromString(s[0:2])
+	if err != nil {
+		return NullMove, err
+	}
+	to, err := SquareFromString(s[2:4])
+	if err != nil {
+		return NullMove, err
+	}
+
+	moveType := Normal
+	capt := pos.Get(to)
+	target := pos.Get(from)
+
+	pi := pos.Get(from)
+	if pi.Figure() == Pawn && pos.IsEnpassantSquare(to) {
+		moveType = Enpassant
+		capt = ColorFigure(pos.SideToMove.Opposite(), Pawn)
+	}
+	if pi == WhiteKing && from == SquareE1 && (to == SquareC1 || to == SquareG1) {
+		moveType = Castling
+	}
+	if pi == BlackKing && from == SquareE8 && (to == SquareC8 || to == SquareG8) {
+		moveType = Castling
+	}
+	if pi.Figure() == Pawn && (to.Rank() == 0 || to.Rank() == 7) {
+		if len(s) != 5 {
+			return NullMove, fmt.Errorf("%s doesn't have a promotion piece", s)
+		}
+		moveType = Promotion
+		target = ColorFigure(pos.SideToMove, symbolToFigure[rune(s[4])])
+	} else {
+		if len(s) != 4 {
+			return NullMove, fmt.Errorf("%s move is too long", s)
+		}
+	}
+
+	move := MakeMove(moveType, from, to, capt, target)
+	if !pos.IsPseudoLegal(move) {
+		return NullMove, fmt.Errorf("%s is not a valid move", s)
+	}
+	return move, nil
 }
 
 // DoMove executes a legal move.
