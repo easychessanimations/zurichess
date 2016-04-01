@@ -420,7 +420,7 @@ func passed(pos *Position, m Move) bool {
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
 		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
-		if ForwardSpan(m.SideToMove(), bb)&pawns == 0 {
+		if ForwardSpan(m.Color(), bb)&pawns == 0 {
 			return true
 		}
 	}
@@ -429,7 +429,7 @@ func passed(pos *Position, m Move) bool {
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
 		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
-		if BackwardSpan(m.SideToMove(), bb)&pawns == 0 {
+		if BackwardSpan(m.Color(), bb)&pawns == 0 {
 			return true
 		}
 	}

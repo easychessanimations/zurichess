@@ -187,7 +187,7 @@ func (pos *Position) MinorsAndMajors(col Color) Bitboard {
 // after the move. NullMove is not a valid move.
 func (pos *Position) IsPseudoLegal(m Move) bool {
 	if m == NullMove ||
-		m.SideToMove() != pos.SideToMove ||
+		m.Color() != pos.SideToMove ||
 		pos.Get(m.From()) != m.Piece() ||
 		pos.Get(m.CaptureSquare()) != m.Capture() ||
 		m.Piece().Color() == m.Capture().Color() {
@@ -235,13 +235,13 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 		}
 
 		// m.MoveType() == Castling
-		if m.SideToMove() == White && m.To() == SquareG1 {
+		if m.Color() == White && m.To() == SquareG1 {
 			if pos.CastlingAbility()&WhiteOO == 0 ||
 				!pos.IsEmpty(SquareF1) || !pos.IsEmpty(SquareG1) {
 				return false
 			}
 		}
-		if m.SideToMove() == White && m.To() == SquareC1 {
+		if m.Color() == White && m.To() == SquareC1 {
 			if pos.CastlingAbility()&WhiteOOO == 0 ||
 				!pos.IsEmpty(SquareB1) ||
 				!pos.IsEmpty(SquareC1) ||
@@ -249,14 +249,14 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 				return false
 			}
 		}
-		if m.SideToMove() == Black && m.To() == SquareG8 {
+		if m.Color() == Black && m.To() == SquareG8 {
 			if pos.CastlingAbility()&BlackOO == 0 ||
 				!pos.IsEmpty(SquareF8) ||
 				!pos.IsEmpty(SquareG8) {
 				return false
 			}
 		}
-		if m.SideToMove() == Black && m.To() == SquareC8 {
+		if m.Color() == Black && m.To() == SquareC8 {
 			if pos.CastlingAbility()&BlackOOO == 0 ||
 				!pos.IsEmpty(SquareB8) ||
 				!pos.IsEmpty(SquareC8) ||
@@ -268,7 +268,7 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 		if pos.Get(start) != rook {
 			return false
 		}
-		them := m.SideToMove().Opposite()
+		them := m.Color().Opposite()
 		if pos.GetAttacker(m.From(), them) != NoFigure ||
 			pos.GetAttacker(end, them) != NoFigure ||
 			pos.GetAttacker(m.To(), them) != NoFigure {

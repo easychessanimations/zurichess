@@ -505,8 +505,8 @@ func (m Move) MoveType() MoveType {
 	return MoveType(m >> 16 & 0xf)
 }
 
-// SideToMove returns which player is moving.
-func (m Move) SideToMove() Color {
+// Color returns which player is moving.
+func (m Move) Color() Color {
 	return m.Piece().Color()
 }
 
