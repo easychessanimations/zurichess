@@ -122,15 +122,14 @@ func hashPawnsAndShelter(pos *Position, us Color) uint64 {
 
 func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
 	var eval Eval
-	eval.Merge(evaluatePawns(pos, us))
-	eval.Merge(evaluateShelter(pos, us))
+	eval.merge(evaluatePawns(pos, us))
+	eval.merge(evaluateShelter(pos, us))
 	return eval
 }
 
 func evaluatePawns(pos *Position, us Color) Eval {
 	var eval Eval
 	ours := pos.ByPiece(us, Pawn)
-	theirs := pos.ByPiece(us.Opposite(), Pawn)
 
 	// From white's POV (P - white pawn, p - black pawn).
 	// block   wings
@@ -142,14 +141,11 @@ func evaluatePawns(pos *Position, us Color) Eval {
 	// .xxx.x. .....
 	// .xxx.x. .....
 	// .xxx.x. .....
-	block := East(theirs) | theirs | West(theirs)
 	wings := East(ours) | West(ours)
 	double := Bitboard(0)
 	if us == White {
-		block = SouthSpan(block) | SouthSpan(ours)
 		double = ours & South(ours)
 	} else /* if us == Black */ {
-		block = NorthSpan(block) | NorthSpan(ours)
 		double = ours & North(ours)
 	}
 
@@ -162,20 +158,20 @@ func evaluatePawns(pos *Position, us Color) Eval {
 		povSq := sq.POV(us)
 		rank := povSq.Rank()
 
-		eval.Add(wFigure[Pawn])
-		eval.Add(wPawn[povSq-8])
+		eval.add(wFigure[Pawn])
+		eval.add(wPawn[povSq-8])
 
 		if passed.Has(sq) {
-			eval.Add(wPassedPawn[rank])
+			eval.add(wPassedPawn[rank])
 		}
 		if connected.Has(sq) {
-			eval.Add(wConnectedPawn)
+			eval.add(wConnectedPawn)
 		}
 		if double.Has(sq) {
-			eval.Add(wDoublePawn)
+			eval.add(wDoublePawn)
 		}
 		if isolated.Has(sq) {
-			eval.Add(wIsolatedPawn)
+			eval.add(wIsolatedPawn)
 		}
 	}
 
@@ -188,20 +184,20 @@ func evaluateShelter(pos *Position, us Color) Eval {
 	king := pos.ByPiece(us, King)
 
 	sq := king.AsSquare().POV(us)
-	eval.Add(wKingFile[sq.File()])
-	eval.Add(wKingRank[sq.Rank()])
+	eval.add(wKingFile[sq.File()])
+	eval.add(wKingRank[sq.Rank()])
 
 	if pos.ByPiece(us.Opposite(), Queen) != 0 {
 		king = ForwardSpan(us, king)
 		file := sq.File()
 		if file > 0 && West(king)&pawns == 0 {
-			eval.Add(wKingShelter)
+			eval.add(wKingShelter)
 		}
 		if king&pawns == 0 {
-			eval.AddN(wKingShelter, 2)
+			eval.addN(wKingShelter, 2)
 		}
 		if file < 7 && East(king)&pawns == 0 {
-			eval.Add(wKingShelter)
+			eval.add(wKingShelter)
 		}
 	}
 	return eval
@@ -209,7 +205,7 @@ func evaluateShelter(pos *Position, us Color) Eval {
 
 // evaluateSide evaluates position for a single side.
 func evaluateSide(pos *Position, us Color, eval *Eval) {
-	eval.Merge(pawnsAndShelterCache.load(pos, us))
+	eval.merge(pawnsAndShelterCache.load(pos, us))
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
 
@@ -221,17 +217,17 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 
 	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
-	eval.AddN(wMobility[Pawn], mobility.Count())
+	eval.addN(wMobility[Pawn], mobility.Count())
 	mobility = pos.PawnThreats(us)
-	eval.AddN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
+	eval.addN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
 
 	// Knight
 	excl := pos.ByPiece(us, Pawn) | pos.PawnThreats(them)
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
-		eval.Add(wFigure[Knight])
+		eval.add(wFigure[Knight])
 		mobility := KnightMobility(sq)
-		eval.AddN(wMobility[Knight], (mobility &^ excl).Count())
+		eval.addN(wMobility[Knight], (mobility &^ excl).Count())
 
 		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
 			numAttackers++
@@ -242,9 +238,9 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	numBishops := int32(0)
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
-		eval.Add(wFigure[Bishop])
+		eval.add(wFigure[Bishop])
 		mobility := BishopMobility(sq, all)
-		eval.AddN(wMobility[Bishop], (mobility &^ excl).Count())
+		eval.addN(wMobility[Bishop], (mobility &^ excl).Count())
 		numBishops++
 
 		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
@@ -252,23 +248,23 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 			attackStrength += a.CountMax2()
 		}
 	}
-	eval.AddN(wBishopPair, numBishops/2)
+	eval.addN(wBishopPair, numBishops/2)
 
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
-		eval.Add(wFigure[Rook])
+		eval.add(wFigure[Rook])
 		mobility := RookMobility(sq, all)
-		eval.AddN(wMobility[Rook], (mobility &^ excl).Count())
+		eval.addN(wMobility[Rook], (mobility &^ excl).Count())
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
 		f := FileBb(sq.File())
 		if pos.ByPiece(us, Pawn)&f == 0 {
 			if pos.ByPiece(them, Pawn)&f == 0 {
-				eval.Add(wRookOnOpenFile)
+				eval.add(wRookOnOpenFile)
 			} else {
-				eval.Add(wRookOnHalfOpenFile)
+				eval.add(wRookOnHalfOpenFile)
 			}
 		}
 
@@ -280,9 +276,9 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
-		eval.Add(wFigure[Queen])
+		eval.add(wFigure[Queen])
 		mobility := QueenMobility(sq, all) &^ excl
-		eval.AddN(wMobility[Queen], (mobility &^ excl).Count())
+		eval.addN(wMobility[Queen], (mobility &^ excl).Count())
 
 		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
 			numAttackers++
@@ -294,7 +290,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	{
 		sq := pos.ByPiece(us, King).AsSquare()
 		mobility := KingMobility(sq) &^ excl
-		eval.AddN(wMobility[King], mobility.Count())
+		eval.addN(wMobility[King], mobility.Count())
 	}
 
 	// Evaluate attacking the king. See more at:
@@ -302,14 +298,15 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	if numAttackers >= len(wKingAttack) {
 		numAttackers = len(wKingAttack) - 1
 	}
-	eval.AddN(wKingAttack[numAttackers], attackStrength)
+	eval.addN(wKingAttack[numAttackers], attackStrength)
 }
 
-// evaluatePosition evalues position.
+// EvaluatePosition evalues position exported to be used by the tuner.
 func EvaluatePosition(pos *Position) Eval {
+	// TODO: export from to score_coach.go.
 	var eval Eval
 	evaluateSide(pos, Black, &eval)
-	eval.Neg()
+	eval.neg()
 	evaluateSide(pos, White, &eval)
 	return eval
 }

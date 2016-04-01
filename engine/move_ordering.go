@@ -27,7 +27,7 @@ var (
 func mvvlva(m Move) int16 {
 	a := m.Target().Figure()
 	v := m.Capture().Figure()
-	return int16(mvvlvaBonus[v]*64 - mvvlvaBonus[a])
+	return mvvlvaBonus[v]*64 - mvvlvaBonus[a]
 }
 
 // movesStack is a stack of moves.

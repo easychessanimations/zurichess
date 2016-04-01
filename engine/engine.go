@@ -36,18 +36,18 @@
 //   * Material and mobility
 //   * Piece square tables for pawns and king. Other figures did not improve the eval.
 //   * King shelter (only in mid game)
-//   * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see pawn_table.go).
+//   * King safery ala Toga style - https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
+//   * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see cache.go).
 //   * Phased eval between mid game and end game.
 //
 package engine
 
 const (
-	CheckDepthExtension    int32 = 1 // how much to extend search in case of checks
-	NullMoveDepthLimit     int32 = 1 // disable null-move below this limit
-	NullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
-	PVSDepthLimit          int32 = 0 // do not do PVS below and including this limit
-	LMRDepthLimit          int32 = 3 // do not do LMR below and including this limit
-	FutilityDepthLimit     int32 = 3 // maximum depth to do futility pruning.
+	checkDepthExtension    int32 = 1 // how much to extend search in case of checks
+	nullMoveDepthLimit     int32 = 1 // disable null-move below this limit
+	nullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
+	lmrDepthLimit          int32 = 3 // do not do LMR below and including this limit
+	futilityDepthLimit     int32 = 3 // maximum depth to do futility pruning.
 
 	initialAspirationWindow = 21  // ~a quarter of a pawn
 	futilityMargin          = 150 // ~one and a halfpawn
@@ -524,12 +524,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// position is too good, so opponent will not play it.
 	// Verification that we are not in check is done by tryMove
 	// which bails out if after the null move we are still in check.
-	if depth > NullMoveDepthLimit && // not very close to leafs
+	if depth > nullMoveDepthLimit && // not very close to leafs
 		!sideIsChecked && // nullmove is illegal when in check
-		pos.HasNonPawns(us) && // at least one minor/major piece.
+		pos.MinorsAndMajors(us) != 0 && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
 
-		reduction := NullMoveDepthReduction
+		reduction := nullMoveDepthReduction
 		if pos.MinorsAndMajors(us).Count() >= 3 {
 			// Reduce more when there are three minor/major pieces.
 			reduction++
@@ -550,7 +550,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// Statically evaluates the position. Use static evaluation from hash if available.
 	static := int32(0)
 	allowLeafsPruning := false
-	if depth <= FutilityDepthLimit && // enable when close to the frontier
+	if depth <= futilityDepthLimit && // enable when close to the frontier
 		!sideIsChecked && // disable in check
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
@@ -561,7 +561,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// Principal variation search: search with a null window if there is already a good move.
 	nullWindow := false // updated once alpha is improved
 	// Late move reduction: search best moves with full depth, reduce remaining moves.
-	allowLateMove := !sideIsChecked && depth > LMRDepthLimit
+	allowLateMove := !sideIsChecked && depth > lmrDepthLimit
 
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
@@ -593,7 +593,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if givesCheck {
 			if pos.GetAttacker(move.To(), them) == NoFigure ||
 				pos.GetAttacker(move.To(), us) != NoFigure {
-				newDepth += CheckDepthExtension
+				newDepth += checkDepthExtension
 			}
 		}
 

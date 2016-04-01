@@ -100,18 +100,22 @@ func (pos *Position) pushState() {
 	pos.Ply++
 }
 
+// FullmoveCounter returns the number of full moves. Starts at 1.
 func (pos *Position) FullmoveCounter() int {
 	return pos.fullmoveCounter
 }
 
+// SetFullmoveCounter sets the number of full moves.
 func (pos *Position) SetFullmoveCounter(n int) {
 	pos.fullmoveCounter = n
 }
 
+// HalfmoveClock returns the number of halfmoves since the last capture or pawn advance.
 func (pos *Position) HalfmoveClock() int {
 	return pos.curr.HalfmoveClock
 }
 
+// SetHalfmoveClock sets the number of halfmoves since the last capture or pawn advance.
 func (pos *Position) SetHalfmoveClock(n int) {
 	pos.curr.HalfmoveClock = n
 }
@@ -156,14 +160,9 @@ func (pos *Position) Zobrist() uint64 {
 	return pos.curr.Zobrist
 }
 
-// NonPawns returns a bitboard minor and major pieces.
+// MinorsAndMajors returns a bitboard with minor and major pieces.
 func (pos *Position) MinorsAndMajors(col Color) Bitboard {
 	return pos.ByColor[col] &^ pos.ByFigure[Pawn] &^ pos.ByFigure[King]
-}
-
-// HasNonPawns returns whether col has at least some minor or major pieces.
-func (pos *Position) HasNonPawns(col Color) bool {
-	return pos.ByColor[col]&^pos.ByFigure[Pawn]&^pos.ByFigure[King] != 0
 }
 
 // IsPseudoLegal returns true if m is a pseudo legal move for pos.

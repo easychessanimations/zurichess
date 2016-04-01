@@ -133,10 +133,6 @@ func (sq Square) Bitboard() Bitboard {
 	return 1 << uint(sq)
 }
 
-func (sq Square) Relative(dr, df int) Square {
-	return sq + Square(dr*8+df)
-}
-
 // Rank returns a number from 0 to 7 representing the rank of the square.
 func (sq Square) Rank() int {
 	return int(sq / 8)

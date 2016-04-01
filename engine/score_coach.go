@@ -20,7 +20,7 @@ func (e *Eval) Feed(phase int32) int32 {
 	return (e.M*(256-phase) + e.E*phase) / 256
 }
 
-func (e *Eval) Merge(o Eval) {
+func (e *Eval) merge(o Eval) {
 	e.M += o.M
 	e.E += o.E
 	for i := range o.Values {
@@ -28,19 +28,19 @@ func (e *Eval) Merge(o Eval) {
 	}
 }
 
-func (e *Eval) Add(s Score) {
+func (e *Eval) add(s Score) {
 	e.M += s.M
 	e.E += s.E
 	e.Values[s.I] += 1
 }
 
-func (e *Eval) AddN(s Score, n int32) {
+func (e *Eval) addN(s Score, n int32) {
 	e.M += s.M * n
 	e.E += s.E * n
 	e.Values[s.I] += int8(n)
 }
 
-func (e *Eval) Neg() {
+func (e *Eval) neg() {
 	e.M = -e.M
 	e.E = -e.E
 	for i, v := range e.Values {
