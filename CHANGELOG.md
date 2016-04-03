@@ -5,10 +5,13 @@ in alphabetical order.
 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (development)
 
+The them of this release is king safety and leaf pruning.
+
 * Improve futility conditions. Geneva's futility is a bit too agressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
 * Improve pawn evaluation caching. Also cache shelter evaluation.
 * Improve king safety using number of simultaneous attackers.
+* Improve time control. Timeouts should be extremely rare now.
 * Small tunining of LMR and NMP conditions.
 * Micro-optimize the code for the future Go compiler. Next version will see big speed up.
 * Move Position.SANToMove to https://bitbucket.org/zurichess/notation
