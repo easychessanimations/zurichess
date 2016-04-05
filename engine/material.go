@@ -343,5 +343,5 @@ func passedPawns(pos *Position, us Color) Bitboard {
 // scaleToCentipawn scales a score in the original scale to centipawns.
 func scaleToCentipawn(score int32) int32 {
 	// Divides by 128 and rounds to the nearest integer.
-	return (score + score>>31<<6) >> 7
+	return (score + 64 + score>>31) >> 7
 }
