@@ -409,8 +409,7 @@ func SouthSpan(bb Bitboard) Bitboard {
 
 // Has returns bb if sq is occupied in bitboard.
 func (bb Bitboard) Has(sq Square) bool {
-	return bb>>(sq&63)&1 != 0
-	// &63 lets the compiler now that sq fits 6 bits and should not generate CMPQ, SBBQ, ANDQ instructions on amd64
+	return bb>>sq&1 != 0
 }
 
 // AsSquare returns the occupied square if the bitboard has a single piece.
