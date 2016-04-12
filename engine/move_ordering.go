@@ -1,3 +1,7 @@
+// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // move_ordering generates and orders moves for an engine.
 // Generation is done in several phases and many times
 // actual generation or sorting can be eliminated.

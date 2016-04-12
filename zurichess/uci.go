@@ -1,3 +1,7 @@
+// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // uci implements the UCI protocol which is described here http://wbec-ridderkerk.nl/html/UCIProtocol.html.
 // There is a hidden command, setvalue, which can be used to set the material values.
 

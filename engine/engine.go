@@ -1,3 +1,7 @@
+// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 // Package engine implements board, move generation and position searching.
 //
 // The package can be used as a general library for chess tool writing and
