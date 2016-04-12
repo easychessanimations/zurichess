@@ -16,14 +16,8 @@ import (
 )
 
 var (
-	figureToSymbol = map[Figure]string{
-		Knight: "N",
-		Bishop: "B",
-		Rook:   "R",
-		Queen:  "Q",
-		King:   "K",
-	}
-
+	// maps figures to symbols for move notations
+	figureToSymbol = [...]string{"", "", "N", "B", "R", "Q", "K"}
 	// pov xor mask indexed by color.
 	povMask = [ColorArraySize]Square{0x00, 0x38, 0x00}
 )
