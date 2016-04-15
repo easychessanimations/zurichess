@@ -3,7 +3,7 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (development)
+## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
 
 The them of this release is king safety and leaf pruning.
 
@@ -18,7 +18,7 @@ The them of this release is king safety and leaf pruning.
 * Move Polyglot hashing to https://bitbucket.org/zurichess/hashing
 * Usual code clean ups, speed ups and bug fixes.
 
-## zurichess [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva) (stable)
+## zurichess [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva)
 04.Dec.2015
 
 The theme of this release is improving evaluation.
