@@ -516,6 +516,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	// Stop searching when the maximum search depth is reached.
 	if depth <= 0 {
+		// This is already won / lost and quiescence cannot change
+		// that because it only looks at violent moves.
+		if α >= KnownWinScore || β <= KnownLossScore {
+			return eng.Score()
+		}
+
 		// Depth can be < 0 due to aggressive LMR.
 		score := eng.searchQuiescence(α, β)
 		eng.updateHash(α, β, depth, score, NullMove)
