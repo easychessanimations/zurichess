@@ -576,15 +576,13 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
 	dropped := false
-	numQuiet := int32(0)
+	numMoves := int32(0)
 	localα := α
 
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		critical := move == hash || eng.stack.IsKiller(move)
-		if move.IsQuiet() {
-			numQuiet++ // TODO: Move from here.
-		}
+		numMoves++
 
 		newDepth := depth
 		eng.DoMove(move)
@@ -613,9 +611,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if allowLateMove && !givesCheck && !critical {
 			if move.IsQuiet() {
 				// Reduce quiet moves more at high depths and after many quiet moves.
-				// Large numQuiet means it's likely not a CUT node.
+				// Large numMoves means it's likely not a CUT node.
 				// Large depth means reductions are less risky.
-				lmr = 1 + min(depth, numQuiet)/5
+				lmr = 1 + min(depth, numMoves)/5
 			} else if seeSign(pos, move) {
 				// Bad captures (SEE<0) can be reduced, too.
 				lmr = 1
