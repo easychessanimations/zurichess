@@ -3,11 +3,14 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (development)
+
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
+17.Apr.2016
 
-The them of this release is king safety and leaf pruning.
+The theme of this release is king safety and leaf pruning.
 
-* Improve futility conditions. Geneva's futility is a bit too agressive and causes lots of tactical mistakes.
+* Improve futility conditions. Geneva's futility is a bit too aggressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
 * Improve pawn evaluation caching. Also cache shelter evaluation.
 * Improve king safety using number of simultaneous attackers.

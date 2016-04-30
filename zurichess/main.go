@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	buildVersion = "glarus"
+	buildVersion = "graubuenden"
 	buildTime    = "(just now)"
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
