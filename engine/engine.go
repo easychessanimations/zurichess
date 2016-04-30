@@ -47,11 +47,10 @@
 package engine
 
 const (
-	checkDepthExtension    int32 = 1 // how much to extend search in case of checks
-	nullMoveDepthLimit     int32 = 1 // disable null-move below this limit
-	nullMoveDepthReduction int32 = 1 // default null-move depth reduction. Can reduce more in some situations.
-	lmrDepthLimit          int32 = 3 // do not do LMR below and including this limit
-	futilityDepthLimit     int32 = 3 // maximum depth to do futility pruning.
+	checkDepthExtension int32 = 1 // how much to extend search in case of checks
+	nullMoveDepthLimit  int32 = 1 // disable null-move below this limit
+	lmrDepthLimit       int32 = 3 // do not do LMR below and including this limit
+	futilityDepthLimit  int32 = 3 // maximum depth to do futility pruning.
 
 	initialAspirationWindow = 21  // ~a quarter of a pawn
 	futilityMargin          = 150 // ~one and a halfpawn
@@ -538,14 +537,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		!sideIsChecked && // nullmove is illegal when in check
 		pos.MinorsAndMajors(us) != 0 && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore { // disable in lost or won positions
-
-		reduction := nullMoveDepthReduction
-		if pos.MinorsAndMajors(us).Count() >= 3 {
-			// Reduce more when there are three minor/major pieces.
-			reduction++
-		}
-
 		eng.DoMove(NullMove)
+		reduction := pos.MinorsAndMajors(us).CountMax2()
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β {
 			return score
