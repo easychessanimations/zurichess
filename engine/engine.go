@@ -332,14 +332,11 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	if static >= β {
 		return static
 	}
-	localα := α
-	if static > localα {
-		localα = static
-	}
 
 	pos := eng.Position
 	us := pos.Us()
 	inCheck := pos.IsChecked(us)
+	localα := max(α, static)
 
 	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)

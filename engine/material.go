@@ -146,13 +146,7 @@ func evaluatePawns(pos *Position, us Color) Eval {
 	// .xxx.x. .....
 	// .xxx.x. .....
 	wings := East(ours) | West(ours)
-	double := Bitboard(0)
-	if us == White {
-		double = ours & South(ours)
-	} else /* if us == Black */ {
-		double = ours & North(ours)
-	}
-
+	double := ours & Backward(us, ours)
 	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
 	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
 	passed := passedPawns(pos, us)                            // no pawn in front and no enemy on the adjacent files
