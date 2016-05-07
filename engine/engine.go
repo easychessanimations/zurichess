@@ -102,8 +102,8 @@ func (nl *NulLogger) PrintPV(stats Stats, score int32, pv []Move) {
 
 // historyEntry keeps counts of how well move performed in the past.
 type historyEntry struct {
-	counter [2]int
-	move    Move
+	stat int32
+	move Move
 }
 
 // historyTable is a hash table that contains history of moves.
@@ -128,30 +128,24 @@ func historyHash(m Move) uint32 {
 // get returns counters for m, i.e. pair of (bad, good)
 //
 // TODO: consider returning only if the move is good or bad.
-func (ht historyTable) get(m Move) (int, int) {
+func (ht historyTable) get(m Move) int32 {
 	h := historyHash(m)
 	if ht[h].move != m {
-		return 0, 0
+		return 0
 	}
-	return ht[h].counter[0], ht[h].counter[1]
+	return ht[h].stat
 }
 
 // inc increments the counters for m.
 //
 // Evicts an old move if necessary.
 // Counters start from 1 so probability is correctly estimated. TODO: insert reference.
-func (ht historyTable) inc(m Move, good bool) {
+func (ht historyTable) add(m Move, delta int32) {
 	h := historyHash(m)
 	if ht[h].move != m {
-		ht[h] = historyEntry{
-			counter: [2]int{1, 1},
-			move:    m,
-		}
-	}
-	if good {
-		ht[h].counter[1]++
+		ht[h] = historyEntry{stat: delta, move: m}
 	} else {
-		ht[h].counter[0]++
+		ht[h].stat += delta
 	}
 }
 
@@ -183,6 +177,7 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 		Log:     log,
 		pvTable: newPvTable(),
 		history: newHistoryTable(),
+		stack:   stack{history: newHistoryTable()},
 	}
 	eng.SetPosition(pos)
 	return eng
@@ -600,7 +595,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		lmr := int32(0)
 		if allowLateMove && !givesCheck && !critical {
 			if move.IsQuiet() || seeSign(pos, move) {
-				// Reduce quiet and bad capture moves more at high depths and after many quiet moves.
+				// Reduce quie and bad capture moves more at high depths and after many quiet moves.
 				// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
 				lmr = 1 + min(depth, numMoves)/5
 			}
@@ -609,7 +604,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// Prune moves close to frontier.
 		if allowLeafsPruning && !givesCheck && !critical {
 			// Prune quiet moves that performed bad historically.
-			if bad, good := eng.history.get(move); bad > 16*good && (move.IsQuiet() || seeSign(pos, move)) {
+			if stat := eng.history.get(move); stat < -15 && (move.IsQuiet() || seeSign(pos, move)) {
 				dropped = true
 				eng.UndoMove()
 				continue
@@ -625,8 +620,13 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
 		if allowLeafsPruning && !givesCheck { // Update history scores.
-			eng.history.inc(move, score > α)
+			if score > α {
+				eng.history.add(move, 16)
+			} else {
+				eng.history.add(move, -1)
+			}
 		}
+
 		if score >= β { // Fail high, cut node.
 			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)

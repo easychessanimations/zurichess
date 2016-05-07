@@ -28,7 +28,13 @@ var (
 
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
-func mvvlva(m Move) int16 {
+func mvvlva(h historyTable, m Move) int16 {
+	if m.IsQuiet() {
+		// Sort quiet moves by how well they performed.
+		// Start at a very low score (-20000) so it doesn't overlap good/bad captures range.
+		return int16(-20000 + h.get(m))
+	}
+
 	a := m.Target().Figure()
 	v := m.Capture().Figure()
 	return mvvlvaBonus[v]*64 - mvvlvaBonus[a]
@@ -49,6 +55,7 @@ type moveStack struct {
 type stack struct {
 	position *Position
 	moves    []moveStack
+	history  historyTable
 }
 
 // Reset clear the stack for a new position.
@@ -91,7 +98,7 @@ func (st *stack) generateMoves(kind int) {
 	}
 	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
 	for _, m := range ms.moves {
-		ms.order = append(ms.order, mvvlva(m))
+		ms.order = append(ms.order, mvvlva(st.history, m))
 	}
 }
 
@@ -197,6 +204,7 @@ func (st *stack) PopMove() Move {
 			st.generateMoves(Tactical | Quiet)
 
 		case msReturnRest:
+			st.moveBest()
 			if m := st.popFront(); m == NullMove {
 				ms.state = msDone
 			} else if m == ms.hash || st.IsKiller(m) {
@@ -221,6 +229,7 @@ func (st *stack) IsKiller(m Move) bool {
 
 // SaveKiller saves a killer move, m.
 func (st *stack) SaveKiller(m Move) {
+	st.history.add(m, 1)
 	ms := &st.moves[st.position.Ply]
 	if !m.IsViolent() {
 		// Move the newly found killer first.
