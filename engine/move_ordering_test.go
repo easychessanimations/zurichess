@@ -11,13 +11,13 @@ import (
 func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 	for _, fen := range testFENs {
 		pos, _ := PositionFromFEN(fen)
-		st := &stack{} // no killer, no hash
+		st := &stack{history: newHistoryTable()} // no killer, no hash
 		st.Reset(pos)
 		st.GenerateMoves(Violent, NullMove)
 
 		limit := int16(0x7fff)
 		for move := st.PopMove(); move != NullMove; move = st.PopMove() {
-			if curr := mvvlva(move); curr > limit {
+			if curr := mvvlva(st.history, move); curr > limit {
 				t.Errorf("moves not sorted: %v", move)
 			} else {
 				limit = curr
@@ -51,7 +51,7 @@ func TestReturnsMoves(t *testing.T) {
 			seen[m] |= 1
 		}
 
-		st := &stack{}
+		st := &stack{history: newHistoryTable()}
 		st.Reset(pos)
 		st.GenerateMoves(All, moves[1234567891%len(moves)])
 		for m := st.PopMove(); m != NullMove; m = st.PopMove() {
