@@ -28,7 +28,7 @@ var (
 
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
-func mvvlva(h historyTable, m Move) int16 {
+func mvvlva(h *historyTable, m Move) int16 {
 	if m.IsQuiet() {
 		// Sort quiet moves by how well they performed.
 		// Start at a very low score (-20000) so it doesn't overlap good/bad captures range.
@@ -55,7 +55,7 @@ type moveStack struct {
 type stack struct {
 	position *Position
 	moves    []moveStack
-	history  historyTable
+	history  *historyTable
 }
 
 // Reset clear the stack for a new position.

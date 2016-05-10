@@ -110,11 +110,7 @@ type historyEntry struct {
 //
 // old moves are automatically evicted when new moves are inserted
 // so this cache is approx. LRU.
-type historyTable []historyEntry
-
-func newHistoryTable() historyTable {
-	return make([]historyEntry, 1024)
-}
+type historyTable [1024]historyEntry
 
 // historyHash hashes the move and returns an index into the history table.
 func historyHash(m Move) uint32 {
@@ -128,7 +124,7 @@ func historyHash(m Move) uint32 {
 // get returns counters for m, i.e. pair of (bad, good)
 //
 // TODO: consider returning only if the move is good or bad.
-func (ht historyTable) get(m Move) int32 {
+func (ht *historyTable) get(m Move) int32 {
 	h := historyHash(m)
 	if ht[h].move != m {
 		return 0
@@ -140,7 +136,7 @@ func (ht historyTable) get(m Move) int32 {
 //
 // Evicts an old move if necessary.
 // Counters start from 1 so probability is correctly estimated. TODO: insert reference.
-func (ht historyTable) add(m Move, delta int32) {
+func (ht *historyTable) add(m Move, delta int32) {
 	h := historyHash(m)
 	if ht[h].move != m {
 		ht[h] = historyEntry{stat: delta, move: m}
@@ -156,10 +152,10 @@ type Engine struct {
 	Stats    Stats     // search statistics
 	Position *Position // current Position
 
-	rootPly int          // position's ply at the start of the search
-	stack   stack        // stack of moves
-	pvTable pvTable      // principal variation table
-	history historyTable // keeps history of moves
+	rootPly int           // position's ply at the start of the search
+	stack   stack         // stack of moves
+	pvTable pvTable       // principal variation table
+	history *historyTable // keeps history of moves
 
 	timeControl *TimeControl
 	stopped     bool
@@ -176,8 +172,8 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 		Options: options,
 		Log:     log,
 		pvTable: newPvTable(),
-		history: newHistoryTable(),
-		stack:   stack{history: newHistoryTable()},
+		history: new(historyTable),
+		stack:   stack{history: new(historyTable)},
 	}
 	eng.SetPosition(pos)
 	return eng

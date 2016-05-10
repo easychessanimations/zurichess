@@ -11,7 +11,7 @@ import (
 func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 	for _, fen := range testFENs {
 		pos, _ := PositionFromFEN(fen)
-		st := &stack{history: newHistoryTable()} // no killer, no hash
+		st := &stack{history: new(historyTable)} // no killer, no hash
 		st.Reset(pos)
 		st.GenerateMoves(Violent, NullMove)
 
@@ -51,7 +51,7 @@ func TestReturnsMoves(t *testing.T) {
 			seen[m] |= 1
 		}
 
-		st := &stack{history: newHistoryTable()}
+		st := &stack{history: new(historyTable)}
 		st.Reset(pos)
 		st.GenerateMoves(All, moves[1234567891%len(moves)])
 		for m := st.PopMove(); m != NullMove; m = st.PopMove() {
