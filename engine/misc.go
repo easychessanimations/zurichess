@@ -9,12 +9,18 @@ const (
 	debrujinShift = 58
 )
 
-var debrujin64 = [64]uint{
-	0, 1, 2, 7, 3, 13, 8, 19, 4, 25, 14, 28, 9, 34, 20, 40,
-	5, 17, 26, 38, 15, 46, 29, 48, 10, 31, 35, 54, 21, 50, 41, 57,
-	63, 6, 12, 18, 24, 27, 33, 39, 16, 37, 45, 47, 30, 53, 49, 56,
-	62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58,
-}
+var (
+	// distance stores the number of king steps required
+	// to reach from one square to another on an empty board.
+	distance [SquareArraySize][SquareArraySize]int
+
+	debrujin64 = [64]uint{
+		0, 1, 2, 7, 3, 13, 8, 19, 4, 25, 14, 28, 9, 34, 20, 40,
+		5, 17, 26, 38, 15, 46, 29, 48, 10, 31, 35, 54, 21, 50, 41, 57,
+		63, 6, 12, 18, 24, 27, 33, 39, 16, 37, 45, 47, 30, 53, 49, 56,
+		62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58,
+	}
+)
 
 // logN returns the logarithm of n, where n is a power of two.
 func logN(n uint64) uint {
@@ -53,4 +59,23 @@ func min(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+func init() {
+	for i := SquareMinValue; i <= SquareMaxValue; i++ {
+		for j := SquareMinValue; j <= SquareMaxValue; j++ {
+			f, r := i.File()-j.File(), i.Rank()-j.Rank()
+			if f < 0 {
+				f = -f
+			}
+			if r < 0 {
+				r = -r
+			}
+			if f > r {
+				distance[i][j] = f
+			} else {
+				distance[i][j] = r
+			}
+		}
+	}
 }
