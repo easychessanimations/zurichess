@@ -528,12 +528,10 @@ func TestPawnPromotions(t *testing.T) {
 	pos.SideToMove = Black
 	te := &testEngine{T: t, Pos: pos}
 
-	te.Pawn(SquareF2, []string{"f2f1N", "f2f1B", "f2f1R", "f2f1Q"})
-	te.Pawn(SquareG2, []string{
-		"g2g1N", "g2g1B", "g2g1R", "g2g1Q",
-		"g2h1N", "g2h1B", "g2h1R", "g2h1Q"})
+	te.Pawn(SquareF2, []string{"f2f1n", "f2f1b", "f2f1r", "f2f1q"})
+	te.Pawn(SquareG2, []string{"g2g1n", "g2g1b", "g2g1r", "g2g1q", "g2h1n", "g2h1b", "g2h1r", "g2h1q"})
 
-	te.Move("g2h1N")
+	te.Move("g2h1n")
 	te.Piece(SquareG1, NoPiece)
 	te.Piece(SquareH1, BlackKnight)
 
@@ -541,7 +539,7 @@ func TestPawnPromotions(t *testing.T) {
 	te.Piece(SquareG2, BlackPawn)
 	te.Piece(SquareH1, WhiteRook)
 
-	te.Move("f2f1Q")
+	te.Move("f2f1q")
 	te.Piece(SquareF2, NoPiece)
 	te.Piece(SquareF1, BlackQueen)
 
@@ -615,9 +613,9 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
 	pos.Put(SquareB2, BlackPawn)
-	te.Pawn(SquareB2, []string{"b2b1N", "b2b1B", "b2b1R", "b2b1Q"})
+	te.Pawn(SquareB2, []string{"b2b1n", "b2b1b", "b2b1r", "b2b1q"})
 	pos.Put(SquareA2, BlackPawn)
-	te.Pawn(SquareA2, []string{"a2a1N", "a2a1B", "a2a1R", "a2a1Q"})
+	te.Pawn(SquareA2, []string{"a2a1n", "a2a1b", "a2a1r", "a2a1q"})
 }
 
 func TestSquareIsAttackedByKnight(t *testing.T) {

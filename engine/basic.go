@@ -17,7 +17,8 @@ import (
 
 var (
 	// maps figures to symbols for move notations
-	figureToSymbol = [...]string{"", "", "N", "B", "R", "Q", "K"}
+	lanFigureToSymbol = [...]string{"", "", "N", "B", "R", "Q", "K"}
+	uciFigureToSymbol = [...]string{"", "", "n", "b", "r", "q", "k"}
 	// pov xor mask indexed by color.
 	povMask = [ColorArraySize]Square{0x00, 0x38, 0x00}
 )
@@ -555,20 +556,20 @@ func (m Move) IsQuiet() bool {
 // The protocol specification at http://wbec-ridderkerk.nl/html/UCIProtocol.html
 // incorrectly states that this is the long algebraic notation (LAN).
 func (m Move) UCI() string {
-	return m.From().String() + m.To().String() + figureToSymbol[m.Promotion().Figure()]
+	return m.From().String() + m.To().String() + uciFigureToSymbol[m.Promotion().Figure()]
 }
 
 // LAN converts a move to Long Algebraic Notation.
 // http://en.wikipedia.org/wiki/Algebraic_notation_%28chess%29#Long_algebraic_notation
 // E.g. a2-a3, b7-b8Q, Nb1xc3
 func (m Move) LAN() string {
-	r := figureToSymbol[m.Piece().Figure()] + m.From().String()
+	r := lanFigureToSymbol[m.Piece().Figure()] + m.From().String()
 	if m.Capture() != NoPiece {
 		r += "x"
 	} else {
 		r += "-"
 	}
-	r += m.To().String() + figureToSymbol[m.Promotion().Figure()]
+	r += m.To().String() + lanFigureToSymbol[m.Promotion().Figure()]
 	return r
 }
 
