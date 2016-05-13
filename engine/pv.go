@@ -9,7 +9,6 @@ const (
 	pvTableMask = pvTableSize - 1
 )
 
-// TODO: Unexport pvEntry fields.
 type pvEntry struct {
 	// lock is used to handled hash conflicts.
 	// Normally set to position's Zobrist key.

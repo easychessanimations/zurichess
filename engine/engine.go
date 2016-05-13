@@ -121,9 +121,8 @@ func historyHash(m Move) uint32 {
 	return (h + (h << 17)) >> 22
 }
 
-// get returns counters for m, i.e. pair of (bad, good)
-//
-// TODO: consider returning only if the move is good or bad.
+// get returns the stats for a move, m.
+// If the move is not in the table, returns 0.
 func (ht *historyTable) get(m Move) int32 {
 	h := historyHash(m)
 	if ht[h].move != m {
@@ -133,9 +132,7 @@ func (ht *historyTable) get(m Move) int32 {
 }
 
 // inc increments the counters for m.
-//
 // Evicts an old move if necessary.
-// Counters start from 1 so probability is correctly estimated. TODO: insert reference.
 func (ht *historyTable) add(m Move, delta int32) {
 	h := historyHash(m)
 	if ht[h].move != m {
@@ -145,7 +142,7 @@ func (ht *historyTable) add(m Move, delta int32) {
 	}
 }
 
-// Engine implements the logic to search the best move for a position.
+// Engine implements the logic to search for the best move for a position.
 type Engine struct {
 	Options  Options   // engine options
 	Log      Logger    // logger
@@ -251,8 +248,7 @@ func (eng *Engine) retrieveHash() hashEntry {
 	}
 
 	// Return mate score relative to root.
-	// The score was adjusted relative to position before the
-	// hash table was updated.
+	// The score was adjusted relative to position before the hash table was updated.
 	if entry.score < KnownLossScore {
 		if entry.kind == exact {
 			entry.score += int16(eng.ply())
@@ -332,10 +328,8 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
-		// Prune futile moves that would anyway result in a stand-pat
-		// at that next depth.
+		// Prune futile moves that would anyway result in a stand-pat at that next depth.
 		if !inCheck && isFutile(pos, static, localα, futilityMargin, move) {
-			// TODO: should it update localα?
 			continue
 		}
 
@@ -367,7 +361,6 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 // tryMove makes a move and descends on the search tree.
 //
 // α, β represent lower and upper bounds.
-// ply is the move number (increasing).
 // depth is the remaining depth (decreasing)
 // lmr is how much to reduce a late move. Implies non-null move.
 // nullWindow indicates whether to scout first. Implies non-null move.
@@ -407,7 +400,7 @@ func (eng *Engine) ply() int32 {
 // TODO: The heuristic is incomplete and doesn't handled discovered passed pawns.
 func passed(pos *Position, m Move) bool {
 	if m.Piece().Figure() == Pawn {
-		// Checks no pawns are in front on its and adjacent files.
+		// Checks no pawns are in front and on its adjacent files.
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
 		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
@@ -416,7 +409,7 @@ func passed(pos *Position, m Move) bool {
 		}
 	}
 	if m.Capture().Figure() == Pawn {
-		// Checks no pawns are in front on its and adjacent files.
+		// Checks no pawns are in front and on its adjacent files.
 		bb := m.To().Bitboard()
 		bb = West(bb) | bb | East(bb)
 		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
@@ -587,7 +580,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 
 		// Reduce late quiet moves and bad captures.
-		// TODO: Do not compute see when in check.
 		lmr := int32(0)
 		if allowLateMove && !givesCheck && !critical {
 			if move.IsQuiet() || seeSign(pos, move) {
@@ -623,7 +615,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 
-		if score >= β { // Fail high, cut node.
+		if score >= β {
+			// Fail high, cut node.
 			eng.stack.SaveKiller(move)
 			eng.updateHash(α, β, depth, score, move)
 			return score

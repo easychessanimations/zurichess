@@ -134,17 +134,6 @@ func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
 func evaluatePawns(pos *Position, us Color) Eval {
 	var eval Eval
 	ours := pos.ByPiece(us, Pawn)
-
-	// From white's POV (P - white pawn, p - black pawn).
-	// block   wings
-	// ....... .....
-	// .....P. .....
-	// .....x. .....
-	// ..p..x. .....
-	// .xxx.x. .xPx.
-	// .xxx.x. .....
-	// .xxx.x. .....
-	// .xxx.x. .....
 	wings := East(ours) | West(ours)
 	double := ours & Backward(us, ours)
 	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
@@ -301,7 +290,6 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 
 // EvaluatePosition evalues position exported to be used by the tuner.
 func EvaluatePosition(pos *Position) Eval {
-	// TODO: export from to score_coach.go.
 	var eval Eval
 	evaluateSide(pos, Black, &eval)
 	eval.neg()
@@ -310,7 +298,7 @@ func EvaluatePosition(pos *Position) Eval {
 }
 
 // Evaluate evaluates position from White's POV.
-// Scores fits into a int16.
+// The returned s fits into a int16.
 func Evaluate(pos *Position) int32 {
 	eval := EvaluatePosition(pos)
 	score := eval.Feed(Phase(pos))
@@ -330,6 +318,16 @@ func Phase(pos *Position) int32 {
 }
 
 // passedPawns returns all passed pawns of us in pos.
+// From white's POV: w - white pawn, b - black pawn, x - non-passed pawns.
+// ........
+// ........
+// .....w..
+// .....x..
+// ..b..x..
+// .xxx.x..
+// .xxx.x..
+// .xxx.x..
+// .xxx.x..
 func passedPawns(pos *Position, us Color) Bitboard {
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(us.Opposite(), Pawn)
