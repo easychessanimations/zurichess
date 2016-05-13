@@ -460,7 +460,13 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	// Verify that this is not already an endgame.
 	if score, done := eng.endPosition(); done {
-		return score
+		if ply != 0 || score != 0 {
+			// At root we ignore draws because some GUIs don't properly detect
+			// theoretical draws. E.g. cutechess doesn't detect that kings and
+			// bishops when all bishops are on the same color. If the position
+			// is a theoretical draw, keep searching for a move.
+			return score
+		}
 	}
 
 	// Mate pruning: If an ancestor already has a mate in ply moves then

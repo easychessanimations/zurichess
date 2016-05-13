@@ -965,3 +965,35 @@ func TestHalfMoveClock(t *testing.T) {
 		}
 	}
 }
+
+func TestInsufficientMaterial(t *testing.T) {
+	data := []struct {
+		fen  string
+		draw bool
+	}{
+		{"8/8/5k2/8/8/8/1K6/8 w - - 0 1", true},
+		{"8/3N4/5k2/2K5/8/8/8/8 w - - 0 1", true},
+		{"8/8/5k2/8/3b4/8/1K6/8 w - - 0 1", true},
+		{"8/8/5k2/8/3b4/4B3/1K3B2/8 w - - 0 1", true},
+
+		{"7b/1K2k3/6B1/8/8/8/8/3B4 w - - 6 4", false},
+		{"7b/3B4/4B3/8/8/8/4k1K1/8 b - - 2 2", false},
+		{"8/5K2/8/4k2B/7b/8/B7/8 b - - 5 3", false},
+		{"8/8/2B5/8/2k2K1B/8/8/8 b - - 0 14", false},
+		{"8/8/8/4K3/4B2B/2k5/8/8 b - - 0 37", false},
+		{fenKiwipete, false},
+
+		// Cutechess doesn't see draws in this position.
+		{"3K4/1b6/8/kB5B/8/8/8/8 w - - 0 1", true},
+		{"B7/8/8/3K3B/8/8/7k/5b2 w - - 1 2", true},
+		{"8/4BK2/2k5/8/1B6/8/8/8 b - - 0 2", true},
+	}
+
+	for i, d := range data {
+		pos, _ := PositionFromFEN(d.fen)
+		if want, got := d.draw, pos.InsufficientMaterial(); want != got {
+			t.Errorf("#%d for %s expected InsufficientMaterial %v, got %v", i, pos, want, got)
+		}
+	}
+
+}

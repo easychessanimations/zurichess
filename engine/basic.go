@@ -263,8 +263,8 @@ const (
 	BbBorder         Bitboard = 0xff818181818181ff
 	BbPawnStartRank  Bitboard = 0x00ff00000000ff00
 	BbPawnDoubleRank Bitboard = 0x000000ffff000000
-	BbBlackSquares   Bitboard = 0xaa55aa552a55aa55
-	BbWhiteSquares   Bitboard = 0xd5aa55aad5aa55aa
+	BbBlackSquares   Bitboard = 0xaa55aa55aa55aa55
+	BbWhiteSquares   Bitboard = 0x55aa55aa55aa55aa
 )
 
 const (

@@ -465,8 +465,7 @@ func (pos *Position) InsufficientMaterial() bool {
 	}
 	// KB* vs KB* is theoretical draw if all bishops are on the same square color.
 	if bishops := pos.ByFigure[Bishop]; noKings == bishops {
-		if bishops&BbWhiteSquares == bishops ||
-			bishops&BbBlackSquares == bishops {
+		if bishops&BbWhiteSquares == bishops || bishops&BbBlackSquares == bishops {
 			return true
 		}
 	}
