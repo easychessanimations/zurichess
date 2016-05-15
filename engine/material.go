@@ -30,20 +30,21 @@ var (
 	// extracted from the position. These features are symmetrical wrt to colors.
 	// The network is trained using the Texel's Tuning Method
 	// https://chessprogramming.wikispaces.com/Texel%27s+Tuning+Method.
-	Weights = [98]Score{
-		{M: -48, E: -240}, {M: 10807, E: 10843}, {M: 43288, E: 27245}, {M: 45684, E: 31056}, {M: 63731, E: 60993}, {M: 181992, E: 83297}, {M: -56, E: 12}, {M: -78, E: -25},
-		{M: 929, E: 2804}, {M: 1285, E: 1388}, {M: 906, E: 925}, {M: 874, E: 479}, {M: 281, E: 449}, {M: -159, E: -867}, {M: -288, E: 235}, {M: -1764, E: 812},
-		{M: -1967, E: 599}, {M: -255, E: -1939}, {M: -1134, E: -32}, {M: 3166, E: 26}, {M: 2062, E: -995}, {M: -1359, E: -2497}, {M: -101, E: 57}, {M: -1676, E: -12},
-		{M: -1405, E: -1000}, {M: -1299, E: -506}, {M: 167, E: -42}, {M: 287, E: 47}, {M: 1112, E: -1426}, {M: -918, E: -1028}, {M: -123, E: 957}, {M: -1316, E: 956},
-		{M: 397, E: -1076}, {M: 1340, E: -1923}, {M: 748, E: -390}, {M: -753, E: -545}, {M: -1208, E: -100}, {M: -1552, E: -152}, {M: -84, E: 3537}, {M: 33, E: 1946},
-		{M: -189, E: 98}, {M: 847, E: -961}, {M: 697, E: 81}, {M: 433, E: -245}, {M: 8, E: 625}, {M: -1397, E: 693}, {M: 844, E: 5027}, {M: 831, E: 3292},
-		{M: 478, E: 2040}, {M: 1348, E: -832}, {M: -63, E: -1174}, {M: 6036, E: -119}, {M: 1861, E: 899}, {M: 2830, E: 83}, {M: 468, E: 2380}, {M: 348, E: 2179},
-		{M: 45, E: 248}, {M: 374, E: -416}, {M: -95, E: -733}, {M: 138, E: -440}, {M: 154, E: 181}, {M: -423, E: 150}, {M: 10, E: -128}, {M: 47, E: 1691},
-		{M: -949, E: 2327}, {M: 60, E: 4967}, {M: 4223, E: 7314}, {M: 11073, E: 12313}, {M: 23024, E: 16587}, {M: -93, E: 61}, {M: 17, E: -7178}, {M: -1017, E: -1331},
-		{M: -1471, E: -181}, {M: -27, E: 214}, {M: 81, E: 992}, {M: 204, E: 2267}, {M: 637, E: 1150}, {M: -337, E: -5214}, {M: -203, E: -3956}, {M: 3070, E: -177},
-		{M: 3313, E: 558}, {M: -2856, E: 1692}, {M: -372, E: 1661}, {M: -1920, E: 2101}, {M: 5799, E: -749}, {M: 3161, E: -5010}, {M: -127, E: 11}, {M: 1731, E: -281},
-		{M: 6030, E: -2034}, {M: 5750, E: -193}, {M: 1537, E: 2}, {M: -534, E: 68}, {M: -670, E: -1376}, {M: 2317, E: 212}, {M: -2575, E: 1406}, {M: 5165, E: 6489},
-		{M: 4570, E: -15}, {M: 1507, E: 684},
+	Weights = [106]Score{
+		{M: -48, E: -197}, {M: 14305, E: 11977}, {M: 63129, E: 45056}, {M: 67751, E: 51779}, {M: 89497, E: 95498}, {M: 194880, E: 177272}, {M: -194, E: 148}, {M: -5, E: -23},
+		{M: 1308, E: 2568}, {M: 2585, E: 1564}, {M: 1688, E: 737}, {M: 1340, E: 540}, {M: 434, E: 1292}, {M: -388, E: -1534}, {M: -2479, E: 2796}, {M: -2633, E: 2632},
+		{M: -2372, E: 1753}, {M: -53, E: -318}, {M: -2680, E: -16}, {M: 5294, E: -1130}, {M: 3531, E: -1650}, {M: -2597, E: -2385}, {M: -2224, E: 1607}, {M: -4007, E: 2081},
+		{M: -1232, E: -58}, {M: -2129, E: -1177}, {M: -52, E: 286}, {M: 23, E: -260}, {M: 1764, E: -1582}, {M: -2557, E: -848}, {M: -2309, E: 3980}, {M: -4601, E: 3469},
+		{M: 433, E: -49}, {M: 2468, E: -1636}, {M: 991, E: -704}, {M: 1225, E: -1058}, {M: -1490, E: 445}, {M: -3576, E: 868}, {M: -1960, E: 6101}, {M: -3107, E: 5417},
+		{M: 228, E: 1245}, {M: 1636, E: -2320}, {M: 57, E: -402}, {M: 2061, E: 160}, {M: 10, E: 1812}, {M: -4100, E: 3280}, {M: -64, E: 9256}, {M: 774, E: 6799},
+		{M: 9631, E: -645}, {M: 6694, E: -4773}, {M: 14417, E: -6842}, {M: 11401, E: -242}, {M: 6446, E: 2744}, {M: 4732, E: 5393}, {M: 3338, E: 1512}, {M: 4808, E: -27},
+		{M: 105, E: 197}, {M: 304, E: -5895}, {M: -170, E: -3773}, {M: 4517, E: -3231}, {M: -19689, E: 8711}, {M: -12345, E: 76}, {M: 112, E: 119}, {M: 1560, E: 1316},
+		{M: 1147, E: 1880}, {M: 622, E: 5979}, {M: 5384, E: 10933}, {M: 3264, E: 25213}, {M: 16315, E: 39103}, {M: 16, E: 123}, {M: -24, E: -75}, {M: -2267, E: 4528},
+		{M: -1895, E: 3267}, {M: -1164, E: -559}, {M: -5547, E: -758}, {M: -8037, E: 12}, {M: -9102, E: 2026}, {M: -5211, E: 871}, {M: 1351, E: -9069}, {M: -1, E: -57},
+		{M: -2474, E: 848}, {M: -5125, E: 1141}, {M: -5116, E: 2042}, {M: 3214, E: 2151}, {M: 1829, E: -683}, {M: -141, E: -9639}, {M: -294, E: -7841}, {M: 6227, E: -458},
+		{M: 3730, E: 2071}, {M: -9084, E: 5498}, {M: -504, E: 4429}, {M: -2178, E: 4695}, {M: 8819, E: -73}, {M: 4297, E: -6127}, {M: 3, E: 253}, {M: 3035, E: -1054},
+		{M: 11315, E: -4018}, {M: 13936, E: -3868}, {M: 2265, E: 807}, {M: -632, E: 309}, {M: -973, E: -1189}, {M: 15556, E: 8738}, {M: -4565, E: 2298}, {M: 7482, E: 8668},
+		{M: 8235, E: -1635}, {M: 3112, E: 1038},
 	}
 
 	// Named chunks of Weights
@@ -51,6 +52,7 @@ var (
 	wMobility           [FigureArraySize]Score
 	wPawn               [48]Score
 	wPassedPawn         [8]Score
+	wPassedPawnKing     [8]Score
 	wKingRank           [8]Score
 	wKingFile           [8]Score
 	wKingAttack         [4]Score
@@ -87,6 +89,7 @@ func init() {
 	w = slice(w, wMobility[:])
 	w = slice(w, wPawn[:])
 	w = slice(w, wPassedPawn[:])
+	w = slice(w, wPassedPawnKing[:])
 	w = slice(w, wKingRank[:])
 	w = slice(w, wKingFile[:])
 	w = slice(w, wKingAttack[:])
@@ -140,6 +143,9 @@ func evaluatePawns(pos *Position, us Color) Eval {
 	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
 	passed := passedPawns(pos, us)                            // no pawn in front and no enemy on the adjacent files
 
+	kingPawnDist := 8
+	kingSq := pos.ByPiece(us, King).AsSquare()
+
 	for bb := ours; bb != 0; {
 		sq := bb.Pop()
 		povSq := sq.POV(us)
@@ -150,6 +156,9 @@ func evaluatePawns(pos *Position, us Color) Eval {
 
 		if passed.Has(sq) {
 			eval.add(wPassedPawn[rank])
+			if kingPawnDist > distance[sq][kingSq] {
+				kingPawnDist = distance[sq][kingSq]
+			}
 		}
 		if connected.Has(sq) {
 			eval.add(wConnectedPawn)
@@ -160,6 +169,11 @@ func evaluatePawns(pos *Position, us Color) Eval {
 		if isolated.Has(sq) {
 			eval.add(wIsolatedPawn)
 		}
+	}
+
+	if kingPawnDist != 8 && pos.ByPiece(us.Opposite(), Queen) == 0 {
+		// Add a bonus for king protecting most advance pawn.
+		eval.add(wPassedPawnKing[kingPawnDist])
 	}
 
 	return eval
