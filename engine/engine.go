@@ -598,7 +598,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// Prune moves close to frontier.
 		if allowLeafsPruning && !givesCheck && !critical {
 			// Prune quiet moves that performed bad historically.
-			if stat := eng.history.get(move); stat < -15 && (move.IsQuiet() || seeSign(pos, move)) {
+			if stat := eng.history.get(move); stat < -10 && (move.IsQuiet() || seeSign(pos, move)) {
 				dropped = true
 				eng.UndoMove()
 				continue
@@ -615,7 +615,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
 		if allowLeafsPruning && !givesCheck { // Update history scores.
 			if score > α {
-				eng.history.add(move, 16)
+				eng.history.add(move, 20)
 			} else {
 				eng.history.add(move, -1)
 			}
