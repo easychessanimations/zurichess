@@ -50,10 +50,9 @@ func initJumpAttack(jump [][2]int, attack []Bitboard) {
 			bb := Bitboard(0)
 			for _, d := range jump {
 				r0, f0 := r+d[0], f+d[1]
-				if 0 > r0 || r0 >= 8 || 0 > f0 || f0 >= 8 {
-					continue
+				if 0 <= r0 && r0 < 8 && 0 <= f0 && f0 < 8 {
+					bb |= RankFile(r0, f0).Bitboard()
 				}
-				bb |= RankFile(r0, f0).Bitboard()
 			}
 			attack[RankFile(r, f)] = bb
 		}
@@ -61,9 +60,7 @@ func initJumpAttack(jump [][2]int, attack []Bitboard) {
 }
 
 func initBbPawnAttack() {
-	pawnJump := [][2]int{
-		{-1, -1}, {-1, +1}, {+1, +1}, {+1, -1},
-	}
+	pawnJump := [][2]int{{-1, -1}, {-1, +1}, {+1, +1}, {+1, -1}}
 	initJumpAttack(pawnJump, bbPawnAttack[:])
 }
 
@@ -77,8 +74,9 @@ func initBbKnightAttack() {
 
 func initBbKingAttack() {
 	kingJump := [][2]int{
-		{-1, -1}, {-1, +0}, {-1, +1}, {+0, +1},
-		{+1, +1}, {+1, +0}, {+1, -1}, {+0, -1},
+		{-1, -1}, {-1, +0}, {-1, +1},
+		{+0, +1}, {+0, -1},
+		{+1, +1}, {+1, +0}, {+1, -1},
 	}
 	initJumpAttack(kingJump, bbKingAttack[:])
 }
@@ -102,18 +100,15 @@ func slidingAttack(sq Square, deltas [][2]int, occupancy Bitboard) Bitboard {
 	r, f := sq.Rank(), sq.File()
 	bb := Bitboard(0)
 	for _, d := range deltas {
-		r0, f0 := r, f
-		for {
+		for r0, f0 := r, f; ; {
 			r0, f0 = r0+d[0], f0+d[1]
 			if 0 > r0 || r0 >= 8 || 0 > f0 || f0 >= 8 {
-				// Stop when outside of the board.
-				break
+				break // Stop when outside of the board.
 			}
 			sq0 := RankFile(r0, f0)
 			bb |= sq0.Bitboard()
-			if occupancy&sq0.Bitboard() != 0 {
-				// Stop when a piece was hit.
-				break
+			if occupancy.Has(sq0) {
+				break // Stop when a piece was hit.
 			}
 		}
 	}
@@ -222,10 +217,9 @@ func (wiz *wizard) prepare(sq Square) {
 	}
 }
 
-func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
+func (wiz *wizard) searchSquareMagic(sq Square, mi *magicInfo) {
 	if wiz.shifts[sq] != 0 && wiz.shifts[sq] <= wiz.MinShift {
-		// Don't search if shift is low enough.
-		return
+		return // Don't search if shift is low enough.
 	}
 
 	// Try magic numbers with small shifts.
@@ -239,7 +233,6 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 		} else {
 			shift = wiz.shifts[sq] - 1
 		}
-
 		if shift >= 16 {
 			panic("shift too large, should fit in 4 bits")
 		}
@@ -254,13 +247,13 @@ func (wiz *wizard) searchMagic(sq Square, mi *magicInfo) {
 }
 
 // SearchMagic finds new magics.
-func (wiz *wizard) SearchMagics(mi []magicInfo) {
+func (wiz *wizard) searchMagic(mi []magicInfo) {
 	numEntries := uint(math.MaxUint32)
 	minShift := uint(math.MaxUint32)
 	for numEntries > wiz.MaxNumEntries {
 		numEntries = 0
 		for sq := SquareMinValue; sq <= SquareMaxValue; sq++ {
-			wiz.searchMagic(sq, &mi[sq])
+			wiz.searchSquareMagic(sq, &mi[sq])
 			numEntries += 1 << wiz.shifts[sq]
 			if minShift > wiz.shifts[sq] {
 				minShift = wiz.shifts[sq]
@@ -287,7 +280,6 @@ func initRookMagic() {
 
 	// A set of known good magics for rook.
 	// Finding good rook magics is slow, so we just use some precomputed values.
-	// For readability reasons, do not make an array.
 	wiz.SetMagic(rookMagic[:], SquareA1, 15024008494657323012, 12)
 	wiz.SetMagic(rookMagic[:], SquareA2, 15420465862145998980, 11)
 	wiz.SetMagic(rookMagic[:], SquareA3, 15420360858248675456, 11)
@@ -354,7 +346,7 @@ func initRookMagic() {
 	wiz.SetMagic(rookMagic[:], SquareH8, 15060041556272906338, 12)
 
 	// Enable the next line to find new magics.
-	// wiz.SearchMagics(rookMagic[:])
+	// wiz.searchMagic(rookMagic[:])
 }
 
 func initBishopMagic() {
@@ -367,7 +359,7 @@ func initBishopMagic() {
 	}
 
 	// Bishop magics, unlike rook magics are easy to find.
-	wiz.SearchMagics(bishopMagic[:])
+	wiz.searchMagic(bishopMagic[:])
 }
 
 // KnightMobility returns all squares a knight can reach from sq.
