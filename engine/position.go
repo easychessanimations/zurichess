@@ -59,7 +59,7 @@ var (
 )
 
 type state struct {
-	Zobrist         uint64 // Zobrist key
+	Zobrist         uint64 // Zobrist key, can be zero
 	Move            Move   // last move played.
 	HalfmoveClock   int    // last ply when a pawn was moved or a capture was made.
 	EnpassantSquare Square // en passant square. If no e.p, then SquareA1.
@@ -176,9 +176,12 @@ func (pos *Position) LastMove() Move {
 	return pos.curr.Move
 }
 
-// Zobrist returns the zobrist key of the position.
+// Zobrist returns the zobrist key of the position. Never returns 0.
 func (pos *Position) Zobrist() uint64 {
-	return pos.curr.Zobrist
+	if pos.curr.Zobrist != 0 {
+		return pos.curr.Zobrist
+	}
+	return 0x4204fa763da3abeb
 }
 
 // MinorsAndMajors returns a bitboard with minor and major pieces.
