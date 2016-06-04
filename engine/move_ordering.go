@@ -105,14 +105,14 @@ func (st *stack) generateMoves(kind int) {
 // moveBest moves best move to front.
 func (st *stack) moveBest() {
 	ms := &st.moves[st.position.Ply]
-	if len(ms.moves) == 0 {
+	if len(ms.order) == 0 {
 		return
 	}
 
-	bi := 0
-	for i := range ms.moves {
-		if ms.order[i] > ms.order[bi] {
-			bi = i
+	bi, bo := 0, ms.order[0]
+	for i := range ms.order {
+		if ms.order[i] > bo {
+			bi, bo = i, ms.order[i]
 		}
 	}
 
