@@ -198,9 +198,17 @@ func (eng *Engine) UndoMove() {
 
 // Score evaluates current position from current player's POV.
 func (eng *Engine) Score() int32 {
-	score := Evaluate(eng.Position)
-	score *= eng.Position.Us().Multiplier()
-	return score
+	return Evaluate(eng.Position) * eng.Position.Us().Multiplier()
+}
+
+// cachedScore implements a cache on top of Score.
+// The cached static evaluation is stored in the hashEntry.
+func (eng *Engine) cachedScore(e *hashEntry) int32 {
+	if e.kind&hasStatic == 0 {
+		e.kind |= hasStatic
+		e.static = int16(eng.Score())
+	}
+	return int32(e.static)
 }
 
 // endPosition determines whether the current position is an end game.
@@ -238,7 +246,7 @@ func (eng *Engine) endPosition() (int32, bool) {
 func (eng *Engine) retrieveHash() hashEntry {
 	entry := GlobalHashTable.get(eng.Position)
 
-	if entry.kind == noEntry {
+	if entry.kind == 0 {
 		eng.Stats.CacheMiss++
 		return hashEntry{}
 	}
@@ -250,11 +258,11 @@ func (eng *Engine) retrieveHash() hashEntry {
 	// Return mate score relative to root.
 	// The score was adjusted relative to position before the hash table was updated.
 	if entry.score < KnownLossScore {
-		if entry.kind == exact {
+		if entry.kind&exact != 0 {
 			entry.score += int16(eng.ply())
 		}
 	} else if entry.score > KnownWinScore {
-		if entry.kind == exact {
+		if entry.kind&exact != 0 {
 			entry.score -= int16(eng.ply())
 		}
 	}
@@ -264,24 +272,17 @@ func (eng *Engine) retrieveHash() hashEntry {
 }
 
 // updateHash updates GlobalHashTable with the current position.
-func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
-	kind := exact
-	if score <= α {
-		kind = failedLow
-	} else if score >= β {
-		kind = failedHigh
-	}
-
+func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, static int32) {
 	// Save the mate score relative to the current position.
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
-		if kind == exact {
+		if flags&exact != 0 {
 			score -= eng.ply()
 		} else {
 			return
 		}
 	} else if score > KnownWinScore {
-		if kind == exact {
+		if flags&exact != 0 {
 			score += eng.ply()
 		} else {
 			return
@@ -289,10 +290,11 @@ func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
 	}
 
 	GlobalHashTable.put(eng.Position, hashEntry{
-		kind:  kind,
-		score: int16(score),
-		depth: int8(depth),
-		move:  move,
+		kind:   flags,
+		score:  int16(score),
+		depth:  int8(depth),
+		move:   move,
+		static: int16(static),
 	})
 }
 
@@ -307,12 +309,18 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 		return score
 	}
 
+	entry := eng.retrieveHash()
+	if score := int32(entry.score); isInBounds(entry.kind, α, β, score) {
+		return score
+	}
+
 	// Stand pat.
 	// TODO: Some suggest to not stand pat when in check.
 	// However, I did several tests and handling checks in quiescence
 	// doesn't help at all.
-	static := eng.Score()
+	static := eng.cachedScore(&entry)
 	if static >= β {
+		eng.updateHash(failedHigh|hasStatic, 0, static, NullMove, static)
 		return static
 	}
 
@@ -340,6 +348,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 		eng.UndoMove()
 
 		if score >= β {
+			eng.updateHash(failedHigh|hasStatic, 0, score, move, static)
 			return score
 		}
 		if score > localα {
@@ -351,6 +360,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	if α < localα && localα < β {
 		eng.pvTable.Put(eng.Position, bestMove)
 	}
+	eng.updateHash(getBound(α, β, localα)|hasStatic, 0, localα, bestMove, static)
 	return localα
 }
 
@@ -393,7 +403,7 @@ func (eng *Engine) ply() int32 {
 
 // passed returns true if a passed pawn appears or disappears.
 //
-// TODO: The heuristic is incomplete and doesn't handled discovered passed pawns.
+// TODO: The heuristic is incomplete and doesn't handle discovered passed pawns.
 func passed(pos *Position, m Move) bool {
 	if m.Piece().Figure() == Pawn {
 		// Checks no pawns are in front and on its adjacent files.
@@ -472,26 +482,15 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	// Check the transposition table.
+	// Entry will store the cached static evaluation which may be computed later.
 	entry := eng.retrieveHash()
 	hash := entry.move
-	if entry.kind != noEntry && depth <= int32(entry.depth) {
-		score := int32(entry.score)
-		if entry.kind == exact {
-			// Simply return if the score is exact.
-			// Update principal variation table if possible.
-			if α < score && score < β {
+	if entry.kind != 0 && depth <= int32(entry.depth) {
+		if score := int32(entry.score); isInBounds(entry.kind, α, β, score) {
+			if entry.kind&exact != 0 && α < score && score < β {
+				// Update principal variation table if possible.
 				eng.pvTable.Put(pos, hash)
 			}
-			return score
-		}
-		if entry.kind == failedLow && score <= α {
-			// Previously the move failed low so the actual score is at most
-			// entry.score. If that's lower than α this will also fail low.
-			return score
-		}
-		if entry.kind == failedHigh && score >= β {
-			// Previously the move failed high so the actual score is at least
-			// entry.score. If that's higher than β this will also fail high.
 			return score
 		}
 	}
@@ -501,12 +500,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// This is already won / lost and quiescence cannot change
 		// that because it only looks at violent moves.
 		if α >= KnownWinScore || β <= KnownLossScore {
-			return eng.Score()
+			return eng.cachedScore(&entry)
 		}
-
 		// Depth can be < 0 due to aggressive LMR.
 		score := eng.searchQuiescence(α, β)
-		eng.updateHash(α, β, depth, score, NullMove)
 		return score
 	}
 
@@ -541,7 +538,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
 		allowLeafsPruning = true
-		static = eng.Score()
+		static = eng.cachedScore(&entry)
 	}
 
 	// Principal variation search: search with a null window if there is already a good move.
@@ -620,7 +617,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if score >= β {
 			// Fail high, cut node.
 			eng.stack.SaveKiller(move)
-			eng.updateHash(α, β, depth, score, move)
+			eng.updateHash(failedHigh|(entry.kind&hasStatic), depth, score, move, int32(entry.static))
 			return score
 		}
 		if score > bestScore {
@@ -640,7 +637,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 		// Update hash and principal variation tables.
-		eng.updateHash(α, β, depth, bestScore, bestMove)
+		eng.updateHash(getBound(α, β, bestScore)|(entry.kind&hasStatic), depth, bestScore, bestMove, int32(entry.static))
 		if α < bestScore && bestScore < β {
 			eng.pvTable.Put(pos, bestMove)
 		}
