@@ -277,16 +277,12 @@ func (eng *Engine) updateHash(α, β, depth, score int32, move Move) {
 	if score < KnownLossScore {
 		if kind == exact {
 			score -= eng.ply()
-		} else if kind == failedLow {
-			score = KnownLossScore
 		} else {
 			return
 		}
 	} else if score > KnownWinScore {
 		if kind == exact {
 			score += eng.ply()
-		} else if kind == failedHigh {
-			score = KnownWinScore
 		} else {
 			return
 		}
