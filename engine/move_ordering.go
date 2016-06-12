@@ -102,6 +102,24 @@ func (st *stack) generateMoves(kind int) {
 	}
 }
 
+// Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.
+var shellSortGaps = [...]int{132, 57, 23, 10, 4, 1}
+
+func (st *stack) sort() {
+	ms := &st.moves[st.position.Ply]
+	for _, gap := range shellSortGaps {
+		for i := gap; i < len(ms.order); i++ {
+			j := i
+			to, tm := ms.order[j], ms.moves[j]
+			for ; j >= gap && ms.order[j-gap] > to; j -= gap {
+				ms.order[j] = ms.order[j-gap]
+				ms.moves[j] = ms.moves[j-gap]
+			}
+			ms.order[j], ms.moves[j] = to, tm
+		}
+	}
+}
+
 // moveBest moves best move to front.
 func (st *stack) moveBest() {
 	ms := &st.moves[st.position.Ply]
@@ -202,9 +220,9 @@ func (st *stack) PopMove() Move {
 		case msGenRest:
 			ms.state = msReturnRest
 			st.generateMoves(Tactical | Quiet)
+			st.sort()
 
 		case msReturnRest:
-			st.moveBest()
 			if m := st.popFront(); m == NullMove {
 				ms.state = msDone
 			} else if m == ms.hash || st.IsKiller(m) {
