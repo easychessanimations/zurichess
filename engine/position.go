@@ -480,12 +480,13 @@ func (pos *Position) InsufficientMaterial() bool {
 func (pos *Position) ThreeFoldRepetition() int {
 	c, z := 0, pos.Zobrist()
 	for i := 0; i < len(pos.states) && i <= pos.curr.HalfmoveClock; i += 2 {
-		if pos.states[len(pos.states)-1-i].Move == NullMove {
+		j := len(pos.states) - 1 - i
+		if j != 0 && pos.states[j].Move == NullMove {
 			// Search uses NullMove for Null Move Pruning heuristic.  A couple of consecutive
 			// NullMoves results in a repeated position, but it's not actually a repeat.
 			break
 		}
-		if pos.states[len(pos.states)-1-i].Zobrist == z {
+		if pos.states[j].Zobrist == z {
 			if c++; c == 3 {
 				break
 			}
