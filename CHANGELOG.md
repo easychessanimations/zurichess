@@ -5,10 +5,20 @@ in alphabetical order.
 
 ## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (development)
 
+* graubuenden uses a new version of the Go compiler for an additional 30-40 Elo.
+* Hash quiescence search and static evaluation.
+* Improve Null Move Pruning: consider NullMove irreversible.
+* Simplify Late Move Pruning and History Leaf Pruning.
+* Shell sort quiet moves.
+* Evaluate king near passed pawns.
+* Evaluate knight's positions.
+* Usual code clean ups, speed ups and bug fixes.
+
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
 17.Apr.2016
 
 The theme of this release is king safety and leaf pruning.
+ELO is about 2554 on CCRL 40/40 and 2402 on CEGT 40/4.
 
 * Improve futility conditions. Geneva's futility is a bit too aggressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
