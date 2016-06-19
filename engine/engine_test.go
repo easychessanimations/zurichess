@@ -104,6 +104,83 @@ func TestPassed(t *testing.T) {
 	}
 }
 
+// pvLogger logs the PV.
+// It will panic if pvs are not in order.
+type pvLog struct {
+	depth   int32
+	multiPV int
+	score   int32
+	moves   []Move
+}
+
+type pvLogger []pvLog
+
+func (l *pvLogger) BeginSearch() {
+}
+
+func (l *pvLogger) EndSearch() {
+}
+
+func (l *pvLogger) PrintPV(stats Stats, multiPV int, score int32, moves []Move) {
+	*l = append(*l, pvLog{
+		depth:   stats.Depth,
+		multiPV: multiPV,
+		score:   score,
+		moves:   moves,
+	})
+}
+
+func TestMultiPV(t *testing.T) {
+	for f, fen := range testFENs {
+		pos, _ := PositionFromFEN(fen)
+		tc := NewFixedDepthTimeControl(pos, 4)
+		tc.Start(false)
+		pvl := pvLogger{}
+		eng := NewEngine(pos, &pvl, Options{MultiPV: 3})
+		eng.Play(tc)
+
+		// Check the number of iterations.
+		numIterations := 0
+		for i := range pvl {
+			if pvl[i].multiPV == 1 {
+				numIterations++
+			}
+		}
+		if numIterations != 4+1 {
+			t.Errorf("#%d %s: expected 4+1 iterations, got %d", numIterations)
+		}
+
+		// Check score and depth order.
+		for i := 1; i < len(pvl); i++ {
+			if pvl[i-1].depth > pvl[i].depth {
+				// TODO: this is not really correct if we repeat the PVS lines
+				t.Errorf("#%d %s: wrong depth order", f, fen)
+			}
+			if pvl[i-1].depth == pvl[i].depth && pvl[i-1].score < pvl[i].score {
+				t.Errorf("#%d %s: wrong score order", f, fen)
+			}
+		}
+
+		// Check different moves for the same iterations.
+		for i := range pvl {
+			for j := range pvl {
+				if i <= j {
+					continue
+				}
+				if pvl[i].depth != pvl[j].depth || pvl[i].multiPV == pvl[j].multiPV {
+					continue
+				}
+				if len(pvl[i].moves) == 0 || len(pvl[j].moves) == 0 {
+					continue
+				}
+				if pvl[i].moves[0] == pvl[j].moves[0] {
+					t.Errorf("#%d %s: got identical moves", f, fen)
+				}
+			}
+		}
+	}
+}
+
 func BenchmarkGame(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos, _ := PositionFromFEN(FENStartPos)

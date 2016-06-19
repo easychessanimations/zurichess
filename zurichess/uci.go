@@ -23,6 +23,10 @@ var (
 	errQuit = fmt.Errorf("quit")
 )
 
+const (
+	maxMultiPV = 16
+)
+
 // uciLogger outputs search in uci format.
 type uciLogger struct {
 	start time.Time
@@ -42,10 +46,10 @@ func (ul *uciLogger) EndSearch() {
 	ul.flush()
 }
 
-func (ul *uciLogger) PrintPV(stats engine.Stats, score int32, pv []engine.Move) {
+func (ul *uciLogger) PrintPV(stats engine.Stats, multiPV int, score int32, pv []engine.Move) {
 	// Write depth.
 	now := time.Now()
-	fmt.Fprintf(ul.buf, "info depth %d seldepth %d ", stats.Depth, stats.SelDepth)
+	fmt.Fprintf(ul.buf, "info depth %d seldepth %d multipv %d ", stats.Depth, stats.SelDepth, multiPV)
 
 	// Write score.
 	if score > engine.KnownWinScore {
@@ -163,9 +167,10 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("id name zurichess %v\n", buildVersion)
 	fmt.Printf("id author Alexandru Moșoi\n")
 	fmt.Printf("\n")
-	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", engine.DefaultHashTableSizeMB)
+	fmt.Printf("option name MultiPV type spin default %d min 1 max %d\n", uci.Engine.Options.MultiPV, maxMultiPV)
 	fmt.Printf("option name Ponder type check default true\n")
+	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Println("uciok")
 	return nil
 }
@@ -379,6 +384,15 @@ func (uci *UCI) setoption(line string) error {
 			return err
 		} else {
 			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
+		}
+		return nil
+	case "MultiPV":
+		if multiPV, err := strconv.ParseInt(option[3], 10, 64); err != nil {
+			return err
+		} else if 1 <= multiPV && multiPV <= maxMultiPV {
+			uci.Engine.Options.MultiPV = int(multiPV)
+		} else {
+			return fmt.Errorf("MultiPV must be between 1 and %d", maxMultiPV)
 		}
 		return nil
 	default:

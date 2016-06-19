@@ -60,6 +60,7 @@ const (
 // Options keeps engine's options.
 type Options struct {
 	AnalyseMode bool // true to display info strings
+	MultiPV     int
 }
 
 // Stats stores statistics about the search.
@@ -84,7 +85,7 @@ type Logger interface {
 	EndSearch()
 	// PrintPV logs the principal variation after
 	// iterative deepening completed one depth.
-	PrintPV(stats Stats, score int32, pv []Move)
+	PrintPV(stats Stats, multiPV int, score int32, pv []Move)
 }
 
 // NulLogger is a logger that does nothing.
@@ -97,7 +98,7 @@ func (nl *NulLogger) BeginSearch() {
 func (nl *NulLogger) EndSearch() {
 }
 
-func (nl *NulLogger) PrintPV(stats Stats, score int32, pv []Move) {
+func (nl *NulLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {
 }
 
 // historyEntry keeps counts of how well move performed in the past.
@@ -149,10 +150,11 @@ type Engine struct {
 	Stats    Stats     // search statistics
 	Position *Position // current Position
 
-	rootPly int           // position's ply at the start of the search
-	stack   stack         // stack of moves
-	pvTable pvTable       // principal variation table
-	history *historyTable // keeps history of moves
+	rootPly         int           // position's ply at the start of the search
+	stack           stack         // stack of moves
+	pvTable         pvTable       // principal variation table
+	history         *historyTable // keeps history of moves
+	ignoreRootMoves []Move        // moves to ignore at root
 
 	timeControl *TimeControl
 	stopped     bool
@@ -162,6 +164,10 @@ type Engine struct {
 // NewEngine creates a new engine to search for pos.
 // If pos is nil then the start position is used.
 func NewEngine(pos *Position, log Logger, options Options) *Engine {
+	if options.MultiPV == 0 {
+		options.MultiPV = 1
+	}
+
 	if log == nil {
 		log = &NulLogger{}
 	}
@@ -426,6 +432,18 @@ func passed(pos *Position, m Move) bool {
 	return false
 }
 
+func (eng *Engine) isIgnoredRootMove(move Move) bool {
+	if eng.ply() != 0 {
+		return false
+	}
+	for _, m := range eng.ignoreRootMoves {
+		if m == move {
+			return true
+		}
+	}
+	return false
+}
+
 // searchTree implements searchTree framework.
 //
 // searchTree fails soft, i.e. the score returned can be outside the bounds.
@@ -485,6 +503,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// Entry will store the cached static evaluation which may be computed later.
 	entry := eng.retrieveHash()
 	hash := entry.move
+	if eng.isIgnoredRootMove(hash) {
+		entry = hashEntry{}
+		hash = NullMove
+	}
 	if entry.kind != 0 && depth <= int32(entry.depth) {
 		if score := int32(entry.score); isInBounds(entry.kind, α, β, score) {
 			if entry.kind&exact != 0 && α < score && score < β {
@@ -554,9 +576,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
+		if eng.isIgnoredRootMove(move) {
+			continue
+		}
+
 		critical := move == hash || eng.stack.IsKiller(move)
 		numMoves++
-
 		newDepth := depth
 		eng.DoMove(move)
 
@@ -683,6 +708,56 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 	return score
 }
 
+// searchMultiPV searches eng.options.MultiPV principal variations from current position.
+// Returns score and the moves of the highest scoring pv line.
+// If a pv is not found (e.g. search is stopped during the first ply), return 0, nil.
+func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
+	type pv struct {
+		score int32
+		moves []Move
+	}
+
+	pvs := make([]pv, 0, eng.Options.MultiPV)
+	eng.ignoreRootMoves = eng.ignoreRootMoves[:0]
+	for p := 0; p < eng.Options.MultiPV; p++ {
+		estimated = eng.search(depth, estimated)
+		if eng.stopped {
+			break // if eng has been stopped then this is not a legit pv.
+		}
+
+		moves := eng.pvTable.Get(eng.Position)
+		hasPV := len(moves) != 0 && !eng.isIgnoredRootMove(moves[0])
+		if p == 0 || hasPV { // at depth 0 we might not get a PV, or if this a mate.
+			pvs = append(pvs, pv{estimated, moves})
+		}
+		if hasPV { // if there is PV ignore the first move for the next PVs
+			eng.ignoreRootMoves = append(eng.ignoreRootMoves, moves[0])
+		} else {
+			break
+		}
+	}
+
+	// Sort PVs by score.
+	if len(pvs) == 0 {
+		return 0, nil
+	}
+	for i := range pvs {
+		for j := i; j >= 0; j-- {
+			if j == 0 || pvs[j-1].score > pvs[i].score {
+				tmp := pvs[i]
+				copy(pvs[j+1:i+1], pvs[j:i])
+				pvs[j] = tmp
+				break
+			}
+		}
+	}
+
+	for i := range pvs {
+		eng.Log.PrintPV(eng.Stats, i+1, pvs[i].score, pvs[i].moves)
+	}
+	return pvs[0].score, pvs[0].moves
+}
+
 // Play evaluates current position.
 //
 // Returns the principal variation, that is
@@ -712,12 +787,8 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		}
 
 		eng.Stats.Depth = depth
-		score = eng.search(depth, score)
-
-		if !eng.stopped {
-			// if eng has not been stopped then this is a legit pv.
-			moves = eng.pvTable.Get(eng.Position)
-			eng.Log.PrintPV(eng.Stats, score, moves)
+		if s, m := eng.searchMultiPV(depth, score); m != nil {
+			score, moves = s, m
 		}
 	}
 
