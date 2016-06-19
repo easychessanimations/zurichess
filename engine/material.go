@@ -126,10 +126,6 @@ func hashPawnsAndShelter(pos *Position, us Color) uint64 {
 	h = murmurMix(h, uint64(pos.ByPiece(us, Pawn)))
 	h = murmurMix(h, uint64(pos.ByPiece(us.Opposite(), Pawn)))
 	h = murmurMix(h, uint64(pos.ByPiece(us, King)))
-	if pos.ByPiece(us.Opposite(), Queen) != 0 {
-		// Mixes in something to signal queen's presence.
-		h = murmurMix(h, murmurSeed[NoColor])
-	}
 	return h
 }
 
