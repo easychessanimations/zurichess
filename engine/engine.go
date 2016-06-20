@@ -110,7 +110,7 @@ type historyEntry struct {
 //
 // old moves are automatically evicted when new moves are inserted
 // so this cache is approx. LRU.
-type historyTable [1024]historyEntry
+type historyTable [2048]historyEntry
 
 // historyHash hashes the move and returns an index into the history table.
 func historyHash(m Move) uint32 {
@@ -118,7 +118,7 @@ func historyHash(m Move) uint32 {
 	// mixed than the lower bits. The hash multiplier was chosen
 	// to minimize the number of misses.
 	h := uint32(m) * 438650727
-	return (h + (h << 17)) >> 22
+	return (h + (h << 17)) >> 21
 }
 
 // get returns the stats for a move, m.
