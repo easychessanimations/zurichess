@@ -23,9 +23,15 @@ func TestBitboardNSWE(t *testing.T) {
 		{West, FileBb(0), 0},
 		{West, (1 << 0) | (1 << 1), (1 << 0)},
 		{East, (1 << 62) | (1 << 63), (1 << 63)},
+		{NorthFill, SquareA1.Bitboard(), BbFileA},
+		{NorthFill, SquareB1.Bitboard(), BbFileB},
 		{NorthFill, RankBb(7), RankBb(7)},
 		{NorthFill, RankBb(6), RankBb(6) | RankBb(7)},
 		{NorthFill, 0x80000402002000, 0xa6a6262622202000},
+		{NorthFill, 0x102080c00, 0xf0f0f0f0e0c0c00},
+		{SouthFill, 0x8000000102080c20, 0x80808081838b8faf},
+		{SouthFill, SquareA8.Bitboard(), BbFileA},
+		{SouthFill, SquareB8.Bitboard(), BbFileB},
 		{SouthFill, RankBb(0), RankBb(0)},
 		{SouthFill, RankBb(1), RankBb(0) | RankBb(1)},
 		{SouthFill, 0x100218220080, 0x10121a3a3aba},
@@ -48,6 +54,21 @@ func TestBitboardFB(t *testing.T) {
 		{Forward, Black, RankBb(4), RankBb(3)},
 		{Backward, White, RankBb(4), RankBb(3)},
 		{Backward, Black, RankBb(4), RankBb(5)},
+
+		{ForwardFill, White, SquareA1.Bitboard(), BbFileA},
+		{ForwardFill, White, SquareE1.Bitboard(), BbFileE},
+		{ForwardFill, White, SquareA8.Bitboard(), SquareA8.Bitboard()},
+		{ForwardFill, White, SquareE8.Bitboard(), SquareE8.Bitboard()},
+
+		{BackwardFill, Black, SquareA1.Bitboard(), BbFileA},
+		{BackwardFill, Black, SquareE1.Bitboard(), BbFileE},
+		{BackwardFill, Black, SquareA8.Bitboard(), SquareA8.Bitboard()},
+		{BackwardFill, Black, SquareE8.Bitboard(), SquareE8.Bitboard()},
+
+		{ForwardFill, White, 0x102080c00, 0xf0f0f0f0e0c0c00},
+		{BackwardFill, Black, 0x102080c00, 0xf0f0f0f0e0c0c00},
+		{ForwardFill, Black, 0x8000000102080c20, 0x80808081838b8faf},
+		{BackwardFill, White, 0x8000000102080c20, 0x80808081838b8faf},
 	}
 
 	for i, d := range data {

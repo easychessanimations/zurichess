@@ -369,6 +369,17 @@ func ForwardSpan(col Color, bb Bitboard) Bitboard {
 	return bb
 }
 
+// ForwardFill computes forward fill wrt color.
+func ForwardFill(col Color, bb Bitboard) Bitboard {
+	if col == White {
+		return NorthFill(bb)
+	}
+	if col == Black {
+		return SouthFill(bb)
+	}
+	return bb
+}
+
 // BackwardSpan computes backward span wrt color.
 func BackwardSpan(col Color, bb Bitboard) Bitboard {
 	if col == White {
@@ -380,11 +391,22 @@ func BackwardSpan(col Color, bb Bitboard) Bitboard {
 	return bb
 }
 
+// BackwardFill computes forward fill wrt color.
+func BackwardFill(col Color, bb Bitboard) Bitboard {
+	if col == White {
+		return SouthFill(bb)
+	}
+	if col == Black {
+		return NorthFill(bb)
+	}
+	return bb
+}
+
 // NorthFill returns a bitboard with all north bits set.
 func NorthFill(bb Bitboard) Bitboard {
 	bb |= (bb << 8)
 	bb |= (bb << 16)
-	bb |= (bb << 24)
+	bb |= (bb << 32)
 	return bb
 }
 
@@ -397,7 +419,7 @@ func NorthSpan(bb Bitboard) Bitboard {
 func SouthFill(bb Bitboard) Bitboard {
 	bb |= (bb >> 8)
 	bb |= (bb >> 16)
-	bb |= (bb >> 24)
+	bb |= (bb >> 32)
 	return bb
 }
 
