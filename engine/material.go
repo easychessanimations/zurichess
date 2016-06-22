@@ -138,12 +138,15 @@ func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
 
 func evaluatePawns(pos *Position, us Color) Eval {
 	var eval Eval
+	them := us.Opposite()
 	ours := pos.ByPiece(us, Pawn)
+	theirs := pos.ByPiece(them, Pawn)
+
 	wings := East(ours) | West(ours)
-	double := ours & Backward(us, ours)
-	isolated := ours &^ Fill(wings)                           // no pawn on the adjacent files
 	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
-	passed := passedPawns(pos, us)                            // no pawn in front and no enemy on the adjacent files
+	double := DoubledPawns(us, ours)
+	isolated := IsolatedPawns(ours)
+	passed := PassedPawns(us, ours, theirs)
 
 	kingPawnDist := 8
 	kingSq := pos.ByPiece(us, King).AsSquare()
@@ -333,25 +336,6 @@ func Phase(pos *Position) int32 {
 	curr -= pos.ByFigure[Rook].Count() * 3
 	curr -= pos.ByFigure[Queen].Count() * 6
 	return (curr*256 + total/2) / total
-}
-
-// passedPawns returns all passed pawns of us in pos.
-// From white's POV: w - white pawn, b - black pawn, x - non-passed pawns.
-// ........
-// ........
-// .....w..
-// .....x..
-// ..b..x..
-// .xxx.x..
-// .xxx.x..
-// .xxx.x..
-// .xxx.x..
-func passedPawns(pos *Position, us Color) Bitboard {
-	ours := pos.ByPiece(us, Pawn)
-	theirs := pos.ByPiece(us.Opposite(), Pawn)
-	theirs |= East(theirs) | West(theirs)
-	block := BackwardSpan(us, theirs|ours)
-	return ours &^ block
 }
 
 // scaleToCentipawn scales a score in the original scale to centipawns.

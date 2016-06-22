@@ -82,28 +82,6 @@ func TestEndGamePosition(t *testing.T) {
 	}
 }
 
-func TestPassed(t *testing.T) {
-	for _, fen := range testFENs {
-		pos, _ := PositionFromFEN(fen)
-		var moves []Move
-		pos.GenerateMoves(All, &moves)
-		before := passedPawns(pos, White) | passedPawns(pos, Black)
-
-		for _, m := range moves {
-			pos.DoMove(m)
-			after := passedPawns(pos, White) | passedPawns(pos, Black)
-			if passed(pos, m) && before == after {
-				t.Errorf("expected no passed pawn, got passed pawn: move = %v, position = %v", m, pos)
-			}
-
-			pos.UndoMove()
-			if passed(pos, m) && before == after {
-				t.Errorf("expected no passed pawn, got passed pawn: move = %v, position = %v", m, pos)
-			}
-		}
-	}
-}
-
 // pvLogger logs the PV.
 // It will panic if pvs are not in order.
 type pvLog struct {
@@ -147,7 +125,7 @@ func TestMultiPV(t *testing.T) {
 			}
 		}
 		if numIterations != 4+1 {
-			t.Errorf("#%d %s: expected 4+1 iterations, got %d", numIterations)
+			t.Errorf("#%d %s: expected 4+1 iterations, got %d", f, fen, numIterations)
 		}
 
 		// Check score and depth order.
