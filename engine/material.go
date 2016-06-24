@@ -70,7 +70,7 @@ var (
 	wRookOnHalfOpenFile Score
 
 	// Evaluation caches.
-	pawnsAndShelterCache *cache
+	pawnsAndShelterCache *pawnsTable
 
 	// Figure bonuses to use when computing the futility margin.
 	futilityFigureBonus [FigureArraySize]int32
@@ -113,20 +113,12 @@ func init() {
 	}
 
 	// Initialize caches.
-	pawnsAndShelterCache = newCache(9, hashPawnsAndShelter, evaluatePawnsAndShelter)
+	pawnsAndShelterCache = new(pawnsTable)
 
 	// Initializes futility figure bonus
 	for i, w := range wFigure {
 		futilityFigureBonus[i] = scaleToCentipawn(max(w.M, w.E))
 	}
-}
-
-func hashPawnsAndShelter(pos *Position, us Color) uint64 {
-	h := murmurSeed[us]
-	h = murmurMix(h, uint64(pos.ByPiece(us, Pawn)))
-	h = murmurMix(h, uint64(pos.ByPiece(us.Opposite(), Pawn)))
-	h = murmurMix(h, uint64(pos.ByPiece(us, King)))
-	return h
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
