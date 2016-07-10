@@ -47,7 +47,7 @@ type TimeControl struct {
 	limit      time.Duration
 
 	predicted bool       // true if this move was predicted
-	branch    int        // branching factor
+	branch    int        // branching factor, multiplied by 16
 	currDepth int32      // current depth searched
 	stopped   atomicFlag // true to stop the search
 	ponderhit atomicFlag // true if ponder was successful
@@ -62,9 +62,9 @@ type TimeControl struct {
 func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 	// Branch more when there are more pieces. With fewer pieces
 	// there is less mobility and hash table kicks in more often.
-	branch := 2
-	for np := (pos.ByColor[White] | pos.ByColor[Black]).Count(); np > 0; np /= 6 {
-		branch++
+	branch := 32
+	for np := (pos.ByColor[White] | pos.ByColor[Black]).Count(); np > 0; np /= 3 {
+		branch += 8
 	}
 
 	return &TimeControl{
@@ -139,7 +139,7 @@ func (tc *TimeControl) Start(ponder bool) {
 	// safe side when there are only a few moves left.
 	for i := 4; i > 0; i /= 2 {
 		if tc.MovesToGo <= i {
-			tc.branch++
+			tc.branch += 16
 		}
 	}
 
@@ -152,7 +152,7 @@ func (tc *TimeControl) Start(ponder bool) {
 
 func (tc *TimeControl) updateDeadlines() {
 	now := time.Now()
-	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch))
+	tc.searchDeadline = now.Add(tc.searchTime / time.Duration(tc.branch/16))
 
 	// stopDeadline is when to abort the search in case of an explosion.
 	// We give a large overhead here so the search is not aborted very often.
