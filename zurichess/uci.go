@@ -24,7 +24,8 @@ var (
 )
 
 const (
-	maxMultiPV = 16
+	maxMultiPV    = 16
+	maxSkillLevel = 10
 )
 
 // uciLogger outputs search in uci format.
@@ -170,6 +171,7 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", engine.DefaultHashTableSizeMB)
 	fmt.Printf("option name MultiPV type spin default %d min 1 max %d\n", uci.Engine.Options.MultiPV, maxMultiPV)
 	fmt.Printf("option name Ponder type check default true\n")
+	fmt.Printf("option name Skill Level type spin default %d min 0 max %d\n", uci.Engine.Options.SkillLevel, maxSkillLevel)
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Println("uciok")
 	return nil
@@ -393,6 +395,15 @@ func (uci *UCI) setoption(line string) error {
 			uci.Engine.Options.MultiPV = int(multiPV)
 		} else {
 			return fmt.Errorf("MultiPV must be between 1 and %d", maxMultiPV)
+		}
+		return nil
+	case "Skill Level":
+		if skill, err := strconv.ParseInt(option[3], 10, 64); err != nil {
+			return err
+		} else if 0 <= skill && skill <= maxSkillLevel {
+			uci.Engine.Options.SkillLevel = int(skill)
+		} else {
+			return fmt.Errorf("Skill Level must be between 0 and %d", maxSkillLevel)
 		}
 		return nil
 	default:

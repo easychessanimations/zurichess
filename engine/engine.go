@@ -46,6 +46,8 @@
 //
 package engine
 
+import "math/rand"
+
 const (
 	checkDepthExtension int32 = 1 // how much to extend search in case of checks
 	nullMoveDepthLimit  int32 = 1 // disable null-move below this limit
@@ -61,6 +63,7 @@ const (
 type Options struct {
 	AnalyseMode bool // true to display info strings
 	MultiPV     int
+	SkillLevel  int
 }
 
 // Stats stores statistics about the search.
@@ -715,9 +718,15 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 		moves []Move
 	}
 
+	multiPV := eng.Options.MultiPV
+	skillMultiPv := (eng.Options.SkillLevel+3)/4 + 1
+	if multiPV < skillMultiPv {
+		multiPV = skillMultiPv
+	}
+
 	pvs := make([]pv, 0, eng.Options.MultiPV)
 	eng.ignoreRootMoves = eng.ignoreRootMoves[:0]
-	for p := 0; p < eng.Options.MultiPV; p++ {
+	for p := 0; p < multiPV; p++ {
 		estimated = eng.search(depth, estimated)
 		if eng.stopped {
 			break // if eng has been stopped then this is not a legit pv.
@@ -725,14 +734,14 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 
 		moves := eng.pvTable.Get(eng.Position)
 		hasPV := len(moves) != 0 && !eng.isIgnoredRootMove(moves[0])
-		if p == 0 || hasPV { // at depth 0 we might not get a PV, or if this a mate.
+		if p == 0 || hasPV { // at depth 0 we might not get a PV
 			pvs = append(pvs, pv{estimated, moves})
 		}
-		if hasPV { // if there is PV ignore the first move for the next PVs
-			eng.ignoreRootMoves = append(eng.ignoreRootMoves, moves[0])
-		} else {
+		if !hasPV {
 			break
 		}
+		// if there is PV ignore the first move for the next PVs
+		eng.ignoreRootMoves = append(eng.ignoreRootMoves, moves[0])
 	}
 
 	// Sort PVs by score.
@@ -749,11 +758,27 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 			}
 		}
 	}
-
 	for i := range pvs {
 		eng.Log.PrintPV(eng.Stats, i+1, pvs[i].score, pvs[i].moves)
 	}
-	return pvs[0].score, pvs[0].moves
+
+	// For best play return the PV with highest score.
+	if eng.Options.SkillLevel == 0 || len(pvs) <= 1 {
+		return pvs[0].score, pvs[0].moves
+	}
+
+	// PVs are sorted by score. Pick one PV at random
+	// and if the score is not too far off, return it.
+	if len(pvs) > 3 {
+		pvs = pvs[:3]
+	}
+	n := rand.Intn(len(pvs))
+	s := int32(eng.Options.SkillLevel)
+	d := s*s + s*10 + 5
+	for pvs[n].score+d < pvs[0].score {
+		n--
+	}
+	return pvs[n].score, pvs[n].moves
 }
 
 // Play evaluates current position.
