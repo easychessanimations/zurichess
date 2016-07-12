@@ -13,7 +13,11 @@ function make {
                 bitbucket.org/zurichess/zurichess/zurichess
 }
 
+export GOARM=7
+
 make   linux amd64 ""
 make   linux   386 ""
+make   linux   arm ""
 make windows amd64 ".exe"
 make windows   386 ".exe"
+
