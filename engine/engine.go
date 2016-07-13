@@ -593,16 +593,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			continue
 		}
 
-		// Extend the search when our move gives check.
-		// However do not extend if we can just take the undefended piece.
+		// Extend good moves that also gives check.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
 		// When the move gives check, history pruning and futility pruning are also disabled.
 		givesCheck := pos.IsChecked(them)
-		if givesCheck {
-			if pos.GetAttacker(move.To(), them) == NoFigure ||
-				pos.GetAttacker(move.To(), us) != NoFigure {
-				newDepth += checkDepthExtension
-			}
+		if givesCheck && !seeSign(pos, move) {
+			newDepth += checkDepthExtension
 		}
 
 		// Reduce late quiet moves and bad captures.
