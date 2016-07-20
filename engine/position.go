@@ -441,17 +441,14 @@ func (pos *Position) HasLegalMoves() bool {
 	var moves []Move
 	pos.GenerateMoves(All, &moves)
 	us := pos.SideToMove
-
 	for _, m := range moves {
 		pos.DoMove(m)
 		checked := pos.IsChecked(us)
 		pos.UndoMove()
-
 		if !checked {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -668,10 +665,8 @@ func (pos *Position) genPawnPromotions(kind int, moves *[]Move) {
 		pMin = Knight
 	}
 
-	us := pos.SideToMove
-	them := us.Opposite()
-
 	// Get the pawns that can be promoted.
+	us, them := pos.Us(), pos.Them()
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByColor[them] // their pieces
@@ -823,8 +818,7 @@ func (pos *Position) genBitboardMoves(pi Piece, from Square, att Bitboard, moves
 func (pos *Position) getMask(kind int) Bitboard {
 	mask := Bitboard(0)
 	if kind&Violent != 0 {
-		// Generate all attacks.
-		// Promotions are handled specially.
+		// Generate all attacks. Promotions are handled specially.
 		mask |= pos.ByColor[pos.SideToMove.Opposite()]
 	}
 	if kind&Quiet != 0 {

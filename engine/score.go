@@ -18,6 +18,7 @@ type Eval struct {
 	M, E int32 // mid game, end game
 }
 
+// Feed return the score phased between midgame and endgame score.
 func (e *Eval) Feed(phase int32) int32 {
 	return (e.M*(256-phase) + e.E*phase) / 256
 }

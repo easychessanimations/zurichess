@@ -11,11 +11,16 @@ import (
 )
 
 const (
-	KnownWinScore  = 25000          // KnownWinScore is strictly greater than all evaluation scores (mate not included).
-	KnownLossScore = -KnownWinScore // KnownLossScore is strictly smaller than all evaluation scores (mated not included).
-	MateScore      = 30000          // MateScore - N is mate in N plies.
-	MatedScore     = -MateScore     // MatedScore + N is mated in N plies.
-	InfinityScore  = 32000          // InfinityScore is possible score. -InfinityScore is the minimum possible score.
+	// KnownWinScore is strictly greater than all evaluation scores (mate not included).
+	KnownWinScore = 25000
+	// KnownLossScore is strictly smaller than all evaluation scores (mated not included).
+	KnownLossScore = -KnownWinScore
+	// MateScore - N is mate in N plies.
+	MateScore = 30000
+	// MatedScore + N is mated in N plies.
+	MatedScore = -MateScore
+	// InfinityScore is possible score. -InfinityScore is the minimum possible score.
+	InfinityScore = 32000
 )
 
 var (
@@ -27,7 +32,7 @@ var (
 	// middle game weights, W_e are endgame weights, x is input, p is phase between
 	// middle game and end game, and y is the score.
 	// The network has |x| = len(Weights) inputs corresponding to features
-	// extracted from the position. These features are symmetrical wrt to colors.
+	// extracted from the position. These features are symmetrical wrt colors.
 	// The network is trained using the Texel's Tuning Method
 	// https://chessprogramming.wikispaces.com/Texel%27s+Tuning+Method.
 	Weights = [155]Score{
@@ -139,9 +144,8 @@ func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
 }
 
 func evaluatePawns(pos *Position, us Color) Eval {
-	them := us.Opposite()
-
 	var eval Eval
+	them := us.Opposite()
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(them, Pawn)
 
@@ -223,8 +227,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	theirPawns := pos.ByPiece(them, Pawn)
 	theirKing := pos.ByPiece(them, King)
 	theirKingArea := bbKingArea[theirKing.AsSquare()]
-	numAttackers := 0
-	attackStrength := int32(0)
+	numAttackers, attackStrength := 0, int32(0) // opposite king attack strength
 
 	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all

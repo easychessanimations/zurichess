@@ -21,10 +21,8 @@ const (
 	msDone                 // all moves returned
 )
 
-var (
-	// mvvlva values based on one pawn = 10.
-	mvvlvaBonus = [...]int16{0, 10, 40, 45, 68, 145, 256}
-)
+// mvvlva values based on one pawn = 10.
+var mvvlvaBonus = [...]int16{0, 10, 40, 45, 68, 145, 256}
 
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
@@ -69,8 +67,8 @@ func (st *stack) Reset(pos *Position) {
 func (st *stack) get() *moveStack {
 	for len(st.moves) <= st.position.Ply {
 		st.moves = append(st.moves, moveStack{
-			moves: make([]Move, 0, 4),
-			order: make([]int16, 0, 4),
+			moves: make([]Move, 0, 16),
+			order: make([]int16, 0, 16),
 		})
 	}
 	return &st.moves[st.position.Ply]

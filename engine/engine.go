@@ -306,7 +306,7 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 
 // searchQuiescence evaluates the position after solving all captures.
 //
-// This is a very limited search which considers only violent moves.
+// This is a very limited search which considers only some violent moves.
 // Checks are not considered. In fact it assumes that the move
 // ordering will always put the king capture first.
 func (eng *Engine) searchQuiescence(α, β int32) int32 {
@@ -322,8 +322,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 
 	// Stand pat.
 	// TODO: Some suggest to not stand pat when in check.
-	// However, I did several tests and handling checks in quiescence
-	// doesn't help at all.
+	// However, I did several tests and handling checks in quiescence doesn't help at all.
 	static := eng.cachedScore(&entry)
 	if static >= β {
 		eng.updateHash(failedHigh|hasStatic, 0, static, NullMove, static)
@@ -345,8 +344,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 
 		// Discard illegal or losing captures.
 		eng.DoMove(move)
-		if eng.Position.IsChecked(us) ||
-			!inCheck && move.MoveType() == Normal && seeSign(pos, move) {
+		if eng.Position.IsChecked(us) || !inCheck && move.MoveType() == Normal && seeSign(pos, move) {
 			eng.UndoMove()
 			continue
 		}
@@ -432,6 +430,7 @@ func passed(pos *Position, m Move) bool {
 	return false
 }
 
+// isIgnoredRootMove returns true if move should be ignored at root.
 func (eng *Engine) isIgnoredRootMove(move Move) bool {
 	if eng.ply() != 0 {
 		return false
@@ -540,7 +539,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		pos.MinorsAndMajors(us) != 0 && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore && // disable in lost or won positions
 		(entry.kind&hasStatic == 0 || int32(entry.static) >= β) {
-
 		eng.DoMove(NullMove)
 		reduction := pos.MinorsAndMajors(us).CountMax2()
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
