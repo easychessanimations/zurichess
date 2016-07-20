@@ -572,13 +572,16 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
-	dropped := false
+	// ignored is similar to dropped, but used with multipv.
+	// At root a mate score can be returned, but hash cannot updated.
+	dropped, ignored := false, false
 	numMoves := int32(0)
 	localα := α
 
 	eng.stack.GenerateMoves(All, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		if eng.isIgnoredRootMove(move) {
+			ignored = true
 			continue
 		}
 
@@ -651,19 +654,20 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	if !dropped {
-		// If no move was found then the game is over.
 		if bestMove == NullMove {
+			// If no move was found then the game is over.
 			if sideIsChecked {
 				bestScore = MatedScore + ply
 			} else {
 				bestScore = 0
 			}
 		}
-		// Update hash and principal variation tables.
-		eng.updateHash(getBound(α, β, bestScore)|(entry.kind&hasStatic), depth, bestScore, bestMove, int32(entry.static))
 		if α < bestScore && bestScore < β {
 			eng.pvTable.Put(pos, bestMove)
 		}
+	}
+	if !dropped && !ignored {
+		eng.updateHash(getBound(α, β, bestScore)|(entry.kind&hasStatic), depth, bestScore, bestMove, int32(entry.static))
 	}
 
 	return bestScore
