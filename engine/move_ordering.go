@@ -118,25 +118,6 @@ func (st *stack) sort() {
 	}
 }
 
-// moveBest moves best move to front.
-func (st *stack) moveBest() {
-	ms := &st.moves[st.position.Ply]
-	if len(ms.order) == 0 {
-		return
-	}
-
-	bi, bo := 0, ms.order[0]
-	for i := range ms.order {
-		if ms.order[i] > bo {
-			bi, bo = i, ms.order[i]
-		}
-	}
-
-	last := len(ms.moves) - 1
-	ms.moves[bi], ms.moves[last] = ms.moves[last], ms.moves[bi]
-	ms.order[bi], ms.order[last] = ms.order[last], ms.order[bi]
-}
-
 // popFront pops the move from the front
 func (st *stack) popFront() Move {
 	ms := &st.moves[st.position.Ply]
@@ -174,12 +155,12 @@ func (st *stack) PopMove() Move {
 		case msGenViolent:
 			ms.state = msReturnViolent
 			st.generateMoves(Violent)
+			st.sort()
 
 		case msReturnViolent:
 			// Most positions have only very violent moves so
 			// it doesn't make sense to sort given that captures have a high
 			// chance to fail high. We just pop the moves in order of score.
-			st.moveBest()
 			if m := st.popFront(); m == NullMove {
 				if ms.kind&(Tactical|Quiet) == 0 {
 					// Optimization: skip remaining steps if no Tactical or Quiet moves
