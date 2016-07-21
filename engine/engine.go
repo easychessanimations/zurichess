@@ -307,8 +307,8 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 // searchQuiescence evaluates the position after solving all captures.
 //
 // This is a very limited search which considers only some violent moves.
-// Checks are not considered. In fact it assumes that the move
-// ordering will always put the king capture first.
+// Depth is ignored, so hash uses depth 0. Search continues until
+// stand pat or no capture can improve the score.
 func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	eng.Stats.Nodes++
 	if score, done := eng.endPosition(); done {
@@ -320,11 +320,9 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 		return score
 	}
 
-	// Stand pat.
-	// TODO: Some suggest to not stand pat when in check.
-	// However, I did several tests and handling checks in quiescence doesn't help at all.
 	static := eng.cachedScore(&entry)
 	if static >= β {
+		// Stand pat if static score is already a cut-off.
 		eng.updateHash(failedHigh|hasStatic, 0, static, NullMove, static)
 		return static
 	}
