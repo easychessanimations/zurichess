@@ -342,7 +342,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 
 		// Discard illegal or losing captures.
 		eng.DoMove(move)
-		if eng.Position.IsChecked(us) || !inCheck && move.MoveType() == Normal && seeSign(pos, move) {
+		if eng.Position.IsChecked(us) || !inCheck && seeSign(pos, move) {
 			eng.UndoMove()
 			continue
 		}
