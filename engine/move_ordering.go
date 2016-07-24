@@ -46,7 +46,7 @@ type moveStack struct {
 	kind   int     // violent or all
 	state  int     // current generation state
 	hash   Move    // hash move
-	killer [4]Move // killer moves
+	killer [3]Move // killer moves
 }
 
 // stack is a stack of plies (movesStack).
@@ -221,7 +221,7 @@ func (st *stack) PopMove() Move {
 // IsKiller returns true if m is a killer move for currenty ply.
 func (st *stack) IsKiller(m Move) bool {
 	ms := &st.moves[st.position.Ply]
-	return m == ms.killer[0] || m == ms.killer[1] || m == ms.killer[2] || m == ms.killer[3]
+	return m == ms.killer[0] || m == ms.killer[1] || m == ms.killer[2]
 }
 
 // SaveKiller saves a killer move, m.
@@ -235,11 +235,8 @@ func (st *stack) SaveKiller(m Move) {
 		} else if m == ms.killer[1] {
 			ms.killer[1] = ms.killer[0]
 			ms.killer[0] = m
-		} else if m == ms.killer[2] {
-			copy(ms.killer[1:3], ms.killer[0:2])
-			ms.killer[0] = m
 		} else {
-			copy(ms.killer[1:4], ms.killer[0:3])
+			copy(ms.killer[1:3], ms.killer[0:2])
 			ms.killer[0] = m
 		}
 	}
