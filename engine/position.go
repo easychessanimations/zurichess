@@ -217,9 +217,8 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 	}
 
 	// Quick test of queen's attack on an empty board.
-	sq := m.From()
-	to := m.To().Bitboard()
-	if bbSuperAttack[sq]&to == 0 {
+	from, to := m.From(), m.To()
+	if !bbSuperAttack[from].Has(to) {
 		return false
 	}
 
@@ -229,14 +228,14 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 	case Pawn, Knight: // handled above
 		panic("unreachable")
 	case Bishop:
-		return to&BishopMobility(sq, all) != 0
+		return BishopMobility(from, all).Has(to)
 	case Rook:
-		return to&RookMobility(sq, all) != 0
+		return RookMobility(from, all).Has(to)
 	case Queen:
-		return to&QueenMobility(sq, all) != 0
+		return QueenMobility(from, all).Has(to)
 	case King:
 		if m.MoveType() == Normal {
-			return to&bbKingAttack[sq] != 0
+			return bbKingAttack[from].Has(to)
 		}
 
 		// m.MoveType() == Castling
