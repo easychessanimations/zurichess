@@ -299,18 +299,6 @@ func FileBb(file int) Bitboard {
 	return BbFileA << uint(file)
 }
 
-// AdjacentFilesBb returns a bitboard with all bits set on adjacent files.
-func AdjacentFilesBb(file int) Bitboard {
-	var bb Bitboard
-	if file > 0 {
-		bb |= FileBb(file - 1)
-	}
-	if file < 7 {
-		bb |= FileBb(file + 1)
-	}
-	return bb
-}
-
 // North shifts all squares one rank up.
 func North(bb Bitboard) Bitboard {
 	return bb << 8

@@ -78,7 +78,7 @@ type Position struct {
 	curr            *state  // current state
 }
 
-// NewPosition returns a new position.
+// NewPosition returns a new position representing an empty board.
 func NewPosition() *Position {
 	pos := &Position{
 		fullmoveCounter: 1,
@@ -226,9 +226,7 @@ func (pos *Position) IsPseudoLegal(m Move) bool {
 	all := pos.ByColor[White] | pos.ByColor[Black]
 
 	switch m.Piece().Figure() {
-	case Pawn: // handled aove
-		panic("unreachable")
-	case Knight: // handled above
+	case Pawn, Knight: // handled above
 		panic("unreachable")
 	case Bishop:
 		return to&BishopMobility(sq, all) != 0
@@ -440,12 +438,11 @@ func (pos *Position) PawnThreats(side Color) Bitboard {
 func (pos *Position) HasLegalMoves() bool {
 	var moves []Move
 	pos.GenerateMoves(All, &moves)
-	us := pos.SideToMove
 	for _, m := range moves {
 		pos.DoMove(m)
-		checked := pos.IsChecked(us)
+		checked := pos.IsChecked(pos.Them())
 		pos.UndoMove()
-		if !checked {
+		if !checked { // check if move didn't leave the player in check
 			return true
 		}
 	}

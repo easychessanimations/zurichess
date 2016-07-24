@@ -39,7 +39,7 @@ func seeSign(pos *Position, m Move) bool {
 // on some fixed values for figures, different from the ones
 // defined in material.go.
 func see(pos *Position, m Move) int32 {
-	us := pos.SideToMove
+	us := pos.Us()
 	sq := m.To()
 	bb := sq.Bitboard()
 	target := m.Target() // piece in position

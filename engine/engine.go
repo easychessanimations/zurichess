@@ -479,7 +479,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		return α
 	}
 	if pvNode && ply > eng.Stats.SelDepth {
-		eng.Stats.SelDepth = eng.ply()
+		eng.Stats.SelDepth = ply
 	}
 
 	// Verify that this is not already an endgame.

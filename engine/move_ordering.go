@@ -195,7 +195,7 @@ func (st *stack) PopMove() Move {
 				return m
 			}
 
-		// Return the quiet and tactical moves in the order they were generated.
+		// Return remaining quiet and tactical moves.
 		case msGenRest:
 			ms.state = msReturnRest
 			st.generateMoves(Tactical | Quiet)
@@ -236,13 +236,10 @@ func (st *stack) SaveKiller(m Move) {
 			ms.killer[1] = ms.killer[0]
 			ms.killer[0] = m
 		} else if m == ms.killer[2] {
-			ms.killer[2] = ms.killer[1]
-			ms.killer[1] = ms.killer[0]
+			copy(ms.killer[1:3], ms.killer[0:2])
 			ms.killer[0] = m
 		} else {
-			ms.killer[3] = ms.killer[2]
-			ms.killer[2] = ms.killer[1]
-			ms.killer[1] = ms.killer[0]
+			copy(ms.killer[1:4], ms.killer[0:3])
 			ms.killer[0] = m
 		}
 	}
