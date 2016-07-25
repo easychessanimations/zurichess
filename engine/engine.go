@@ -50,7 +50,6 @@ import "math/rand"
 
 const (
 	checkDepthExtension int32 = 1 // how much to extend search in case of checks
-	nullMoveDepthLimit  int32 = 1 // disable null-move below this limit
 	lmrDepthLimit       int32 = 3 // do not do LMR below and including this limit
 	futilityDepthLimit  int32 = 3 // maximum depth to do futility pruning.
 
@@ -534,8 +533,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// position is too good, so opponent will not play it.
 	// Verification that we are not in check is done by tryMove
 	// which bails out if after the null move we are still in check.
-	if depth > nullMoveDepthLimit && // not very close to leafs
-		!sideIsChecked && // nullmove is illegal when in check
+	if !sideIsChecked && // nullmove is illegal when in check
 		pos.MinorsAndMajors(us) != 0 && // at least one minor/major piece.
 		KnownLossScore < α && β < KnownWinScore && // disable in lost or won positions
 		(entry.kind&hasStatic == 0 || int32(entry.static) >= β) {
