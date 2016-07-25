@@ -499,6 +499,20 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		return KnownWinScore
 	}
 
+	// Stop searching when the maximum search depth is reached.
+	// Depth can be < 0 due to aggressive LMR.
+	if depth <= 0 {
+		// If this is already won / lost and quiescence cannot change
+		// that because it only looks at violent moves.
+		if α >= KnownWinScore {
+			return α
+		}
+		if β <= KnownLossScore {
+			return β
+		}
+		return eng.searchQuiescence(α, β)
+	}
+
 	// Check the transposition table.
 	// Entry will store the cached static evaluation which may be computed later.
 	entry := eng.retrieveHash()
@@ -515,18 +529,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 			return score
 		}
-	}
-
-	// Stop searching when the maximum search depth is reached.
-	if depth <= 0 {
-		// This is already won / lost and quiescence cannot change
-		// that because it only looks at violent moves.
-		if α >= KnownWinScore || β <= KnownLossScore {
-			return eng.cachedScore(&entry)
-		}
-		// Depth can be < 0 due to aggressive LMR.
-		score := eng.searchQuiescence(α, β)
-		return score
 	}
 
 	sideIsChecked := pos.IsChecked(us)
