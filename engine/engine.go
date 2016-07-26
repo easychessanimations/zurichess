@@ -314,9 +314,6 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 // stand pat or no capture can improve the score.
 func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	eng.Stats.Nodes++
-	if score, done := eng.endPosition(); done {
-		return score
-	}
 
 	entry := eng.retrieveHash()
 	if score := int32(entry.score); isInBounds(entry.kind, α, β, score) {
