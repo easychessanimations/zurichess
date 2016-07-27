@@ -74,10 +74,7 @@ func (ul *uciLogger) PrintPV(stats engine.Stats, multiPV int, score int32, pv []
 	}
 	fmt.Fprintf(ul.buf, "\n")
 
-	// Flush output if needed.
-	if now.After(ul.start.Add(time.Second)) {
-		ul.flush()
-	}
+	ul.flush()
 }
 
 // flush flushes the buf to stdout.
