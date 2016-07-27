@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultMovesToGo = 30 // default number of more moves expected to play
+	defaultMovesToGo = 35 // default number of more moves expected to play
 	infinite         = 1000000000 * time.Second
 	overhead         = 20 * time.Millisecond
 )
