@@ -7,20 +7,20 @@ in alphabetical order.
 
 The theme of this release is tuning and improved evaluation.
 
-* graubuenden uses a new version of the Go compiler for increased search speed.
+* Use a new version of the Go compiler for increased search speed.
 * Hash quiescence search and static evaluation.
 * Improve Null Move Pruning:
-    * Consider NullMove irreversible
-    * Prune only if static evaluation is greater than or equal with the upper bound.
-	* Prune at all depths
+    * Consider NullMove irreversible when testing draws.
+    * Prune only if static evaluation is at least equal to the upper bound.
+    * Prune at all depths.
 * Improve evaluation:
     * Evaluate king near passed pawns.
     * Evaluate knight's and bishop's position (psqt).
-    * Evaluate backward pawns
+    * Evaluate backward pawns.
 * Simplify Late Move Pruning and History Leaf Pruning.
 * Check extend all moves with positive SEE.
-* Use shell sort instead insertion sort to sort moves.
-* Some time control improvements to avoid forfeits for long games.
+* Use shell sort instead insertion sort for move ordering.
+* Tweak time control to avoid forfeits for long games.
 * Usual code clean ups, speed ups and bug fixes.
 
 A few features have been introduced:
@@ -34,8 +34,10 @@ _Multi PV_: zurichess now has the ability to print multiple principal variation.
 set the desired number of principal variations input:
      `setoption name MultiPV value 3`
 	 
-_Theban Chess_: a variant popularized by Kai Laskos is played with standard chess
-rules starting from position 1p6/2p3kn/3p2pp/4pppp/5ppp/8/PPPPPPPP/PPPPPPKN w - - 0 1.
+_Theban chess_: zurichess supports a variant popularized by Kai Laskos is played with
+standard chess rules starting from the unorthodox position `1p6/2p3kn/3p2pp/4pppp/5ppp/8/PPPPPPPP/PPPPPPKN w - - 0 1`.
+No playing strength tests or improvements were done other than fixing the crash
+of the previous version.
 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
 17.Apr.2016
