@@ -83,16 +83,18 @@ func (c *pawnsTable) get(lock uint64) (Eval, bool) {
 
 // load evaluates position, using the cache if possible.
 func (c *pawnsTable) load(pos *Position, us Color) Eval {
+	var eval Eval
 	if disableCache {
-		return evaluatePawnsAndShelter(pos, us)
+		evaluatePawnsAndShelter(pos, us, &eval)
+		return eval
 	}
 	h := pawnsHash(pos, us)
-	if e, ok := c.get(h); ok {
-		return e
+	if eval, ok := c.get(h); ok {
+		return eval
 	}
-	e := evaluatePawnsAndShelter(pos, us)
-	c.put(h, e)
-	return e
+	evaluatePawnsAndShelter(pos, us, &eval)
+	c.put(h, eval)
+	return eval
 }
 
 // pawnsHash returns a hash of the pawns and king in position.

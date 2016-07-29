@@ -136,15 +136,12 @@ func init() {
 	}
 }
 
-func evaluatePawnsAndShelter(pos *Position, us Color) Eval {
-	var eval Eval
-	eval.merge(evaluatePawns(pos, us))
-	eval.merge(evaluateShelter(pos, us))
-	return eval
+func evaluatePawnsAndShelter(pos *Position, us Color, eval *Eval) {
+	evaluatePawns(pos, us, eval)
+	evaluateShelter(pos, us, eval)
 }
 
-func evaluatePawns(pos *Position, us Color) Eval {
-	var eval Eval
+func evaluatePawns(pos *Position, us Color, eval *Eval) {
 	them := us.Opposite()
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(them, Pawn)
@@ -191,12 +188,9 @@ func evaluatePawns(pos *Position, us Color) Eval {
 		// Add a bonus for king protecting most advance pawn.
 		eval.add(wPassedPawnKing[kingPawnDist])
 	}
-
-	return eval
 }
 
-func evaluateShelter(pos *Position, us Color) Eval {
-	var eval Eval
+func evaluateShelter(pos *Position, us Color, eval *Eval) {
 	pawns := pos.ByPiece(us, Pawn)
 	king := pos.ByPiece(us, King)
 
@@ -215,7 +209,6 @@ func evaluateShelter(pos *Position, us Color) Eval {
 	if file < 7 && East(king)&pawns == 0 {
 		eval.add(wKingShelter)
 	}
-	return eval
 }
 
 // evaluateSide evaluates position for a single side.
