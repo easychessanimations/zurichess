@@ -5,14 +5,37 @@ in alphabetical order.
 
 ## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (development)
 
-* graubuenden uses a new version of the Go compiler for an additional 30-40 Elo.
+The theme of this release is tuning and improved evaluation.
+
+* graubuenden uses a new version of the Go compiler for increased search speed.
 * Hash quiescence search and static evaluation.
-* Improve Null Move Pruning: consider NullMove irreversible.
+* Improve Null Move Pruning:
+    * Consider NullMove irreversible
+    * Prune only if static evaluation is greater than or equal with the upper bound.
+	* Prune at all depths
+* Improve evaluation:
+    * Evaluate king near passed pawns.
+    * Evaluate knight's and bishop's position (psqt).
+    * Evaluate backward pawns
 * Simplify Late Move Pruning and History Leaf Pruning.
-* Shell sort quiet moves.
-* Evaluate king near passed pawns.
-* Evaluate knight's positions.
+* Check extend all moves with positive SEE.
+* Use shell sort instead insertion sort to sort moves.
+* Some time control improvements to avoid forfeits for long games.
 * Usual code clean ups, speed ups and bug fixes.
+
+A few features have been introduced:
+
+_Skill Levels_: zurichess now supports 11 skill levels. 0 is the strongest skill level,
+and is recommended for rating lists. At skill level 10 zurichess plays is about 700 Elo,
+and is recommended for casual players. To change the skill level input:
+     `setoption name Skill Level value 7`
+  
+_Multi PV_: zurichess now has the ability to print multiple principal variation. To
+set the desired number of principal variations input:
+     `setoption name MultiPV value 3`
+	 
+_Theban Chess_: a variant popularized by Kai Laskos is played with standard chess
+rules starting from position 1p6/2p3kn/3p2pp/4pppp/5ppp/8/PPPPPPPP/PPPPPPKN w - - 0 1.
 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
 17.Apr.2016
