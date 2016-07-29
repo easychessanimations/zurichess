@@ -517,14 +517,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		entry = hashEntry{}
 		hash = NullMove
 	}
-	if entry.kind != 0 && depth <= int32(entry.depth) {
-		if score := int32(entry.score); isInBounds(entry.kind, α, β, score) {
-			if entry.kind&exact != 0 && α < score && score < β {
-				// Update principal variation table if possible.
-				eng.pvTable.Put(pos, hash)
-			}
-			return score
+	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
+		if entry.kind&exact != 0 && α < score && score < β {
+			// Update principal variation table if possible.
+			eng.pvTable.Put(pos, hash)
 		}
+		return score
 	}
 
 	sideIsChecked := pos.IsChecked(us)
