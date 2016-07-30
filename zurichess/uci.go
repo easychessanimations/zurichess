@@ -262,7 +262,7 @@ func (uci *UCI) go_(line string) error {
 		case "movestogo":
 			i++
 			t, _ := strconv.Atoi(args[i])
-			uci.timeControl.MovesToGo = t
+			uci.timeControl.MovesToGo = int32(t)
 		case "movetime":
 			i++
 			t, _ := strconv.Atoi(args[i])

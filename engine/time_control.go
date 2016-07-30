@@ -40,7 +40,7 @@ type TimeControl struct {
 	WTime, WInc time.Duration // time and increment for white.
 	BTime, BInc time.Duration // time and increment for black
 	Depth       int32         // maximum depth search (including)
-	MovesToGo   int           // number of remaining moves
+	MovesToGo   int32         // number of remaining moves
 
 	sideToMove Color
 	time, inc  time.Duration // time and increment for us
@@ -135,9 +135,12 @@ func (tc *TimeControl) Start(ponder bool) {
 		tc.limit = tc.time
 	}
 
+	// If there are still many moves to go, don't use all the time.
+	tc.limit /= time.Duration(min(tc.MovesToGo, 5))
+
 	// Increase the branchFactor a bit to be on the
 	// safe side when there are only a few moves left.
-	for i := 4; i > 0; i /= 2 {
+	for i := int32(4); i > 0; i /= 2 {
 		if tc.MovesToGo <= i {
 			tc.branch += 16
 		}
