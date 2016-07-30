@@ -332,7 +332,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	localα := max(α, static)
 
 	var bestMove Move
-	eng.stack.GenerateMoves(Violent, entry.move)
+	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Prune futile moves that would anyway result in a stand-pat at that next depth.
 		if !inCheck && isFutile(pos, static, localα, futilityMargin, move) {
