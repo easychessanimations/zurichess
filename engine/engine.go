@@ -705,7 +705,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 }
 
 // searchMultiPV searches eng.options.MultiPV principal variations from current position.
-// Returns score and the moves of the highest scoring pv line.
+// Returns score and the moves of the highest scoring pv line (possible empty).
 // If a pv is not found (e.g. search is stopped during the first ply), return 0, nil.
 func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	type pv struct {
@@ -782,11 +782,11 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 //	moves[0] is the best move found and
 //	moves[1] is the pondering move.
 //
-// If no move was found because the game has finished
-// then an empty pv is returned.
+// Returns a nil pv if no move was found because the game is already finished.
+// Returns empty pv array if it's valid position, but no pv was found (e.g. search depth is 0).
 //
 // Time control, tc, should already be started.
-func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
+func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 	eng.Log.BeginSearch()
 	eng.Stats = Stats{Depth: -1}
 
@@ -796,7 +796,6 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 	eng.checkpoint = checkpointStep
 	eng.stack.Reset(eng.Position)
 
-	score := int32(0)
 	for depth := int32(0); depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
 			// Stop if tc control says we are done.
@@ -805,13 +804,18 @@ func (eng *Engine) Play(tc *TimeControl) (moves []Move) {
 		}
 
 		eng.Stats.Depth = depth
-		if s, m := eng.searchMultiPV(depth, score); m != nil {
+		if s, m := eng.searchMultiPV(depth, score); len(moves) == 0 || len(m) != 0 {
 			score, moves = s, m
 		}
 	}
 
 	eng.Log.EndSearch()
-	return moves
+	if len(moves) == 0 && !eng.Position.HasLegalMoves() {
+		return 0, nil
+	} else if moves == nil {
+		return score, []Move{}
+	}
+	return score, moves
 }
 
 // isFutile return true if m cannot raise current static

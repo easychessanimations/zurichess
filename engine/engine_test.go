@@ -15,8 +15,8 @@ func TestGame(t *testing.T) {
 	for i := 0; i < 1; i++ {
 		tc := NewFixedDepthTimeControl(pos, 3)
 		tc.Start(false)
-		move := eng.Play(tc)
-		eng.DoMove(move[0])
+		_, pv := eng.Play(tc)
+		eng.DoMove(pv[0])
 	}
 }
 
@@ -32,7 +32,7 @@ func TestMateIn1(t *testing.T) {
 		tc := NewFixedDepthTimeControl(pos, 2)
 		tc.Start(false)
 		eng := NewEngine(pos, nil, Options{})
-		pv := eng.Play(tc)
+		_, pv := eng.Play(tc)
 
 		if len(pv) != 1 {
 			t.Errorf("#%d Expected at most one move, got %d", i, len(pv))
@@ -76,9 +76,9 @@ func TestEndGamePosition(t *testing.T) {
 	tc := NewFixedDepthTimeControl(pos, 3)
 	tc.Start(false)
 	eng := NewEngine(pos, nil, Options{})
-	moves := eng.Play(tc)
-	if 0 != len(moves) {
-		t.Errorf("expected no pv, got %d moves", len(moves))
+	_, pv := eng.Play(tc)
+	if pv != nil {
+		t.Errorf("got %d moves (nonil, pv), expected nil pv", len(pv))
 	}
 }
 
@@ -166,8 +166,8 @@ func BenchmarkGame(b *testing.B) {
 		for j := 0; j < 20; j++ {
 			tc := NewFixedDepthTimeControl(pos, 4)
 			tc.Start(false)
-			move := eng.Play(tc)
-			eng.DoMove(move[0])
+			_, pv := eng.Play(tc)
+			eng.DoMove(pv[0])
 		}
 	}
 }

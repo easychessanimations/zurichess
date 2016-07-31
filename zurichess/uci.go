@@ -316,7 +316,7 @@ func (uci *UCI) stop(line string) error {
 // play starts the engine.
 // Should run in its own separate goroutine.
 func (uci *UCI) play() {
-	moves := uci.Engine.Play(uci.timeControl)
+	_, moves := uci.Engine.Play(uci.timeControl)
 
 	if len(moves) >= 2 {
 		uci.Engine.Position.DoMove(moves[0])
