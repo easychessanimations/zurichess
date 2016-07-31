@@ -626,16 +626,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 
 		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
-		if allowLeafsPruning && !givesCheck { // Update history scores.
-			if score > α {
-				eng.history.add(move, 20)
-			} else {
-				eng.history.add(move, -1)
-			}
-		}
 
 		if score >= β {
 			// Fail high, cut node.
+			eng.history.add(move, 15)
 			eng.stack.SaveKiller(move)
 			eng.updateHash(failedHigh|(entry.kind&hasStatic), depth, score, move, int32(entry.static))
 			return score
@@ -644,6 +638,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			nullWindow = true
 			bestMove, bestScore = move, score
 			localα = max(localα, score)
+		}
+		if !critical {
+			eng.history.add(move, -1)
 		}
 	}
 
