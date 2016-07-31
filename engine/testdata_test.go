@@ -130,6 +130,7 @@ var (
 		// crafted:
 		"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
 		"7k/8/8/8/1RRNN3/1BBQQ3/1KQQQ3/1QQQQ3 b - - 0 1",
+		"rr2r1k1/ppBb1ppp/8/4p1NQ/8/1qB3B1/PP4PP/R5K1 w - - 0 1",
 		// ECM
 		"7r/1p2k3/2bpp3/p3np2/P1PR4/2N2PP1/1P4K1/3B4 b - - 0 1",
 		"4k3/p1P3p1/2q1np1p/3N4/8/1Q3PP1/6KP/8 w - - 0 1",
