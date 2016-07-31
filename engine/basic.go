@@ -571,7 +571,7 @@ func (m Move) UCI() string {
 
 // LAN converts a move to Long Algebraic Notation.
 // http://en.wikipedia.org/wiki/Algebraic_notation_%28chess%29#Long_algebraic_notation
-// E.g. a2-a3, b7-b8Q, Nb1xc3
+// E.g. a2-a3, b7-b8Q, Nb1xc3, Ke1-c1 (white king queen side castling).
 func (m Move) LAN() string {
 	r := lanFigureToSymbol[m.Piece().Figure()] + m.From().String()
 	if m.Capture() != NoPiece {
