@@ -5,7 +5,9 @@ in alphabetical order.
 
 ## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (development)
 
-The theme of this release is tuning and improved evaluation.
+The theme of this release is tweaking and improving the static evaluation.
+
+An overview of the most important changes is:
 
 * Use a new version of the Go compiler for increased search speed.
 * Hash quiescence search and static evaluation.
@@ -14,30 +16,26 @@ The theme of this release is tuning and improved evaluation.
     * Prune only if static evaluation is at least equal to the upper bound.
     * Prune at all depths.
 * Improve evaluation:
-    * Evaluate king near passed pawns.
+    * Evaluate king near own passed pawns.
     * Evaluate knight's and bishop's position (psqt).
     * Evaluate backward pawns.
 * Simplify Late Move Pruning and History Leaf Pruning.
 * Check extend all moves with positive SEE.
 * Use shell sort instead insertion sort for move ordering.
-* Tweak time control to avoid forfeits for long games.
+* Tweak the time control to avoid forfeits for long games.
 * Usual code clean ups, speed ups and bug fixes.
 
 A few features have been introduced:
 
-_Skill Levels_: zurichess now supports 11 skill levels. 0 is the strongest skill level,
-and is recommended for rating lists. At skill level 10 zurichess plays is about 700 Elo,
-and is recommended for casual players. To change the skill level input:
-     `setoption name Skill Level value 7`
-  
-_Multi PV_: zurichess now has the ability to print multiple principal variation. To
-set the desired number of principal variations input:
-     `setoption name MultiPV value 3`
-	 
-_Theban chess_: zurichess supports a variant popularized by Kai Laskos is played with
+* _Skill Levels_: Zurichess supports 11 skill levels of playing. The default skill level, 0,
+produces the strongest play, and should be used for rating lists. At skill level 10 zurichess
+plays about 700 Elo weaker, and it is recommended for more casual players. To change the skill
+level input: `setoption name Skill Level value 7`
+* _Multi PV_: zurichess has the ability to print multiple principal variations. To
+set the desired number of principal variations input: `setoption name MultiPV value 3`
+* _Theban chess_: zurichess supports a chess variant popularized by Kai Laskos which is played with
 standard chess rules starting from the unorthodox position `1p6/2p3kn/3p2pp/4pppp/5ppp/8/PPPPPPPP/PPPPPPKN w - - 0 1`.
-No playing strength tests or improvements were done other than fixing the crash
-of the previous version.
+No playing strength tests or improvements were done other than fixing the crash of the previous version.
 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
 17.Apr.2016
