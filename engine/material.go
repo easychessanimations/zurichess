@@ -184,7 +184,7 @@ func evaluatePawns(pos *Position, us Color, eval *Eval) {
 		}
 	}
 
-	if kingPawnDist != 8 && pos.ByPiece(us.Opposite(), Queen) == 0 {
+	if kingPawnDist != 8 {
 		// Add a bonus for king protecting most advance pawn.
 		eval.add(wPassedPawnKing[kingPawnDist])
 	}
