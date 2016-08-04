@@ -39,7 +39,7 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("zurichess %v https://bitbucket.org/zurichess/zurichess\n", buildVersion)
+	fmt.Printf("zurichess %v http://www.zurichess.xyz\n", buildVersion)
 	fmt.Printf("build with %v at %v, running on %v\n", runtime.Version(), buildTime, runtime.GOARCH)
 
 	flag.Parse()
