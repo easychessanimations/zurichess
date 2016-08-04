@@ -1,6 +1,6 @@
 # zurichess: a chess engine
 
-[Website](https://bitbucket.org/zurichess/zurichess) |
+[Website](http://www.zurichess.xyz) |
 [![Reference](https://godoc.org/bitbucket.org/zurichess/zurichess?status.svg)](https://godoc.org/bitbucket.org/zurichess/zurichess)
 [![Build Status](https://drone.io/bitbucket.org/zurichess/zurichess/status.png)](https://drone.io/bitbucket.org/zurichess/zurichess/latest)
 
