@@ -233,7 +233,6 @@ func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
 	predicted := uci.predicted == uci.Engine.Position.Zobrist()
 	uci.timeControl = engine.NewTimeControl(uci.Engine.Position, predicted)
-	uci.timeControl.MovesToGo = 30 // in case there is not time refresh
 	ponder := false
 
 	args := strings.Fields(line)[1:]

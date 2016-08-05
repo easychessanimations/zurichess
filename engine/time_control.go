@@ -40,7 +40,7 @@ type TimeControl struct {
 	WTime, WInc time.Duration // time and increment for white.
 	BTime, BInc time.Duration // time and increment for black
 	Depth       int32         // maximum depth search (including)
-	MovesToGo   int32         // number of remaining moves
+	MovesToGo   int32         // number of remaining moves, defaults to defaultMovesToGo
 
 	sideToMove Color
 	time, inc  time.Duration // time and increment for us
