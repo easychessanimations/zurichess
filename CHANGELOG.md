@@ -3,7 +3,8 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (development)
+## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (stable)
+16.Aug.2016
 
 The theme of this release is tweaking and improving the static evaluation.
 
@@ -37,7 +38,7 @@ set the desired number of principal variations input: `setoption name MultiPV va
 standard chess rules starting from the unorthodox position `1p6/2p3kn/3p2pp/4pppp/5ppp/8/PPPPPPPP/PPPPPPKN w - - 0 1`.
 No playing strength tests or improvements were done other than fixing the crash of the previous version.
 
-## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus) (stable)
+## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus)
 17.Apr.2016
 
 The theme of this release is king safety and leaf pruning.
