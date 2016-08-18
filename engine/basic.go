@@ -19,8 +19,6 @@ var (
 	// maps figures to symbols for move notations
 	lanFigureToSymbol = [...]string{"", "", "N", "B", "R", "Q", "K"}
 	uciFigureToSymbol = [...]string{"", "", "n", "b", "r", "q", "k"}
-	// pov xor mask indexed by color.
-	povMask = [ColorArraySize]Square{0x00, 0x38, 0x00}
 )
 
 // Square identifies the location on the board.
@@ -146,7 +144,7 @@ func (sq Square) File() int {
 // That is for Black the rank is flipped, file stays the same.
 // Useful in evaluation based on king's or pawns' positions.
 func (sq Square) POV(col Color) Square {
-	return sq ^ povMask[col]
+	return sq ^ (Square(col-2) & 0x38)
 }
 
 func (sq Square) String() string {
