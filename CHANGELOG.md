@@ -3,6 +3,8 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (development)
+
 ## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (stable)
 16.Aug.2016
 
