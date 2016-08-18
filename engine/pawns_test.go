@@ -161,7 +161,7 @@ func TestCachePutGet(t *testing.T) {
 	h1 = murmurMix(h1, c1)
 	h1 = murmurMix(h1, c2)
 
-	e := Eval{1, 2}
+	e := Accum{1, 2}
 	c := new(pawnsTable)
 	c.put(h1, e)
 	if got, ok := c.get(h1); !ok {

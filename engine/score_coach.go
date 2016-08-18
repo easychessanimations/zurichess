@@ -14,41 +14,37 @@ type Score struct {
 	I    int   // index in Weights
 }
 
-// Eval is a sum of scores.
-type Eval struct {
+// Accum accumulates scores.
+type Accum struct {
 	M, E   int32              // mid game, end game
 	Values [len(Weights)]int8 // input values
 }
 
-func (e *Eval) Feed(phase int32) int32 {
-	return (e.M*(256-phase) + e.E*phase) / 256
+func (a *Accum) add(s Score) {
+	a.M += s.M
+	a.E += s.E
+	a.Values[s.I] += 1
 }
 
-func (e *Eval) merge(o Eval) {
-	e.M += o.M
-	e.E += o.E
+func (a *Accum) addN(s Score, n int32) {
+	a.M += s.M * n
+	a.E += s.E * n
+	a.Values[s.I] += int8(n)
+}
+
+func (a *Accum) merge(o Accum) {
+	a.M += o.M
+	a.E += o.E
 	for i := range o.Values {
-		e.Values[i] += o.Values[i]
+		a.Values[i] += o.Values[i]
 	}
 }
 
-func (e *Eval) add(s Score) {
-	e.M += s.M
-	e.E += s.E
-	e.Values[s.I] += 1
-}
-
-func (e *Eval) addN(s Score, n int32) {
-	e.M += s.M * n
-	e.E += s.E * n
-	e.Values[s.I] += int8(n)
-}
-
-func (e *Eval) neg() {
-	e.M = -e.M
-	e.E = -e.E
-	for i, v := range e.Values {
-		e.Values[i] = -v
+func (e *Eval) merge() {
+	e.Accum.M = e.pad[White].accum.M - e.pad[Black].accum.M
+	e.Accum.E = e.pad[White].accum.E - e.pad[Black].accum.E
+	for i := range e.Accum.Values {
+		e.Accum.Values[i] = e.pad[White].accum.Values[i] - e.pad[Black].accum.Values[i]
 	}
 }
 

@@ -62,39 +62,37 @@ func BackwardPawns(us Color, ours Bitboard, theirs Bitboard) Bitboard {
 
 // pawnsTable is a cache entry.
 type pawnsEntry struct {
-	lock uint64
-	eval Eval
+	lock  uint64
+	accum Accum
 }
 
 // pawnsTable implements a fixed size cache.
 type pawnsTable [1 << 9]pawnsEntry
 
 // put puts a new entry in the cache.
-func (c *pawnsTable) put(lock uint64, eval Eval) {
+func (c *pawnsTable) put(lock uint64, accum Accum) {
 	indx := lock & uint64(len(*c)-1)
-	(*c)[indx] = pawnsEntry{lock: lock, eval: eval}
+	(*c)[indx] = pawnsEntry{lock: lock, accum: accum}
 }
 
 // get gets an entry from the cache.
-func (c *pawnsTable) get(lock uint64) (Eval, bool) {
+func (c *pawnsTable) get(lock uint64) (Accum, bool) {
 	indx := lock & uint64(len(*c)-1)
-	return (*c)[indx].eval, (*c)[indx].lock == lock
+	return (*c)[indx].accum, (*c)[indx].lock == lock
 }
 
 // load evaluates position, using the cache if possible.
-func (c *pawnsTable) load(pos *Position, us Color) Eval {
-	var eval Eval
+func (c *pawnsTable) load(pos *Position, us Color) Accum {
 	if disableCache {
-		evaluatePawnsAndShelter(pos, us, &eval)
-		return eval
+		return evaluatePawnsAndShelter(pos, us)
 	}
 	h := pawnsHash(pos, us)
-	if eval, ok := c.get(h); ok {
-		return eval
+	if accum, ok := c.get(h); ok {
+		return accum
 	}
-	evaluatePawnsAndShelter(pos, us, &eval)
-	c.put(h, eval)
-	return eval
+	accum := evaluatePawnsAndShelter(pos, us)
+	c.put(h, accum)
+	return accum
 }
 
 // pawnsHash returns a hash of the pawns and king in position.

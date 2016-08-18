@@ -64,12 +64,8 @@ var (
 	wPawn               [SquareArraySize]Score
 	wPassedPawn         [8]Score
 	wPassedPawnKing     [8]Score
-	wKnightRank         [8]Score
-	wKnightFile         [8]Score
-	wBishopRank         [8]Score
-	wBishopFile         [8]Score
-	wKingRank           [8]Score
-	wKingFile           [8]Score
+	wFigureFile         [FigureArraySize][8]Score
+	wFigureRank         [FigureArraySize][8]Score
 	wKingAttack         [4]Score
 	wBackwardPawn       Score
 	wConnectedPawn      Score
@@ -87,6 +83,30 @@ var (
 	// Figure bonuses to use when computing the futility margin.
 	futilityFigureBonus [FigureArraySize]int32
 )
+
+// Eval contains necessary information for evaluation.
+type Eval struct {
+	Accum    Accum
+	position *Position
+	pad      [ColorArraySize]scratchpad
+}
+
+// Feed return the score phased between midgame and endgame score.
+func (e *Eval) Feed(phase int32) int32 {
+	return (e.Accum.M*(256-phase) + e.Accum.E*phase) / 256
+}
+
+// scratchpad stores various information about evaluation of a single side.
+type scratchpad struct {
+	us            Color
+	exclude       Bitboard // squares to exclude from mobility calculation
+	theirPawns    Bitboard
+	theirKingArea Bitboard
+
+	accum          Accum
+	numAttackers   int32 // number of pieces attacking opposite king
+	attackStrength int32 // strength of the attack
+}
 
 func init() {
 	// Initializes weights.
@@ -106,12 +126,12 @@ func init() {
 	w = slice(w, wPawn[:])
 	w = slice(w, wPassedPawn[:])
 	w = slice(w, wPassedPawnKing[:])
-	w = slice(w, wKnightRank[:])
-	w = slice(w, wKnightFile[:])
-	w = slice(w, wBishopRank[:])
-	w = slice(w, wBishopFile[:])
-	w = slice(w, wKingRank[:])
-	w = slice(w, wKingFile[:])
+	w = slice(w, wFigureRank[Knight][:])
+	w = slice(w, wFigureFile[Knight][:])
+	w = slice(w, wFigureRank[Bishop][:])
+	w = slice(w, wFigureFile[Bishop][:])
+	w = slice(w, wFigureRank[King][:])
+	w = slice(w, wFigureFile[King][:])
 	w = slice(w, wKingAttack[:])
 	w = entry(w, &wBackwardPawn)
 	w = entry(w, &wConnectedPawn)
@@ -132,16 +152,17 @@ func init() {
 
 	// Initializes futility figure bonus
 	for i, w := range wFigure {
-		futilityFigureBonus[i] = scaleToCentipawn(max(w.M, w.E))
+		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
 	}
 }
 
-func evaluatePawnsAndShelter(pos *Position, us Color, eval *Eval) {
-	evaluatePawns(pos, us, eval)
-	evaluateShelter(pos, us, eval)
+func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
+	accum.merge(evaluatePawns(pos, us))
+	accum.merge(evaluateShelter(pos, us))
+	return accum
 }
 
-func evaluatePawns(pos *Position, us Color, eval *Eval) {
+func evaluatePawns(pos *Position, us Color) (accum Accum) {
 	them := us.Opposite()
 	ours := pos.ByPiece(us, Pawn)
 	theirs := pos.ByPiece(them, Pawn)
@@ -161,167 +182,150 @@ func evaluatePawns(pos *Position, us Color, eval *Eval) {
 		povSq := sq.POV(us)
 		rank := povSq.Rank()
 
-		eval.add(wFigure[Pawn])
-		eval.add(wPawn[povSq])
+		accum.add(wFigure[Pawn])
+		accum.add(wPawn[povSq])
 
 		if passed.Has(sq) {
-			eval.add(wPassedPawn[rank])
+			accum.add(wPassedPawn[rank])
 			if kingPawnDist > distance[sq][kingSq] {
 				kingPawnDist = distance[sq][kingSq]
 			}
 		}
 		if connected.Has(sq) {
-			eval.add(wConnectedPawn)
+			accum.add(wConnectedPawn)
 		}
 		if double.Has(sq) {
-			eval.add(wDoublePawn)
+			accum.add(wDoublePawn)
 		}
 		if isolated.Has(sq) {
-			eval.add(wIsolatedPawn)
+			accum.add(wIsolatedPawn)
 		}
 		if backward.Has(sq) {
-			eval.add(wBackwardPawn)
+			accum.add(wBackwardPawn)
 		}
 	}
 
 	if kingPawnDist != 8 {
 		// Add a bonus for king protecting most advance pawn.
-		eval.add(wPassedPawnKing[kingPawnDist])
+		accum.add(wPassedPawnKing[kingPawnDist])
 	}
+
+	return accum
 }
 
-func evaluateShelter(pos *Position, us Color, eval *Eval) {
+func evaluateShelter(pos *Position, us Color) (accum Accum) {
 	pawns := pos.ByPiece(us, Pawn)
 	king := pos.ByPiece(us, King)
-
 	sq := king.AsSquare().POV(us)
-	eval.add(wKingFile[sq.File()])
-	eval.add(wKingRank[sq.Rank()])
-
 	king = ForwardSpan(us, king)
 	file := sq.File()
 	if file > 0 && West(king)&pawns == 0 {
-		eval.add(wKingShelter)
+		accum.add(wKingShelter)
 	}
 	if king&pawns == 0 {
-		eval.addN(wKingShelter, 2)
+		accum.addN(wKingShelter, 2)
 	}
 	if file < 7 && East(king)&pawns == 0 {
-		eval.add(wKingShelter)
+		accum.add(wKingShelter)
+	}
+	return accum
+}
+
+// evaluateFigure computes the material score for figure.
+func (pad *scratchpad) evaluateFigure(fig Figure, sq Square, mobility Bitboard) {
+	sq = sq.POV(pad.us)
+	pad.accum.add(wFigure[fig])
+	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
+	pad.accum.add(wFigureFile[fig][sq.File()])
+	pad.accum.add(wFigureRank[fig][sq.Rank()])
+
+	if a := mobility & pad.theirKingArea &^ pad.theirPawns &^ pad.exclude; fig != King && a != 0 {
+		pad.numAttackers++
+		pad.attackStrength += a.CountMax2()
 	}
 }
 
 // evaluateSide evaluates position for a single side.
-func evaluateSide(pos *Position, us Color, eval *Eval) {
-	eval.merge(pawnsAndShelterCache.load(pos, us))
+func (eval *Eval) evaluateSide(us Color) {
+	pos := eval.position
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
 
-	theirPawns := pos.ByPiece(them, Pawn)
-	theirKing := pos.ByPiece(them, King)
-	theirKingArea := bbKingArea[theirKing.AsSquare()]
-	numAttackers, attackStrength := 0, int32(0) // opposite king attack strength
+	pad := &eval.pad[us]
+	*pad = scratchpad{
+		us:            us,
+		exclude:       pos.ByPiece(us, Pawn) | pos.PawnThreats(them),
+		theirPawns:    pos.ByPiece(them, Pawn),
+		theirKingArea: bbKingArea[pos.ByPiece(them, King).AsSquare()],
+	}
+
+	pad.accum.merge(pawnsAndShelterCache.load(pos, us))
 
 	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
-	eval.addN(wMobility[Pawn], mobility.Count())
+	pad.accum.addN(wMobility[Pawn], mobility.Count())
 	mobility = pos.PawnThreats(us)
-	eval.addN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
+	pad.accum.addN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
 
 	// Knight
-	excl := pos.ByPiece(us, Pawn) | pos.PawnThreats(them)
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
-		eval.add(wFigure[Knight])
 		mobility := KnightMobility(sq)
-		eval.addN(wMobility[Knight], (mobility &^ excl).Count())
-
-		sq = sq.POV(us)
-		eval.add(wKnightFile[sq.File()])
-		eval.add(wKnightRank[sq.Rank()])
-
-		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
-			numAttackers++
-			attackStrength += a.CountMax2()
-		}
+		pad.evaluateFigure(Knight, sq, mobility)
 	}
 	// Bishop
 	numBishops := int32(0)
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
-		eval.add(wFigure[Bishop])
 		mobility := BishopMobility(sq, all)
-		eval.addN(wMobility[Bishop], (mobility &^ excl).Count())
+		pad.evaluateFigure(Bishop, sq, mobility)
 		numBishops++
-
-		sq = sq.POV(us)
-		eval.add(wBishopFile[sq.File()])
-		eval.add(wBishopRank[sq.Rank()])
-
-		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
-			numAttackers++
-			attackStrength += a.CountMax2()
-		}
 	}
-	eval.addN(wBishopPair, numBishops/2)
+	pad.accum.addN(wBishopPair, numBishops/2)
 
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
-		eval.add(wFigure[Rook])
 		mobility := RookMobility(sq, all)
-		eval.addN(wMobility[Rook], (mobility &^ excl).Count())
+		pad.evaluateFigure(Rook, sq, mobility)
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
 		f := FileBb(sq.File())
 		if pos.ByPiece(us, Pawn)&f == 0 {
 			if pos.ByPiece(them, Pawn)&f == 0 {
-				eval.add(wRookOnOpenFile)
+				pad.accum.add(wRookOnOpenFile)
 			} else {
-				eval.add(wRookOnHalfOpenFile)
+				pad.accum.add(wRookOnHalfOpenFile)
 			}
-		}
-
-		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
-			numAttackers++
-			attackStrength += a.CountMax2()
 		}
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
-		eval.add(wFigure[Queen])
 		mobility := QueenMobility(sq, all)
-		eval.addN(wMobility[Queen], (mobility &^ excl).Count())
-
-		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
-			numAttackers++
-			attackStrength += a.CountMax2()
-		}
+		pad.evaluateFigure(Queen, sq, mobility)
 	}
 
 	// King, each side has one.
 	{
 		sq := pos.ByPiece(us, King).AsSquare()
-		mobility := KingMobility(sq) &^ excl
-		eval.addN(wMobility[King], mobility.Count())
+		mobility := KingMobility(sq)
+		pad.evaluateFigure(King, sq, mobility)
 	}
 
 	// Evaluate attacking the king. See more at:
 	// https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
-	if numAttackers >= len(wKingAttack) {
-		numAttackers = len(wKingAttack) - 1
-	}
-	eval.addN(wKingAttack[numAttackers], attackStrength)
+	pad.numAttackers = min(pad.numAttackers, int32(len(wKingAttack)-1))
+	pad.accum.addN(wKingAttack[pad.numAttackers], pad.attackStrength)
 }
 
 // EvaluatePosition evalues position exported to be used by the tuner.
 func EvaluatePosition(pos *Position) Eval {
-	var eval Eval
-	evaluateSide(pos, Black, &eval)
-	eval.neg()
-	evaluateSide(pos, White, &eval)
+	eval := Eval{position: pos}
+	eval.evaluateSide(White)
+	eval.evaluateSide(Black)
+	eval.merge()
 	return eval
 }
 
@@ -330,7 +334,7 @@ func EvaluatePosition(pos *Position) Eval {
 func Evaluate(pos *Position) int32 {
 	eval := EvaluatePosition(pos)
 	score := eval.Feed(Phase(pos))
-	return scaleToCentipawn(score)
+	return scaleToCentipawns(score)
 }
 
 // Phase computes the progress of the game.
@@ -345,8 +349,8 @@ func Phase(pos *Position) int32 {
 	return (curr*256 + total/2) / total
 }
 
-// scaleToCentipawn scales a score in the original scale to centipawns.
-func scaleToCentipawn(score int32) int32 {
+// scaleToCentipawns scales a score in the original scale to centipawns.
+func scaleToCentipawns(score int32) int32 {
 	// Divides by 128 and rounds to the nearest integer.
 	return (score + 64 + score>>31) >> 7
 }
