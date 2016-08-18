@@ -240,7 +240,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.add(wKnightFile[sq.File()])
 		eval.add(wKnightRank[sq.Rank()])
 
-		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
 			numAttackers++
 			attackStrength += a.CountMax2()
 		}
@@ -258,7 +258,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 		eval.add(wBishopFile[sq.File()])
 		eval.add(wBishopRank[sq.Rank()])
 
-		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
 			numAttackers++
 			attackStrength += a.CountMax2()
 		}
@@ -283,7 +283,7 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 			}
 		}
 
-		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
 			numAttackers++
 			attackStrength += a.CountMax2()
 		}
@@ -292,10 +292,10 @@ func evaluateSide(pos *Position, us Color, eval *Eval) {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		eval.add(wFigure[Queen])
-		mobility := QueenMobility(sq, all) &^ excl
+		mobility := QueenMobility(sq, all)
 		eval.addN(wMobility[Queen], (mobility &^ excl).Count())
 
-		if a := mobility & theirKingArea &^ theirPawns; a != 0 {
+		if a := mobility & theirKingArea &^ theirPawns &^ excl; a != 0 {
 			numAttackers++
 			attackStrength += a.CountMax2()
 		}
