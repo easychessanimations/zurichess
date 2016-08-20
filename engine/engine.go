@@ -609,7 +609,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 
 		// Prune moves close to frontier.
-		if allowLeafsPruning && !givesCheck && !critical {
+		// Don't prune in check, critical moves, if we haven't seen any moves or we are about to get mated.
+		if allowLeafsPruning && !givesCheck && !critical && bestScore > KnownLossScore {
 			// Prune quiet moves that performed bad historically.
 			if stat := eng.history.get(move); stat < -10 && (move.IsQuiet() || seeSign(pos, move)) {
 				dropped = true
