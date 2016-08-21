@@ -236,8 +236,10 @@ func (pad *scratchpad) evaluateFigure(fig Figure, sq Square, mobility Bitboard) 
 	sq = sq.POV(pad.us)
 	pad.accum.add(wFigure[fig])
 	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
-	pad.accum.add(wFigureFile[fig][sq.File()])
-	pad.accum.add(wFigureRank[fig][sq.Rank()])
+	if fig == Knight || fig == Bishop || fig == King {
+		pad.accum.add(wFigureFile[fig][sq.File()])
+		pad.accum.add(wFigureRank[fig][sq.Rank()])
+	}
 
 	if a := mobility & pad.theirKingArea &^ pad.theirPawns &^ pad.exclude; fig != King && a != 0 {
 		pad.numAttackers++
