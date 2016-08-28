@@ -12,14 +12,12 @@ import (
 )
 
 const (
-	// Quiet indicates no capture, no castling, no promotion.
-	Quiet int = 1 << iota
-	// Tactical indicates castling and underpromotions (including captures).
-	Tactical
-	// Violent indicates captures and queen promotions.
-	Violent
-	// All indicates all moves.
-	All = Quiet | Tactical | Violent
+	// Violent indicates captures (inluding en passant) and queen promotions.
+	Violent int = 1 << iota
+	// Quiet are all other moves including minor promotions and castling.
+	Quiet
+	// All moves (deprecated).
+	All = Violent | Quiet
 )
 
 var (
@@ -436,7 +434,7 @@ func (pos *Position) PawnThreats(side Color) Bitboard {
 // This function is very expensive.
 func (pos *Position) HasLegalMoves() bool {
 	var moves []Move
-	pos.GenerateMoves(All, &moves)
+	pos.GenerateMoves(Violent|Quiet, &moves)
 	for _, m := range moves {
 		pos.DoMove(m)
 		checked := pos.IsChecked(pos.Them())
@@ -646,18 +644,14 @@ func (pos *Position) UndoMove() {
 }
 
 func (pos *Position) genPawnPromotions(kind int, moves *[]Move) {
-	if kind&(Violent|Tactical) == 0 {
-		return
-	}
-
 	// Minimum and maximum promotion pieces.
-	// Tactical -> Knight - Rook
+	// Quiet -> Knight - Rook
 	// Violent -> Queen
 	pMin, pMax := Queen, Rook
 	if kind&Violent != 0 {
 		pMax = Queen
 	}
-	if kind&Tactical != 0 {
+	if kind&Quiet != 0 {
 		pMin = Knight
 	}
 
@@ -821,7 +815,7 @@ func (pos *Position) getMask(kind int) Bitboard {
 		// Generate all non-attacks.
 		mask |= ^(pos.ByColor[White] | pos.ByColor[Black])
 	}
-	// Tactical is handled specially.
+	// Minor promotions and castling are handled specially.
 	return mask
 }
 
@@ -862,7 +856,7 @@ func (pos *Position) genKingMovesNear(mask Bitboard, moves *[]Move) {
 }
 
 func (pos *Position) genKingCastles(kind int, moves *[]Move) {
-	if kind&Tactical == 0 {
+	if kind&Quiet == 0 {
 		return
 	}
 
@@ -956,7 +950,7 @@ func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 
 // GenerateMoves appends to moves all moves valid from pos.
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
-// kind is a combination of Quiet, Tactical or Violent.
+// kind is Quiet or Violent, or both.
 func (pos *Position) GenerateMoves(kind int, moves *[]Move) {
 	mask := pos.getMask(kind)
 	// Order of the moves is important because the last quiet
@@ -977,7 +971,7 @@ func (pos *Position) GenerateMoves(kind int, moves *[]Move) {
 
 // GenerateFigureMoves generate moves for a given figure.
 // The generated moves are pseudo-legal, i.e. they can leave the king in check.
-// kind is a combination of Quiet, Tactical or Violent.
+// kind is Quiet or Violent, or both.
 func (pos *Position) GenerateFigureMoves(fig Figure, kind int, moves *[]Move) {
 	mask := pos.getMask(kind)
 	switch fig {

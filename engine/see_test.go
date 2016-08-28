@@ -1,4 +1,4 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2016 The Zurichess Authors. Violent|Quiet rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -48,7 +48,7 @@ func TestSEE(t *testing.T) {
 	for i, fen := range testFENs {
 		var moves []Move
 		pos, _ := PositionFromFEN(fen)
-		pos.GenerateMoves(All, &moves)
+		pos.GenerateMoves(Violent|Quiet, &moves)
 		for _, m := range moves {
 			pos.DoMove(m)
 			actual := see(pos, m)
@@ -75,7 +75,7 @@ var seeBench = "1rr3k1/4ppb1/2q1bnp1/1p2B1Q1/6P1/2p2P2/2P1B2R/2K4R w - - 0 1"
 func BenchmarkSEESlow(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	pos.GenerateMoves(All, &moves)
+	pos.GenerateMoves(Violent|Quiet, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
 			seeSlow(pos, m, 0)
@@ -86,7 +86,7 @@ func BenchmarkSEESlow(b *testing.B) {
 func BenchmarkSEEFast(b *testing.B) {
 	var moves []Move
 	pos, _ := PositionFromFEN(seeBench)
-	pos.GenerateMoves(All, &moves)
+	pos.GenerateMoves(Violent|Quiet, &moves)
 	for i := 0; i < b.N; i++ {
 		for _, m := range moves {
 			see(pos, m)

@@ -162,8 +162,8 @@ func (st *stack) PopMove() Move {
 			// it doesn't make sense to sort given that captures have a high
 			// chance to fail high. We just pop the moves in order of score.
 			if m := st.popFront(); m == NullMove {
-				if ms.kind&(Tactical|Quiet) == 0 {
-					// Optimization: skip remaining steps if no Tactical or Quiet moves
+				if ms.kind&Quiet == 0 {
+					// Optimization: skip remaining steps if no quiet moves
 					// were requested (e.g. in quiescence search).
 					ms.state = msDone
 				} else {
@@ -198,7 +198,7 @@ func (st *stack) PopMove() Move {
 		// Return remaining quiet and tactical moves.
 		case msGenRest:
 			ms.state = msReturnRest
-			st.generateMoves(Tactical | Quiet)
+			st.generateMoves(Quiet)
 			st.sort()
 
 		case msReturnRest:

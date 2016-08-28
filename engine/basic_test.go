@@ -220,3 +220,26 @@ func TestArraySize(t *testing.T) {
 		t.Errorf("wanted ColorArraySize == 4, got %d", ColorArraySize)
 	}
 }
+
+func TestViolent(t *testing.T) {
+	data := []struct {
+		move    Move
+		violent bool
+	}{
+		{MakeMove(Normal, SquareD2, SquareD4, NoPiece, WhitePawn), false},
+		{MakeMove(Castling, SquareE1, SquareG1, NoPiece, WhiteKing), false},
+		{MakeMove(Normal, SquareB8, SquareD7, WhitePawn, BlackKnight), true},
+		{MakeMove(Normal, SquareB1, SquareD2, WhitePawn, WhiteKnight), true},
+		{MakeMove(Promotion, SquareH7, SquareH8, NoPiece, WhiteQueen), true},
+		{MakeMove(Promotion, SquareH7, SquareG8, BlackRook, WhiteQueen), true},
+	}
+
+	for i, d := range data {
+		if got, wanted := d.move.IsViolent(), d.violent; got != wanted {
+			t.Errorf("#%d Got %v.IsViolent() = %v, wanted %v", i, d.move, got, wanted)
+		}
+		if got, wanted := d.move.IsQuiet(), !d.violent; got != wanted {
+			t.Errorf("#%d Got %v.IsQuiet() = %v, wanted %v", i, d.move, got, wanted)
+		}
+	}
+}

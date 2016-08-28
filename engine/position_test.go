@@ -1,4 +1,4 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2016 The Zurichess Authors. Violent|Quiet rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -61,7 +61,7 @@ func (te *testEngine) Piece(sq Square, expected Piece) {
 func (te *testEngine) Pawn(sq Square, expected []string) {
 	end := 0
 	var actual []Move
-	te.Pos.GenerateFigureMoves(Pawn, All, &actual)
+	te.Pos.GenerateFigureMoves(Pawn, Violent|Quiet, &actual)
 	for i := range actual {
 		if actual[i].From() == sq {
 			actual[end] = actual[i]
@@ -73,33 +73,33 @@ func (te *testEngine) Pawn(sq Square, expected []string) {
 
 func (te *testEngine) Knight(expected []string) {
 	var actual []Move
-	te.Pos.genKnightMoves(te.Pos.getMask(All), &actual)
+	te.Pos.genKnightMoves(te.Pos.getMask(Violent|Quiet), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Bishop(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Bishop, te.Pos.getMask(All), &actual)
+	te.Pos.genBishopMoves(Bishop, te.Pos.getMask(Violent|Quiet), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Rook(expected []string) {
 	var actual []Move
-	te.Pos.genRookMoves(Rook, te.Pos.getMask(All), &actual)
+	te.Pos.genRookMoves(Rook, te.Pos.getMask(Violent|Quiet), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) Queen(expected []string) {
 	var actual []Move
-	te.Pos.genBishopMoves(Queen, te.Pos.getMask(All), &actual)
-	te.Pos.genRookMoves(Queen, te.Pos.getMask(All), &actual)
+	te.Pos.genBishopMoves(Queen, te.Pos.getMask(Violent|Quiet), &actual)
+	te.Pos.genRookMoves(Queen, te.Pos.getMask(Violent|Quiet), &actual)
 	testMoves(te.T, actual, expected)
 }
 
 func (te *testEngine) King(expected []string) {
 	var actual []Move
-	te.Pos.genKingMovesNear(te.Pos.getMask(All), &actual)
-	te.Pos.genKingCastles(All, &actual)
+	te.Pos.genKingMovesNear(te.Pos.getMask(Violent|Quiet), &actual)
+	te.Pos.genKingCastles(Violent|Quiet, &actual)
 	testMoves(te.T, actual, expected)
 }
 
@@ -406,48 +406,48 @@ func TestGenQueenMoves(t *testing.T) {
 func TestGenPawnAdvanceMoves(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.genPawnAdvanceMoves(All, &moves)
+	pos.genPawnAdvanceMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d2d3", "e2e3", "e5e6"})
 
 	moves = moves[:0]
 	pos.DoMove(NullMove)
-	pos.genPawnAdvanceMoves(All, &moves)
+	pos.genPawnAdvanceMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d7d6", "e7e6", "f7f6"})
 }
 
 func TestGenPawnDoubleAdvanceMoves(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.genPawnDoubleAdvanceMoves(All, &moves)
+	pos.genPawnDoubleAdvanceMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d2d4", "e2e4"})
 
 	moves = moves[:0]
 	pos.DoMove(NullMove)
-	pos.genPawnDoubleAdvanceMoves(All, &moves)
+	pos.genPawnDoubleAdvanceMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d7d5", "f7f5"})
 }
 
 func TestGenPawnAttackMoves1(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(testBoard1)
-	pos.genPawnAttackMoves(All, &moves)
+	pos.genPawnAttackMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"e2f3", "a4b5", "b4a5", "g4h5", "h4g5"})
 
 	moves = moves[:0]
 	pos.DoMove(NullMove)
-	pos.genPawnAttackMoves(All, &moves)
+	pos.genPawnAttackMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d7c6", "f7g6", "a5b4", "b5a4", "h5g4", "g5h4"})
 }
 
 func TestGenPawnAttackMoves2(t *testing.T) {
 	var moves []Move
 	pos, _ := PositionFromFEN(fenKiwipete)
-	pos.genPawnAttackMoves(All, &moves)
+	pos.genPawnAttackMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
 	moves = moves[:0]
 	pos.DoMove(NullMove)
-	pos.genPawnAttackMoves(All, &moves)
+	pos.genPawnAttackMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"b4c3", "h3g2", "e6d5"})
 }
 
@@ -472,7 +472,7 @@ func TestGenPawnEnpassant(t *testing.T) {
 	}
 
 	var moves []Move
-	pos.GenerateFigureMoves(Pawn, All, &moves)
+	pos.GenerateFigureMoves(Pawn, Violent|Quiet, &moves)
 	if 2 != len(moves) {
 		t.Fatalf("expected 2 moves, got %d", len(moves))
 	}
@@ -667,7 +667,7 @@ func TestPanicPosition(t *testing.T) {
 	var moves []Move
 	fen := "8/7P/4R3/p4pk1/P2p1r2/3P4/1R6/b1bK4 b - - 1 111"
 	pos, _ := PositionFromFEN(fen)
-	pos.GenerateMoves(All, &moves)
+	pos.GenerateMoves(Violent|Quiet, &moves)
 	for _, m := range moves {
 		pos.DoMove(m)
 		pos.UndoMove()
@@ -806,7 +806,7 @@ func TestGenerateMovesKind(t *testing.T) {
 		pos, _ := PositionFromFEN(fen)
 
 		v := make(map[Move]int)
-		for _, k := range []int{Violent, Tactical, Quiet} {
+		for _, k := range []int{Violent, Quiet} {
 			var moves []Move
 			pos.GenerateMoves(k, &moves)
 			for _, m := range moves {
@@ -815,13 +815,13 @@ func TestGenerateMovesKind(t *testing.T) {
 		}
 
 		for m, k := range v {
-			if k != Violent && k != Tactical && k != Quiet {
+			if k != Violent && k != Quiet {
 				t.Errorf("invalid kind for move %v, fen %s", m, fen)
 			}
 		}
 
 		var all []Move
-		pos.GenerateMoves(All, &all)
+		pos.GenerateMoves(Violent|Quiet, &all)
 		if len(all) != len(v) {
 			t.Errorf("Expected %d moves, got %d", len(all), len(v))
 		}
@@ -834,21 +834,21 @@ func TestGenerateMovesQuiet(t *testing.T) {
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Quiet, &all)
 		for _, m := range all {
-			if m.MoveType() != Normal || m.Capture() != NoPiece {
+			if !m.IsQuiet() {
 				t.Errorf("Expected quiet move, got %v", m)
 			}
 		}
 	}
 }
 
-func TestGenerateMovesTactical(t *testing.T) {
+func TestGenerateMovesViolent(t *testing.T) {
 	for _, fen := range testFENs {
 		var all []Move
 		pos, _ := PositionFromFEN(fen)
-		pos.GenerateMoves(Tactical, &all)
+		pos.GenerateMoves(Violent, &all)
 		for _, m := range all {
-			if m.MoveType() != Castling && (m.MoveType() != Promotion || m.Target().Figure() == Queen) {
-				t.Errorf("Expected tactical move, got %v", m)
+			if !m.IsViolent() {
+				t.Errorf("Expected violent move, got %v", m)
 			}
 		}
 	}
@@ -858,7 +858,7 @@ func TestGenerateMovesColor(t *testing.T) {
 	for _, fen := range testFENs {
 		var all []Move
 		pos, _ := PositionFromFEN(fen)
-		pos.GenerateMoves(All, &all)
+		pos.GenerateMoves(Violent|Quiet, &all)
 		for _, m := range all {
 			if m.Piece().Color() != pos.SideToMove {
 				t.Errorf("for move %v and fen %v", m, fen)

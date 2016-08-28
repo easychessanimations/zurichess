@@ -1,4 +1,4 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2016 The Zurichess Authors. All rights reserved
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -33,7 +33,7 @@ func TestReturnsHashMove(t *testing.T) {
 		hash, _ := pos.UCIToMove(str)
 		st := &stack{}
 		st.Reset(pos)
-		st.GenerateMoves(All, hash)
+		st.GenerateMoves(Violent|Quiet, hash)
 		if move := st.PopMove(); hash != move {
 			t.Errorf("#%d expected move %v, got %v", i, hash, move)
 		}
@@ -46,14 +46,14 @@ func TestReturnsMoves(t *testing.T) {
 		seen := make(map[Move]int)
 
 		var moves []Move
-		pos.GenerateMoves(All, &moves)
+		pos.GenerateMoves(Violent|Quiet, &moves)
 		for _, m := range moves {
 			seen[m] |= 1
 		}
 
 		st := &stack{history: new(historyTable)}
 		st.Reset(pos)
-		st.GenerateMoves(All, moves[1234567891%len(moves)])
+		st.GenerateMoves(Violent|Quiet, moves[1234567891%len(moves)])
 		for m := st.PopMove(); m != NullMove; m = st.PopMove() {
 			if seen[m]&2 != 0 {
 				t.Errorf("move %v is duplicate", m)

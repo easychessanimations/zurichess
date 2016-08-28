@@ -551,13 +551,12 @@ func (m Move) Promotion() Piece {
 // IsViolent returns true if the move can change the position's score significantly.
 // TODO: IsViolent should be in sync with GenerateViolentMoves.
 func (m Move) IsViolent() bool {
-	return m.Capture() != NoPiece || m.MoveType() == Promotion
+	return m.Capture() != NoPiece || m.MoveType() == Promotion && m.Target().Figure() == Queen
 }
 
 // IsQuiet returns true if the move is quiet.
-// In particular Castling is not quiet and not violent.
 func (m Move) IsQuiet() bool {
-	return m.MoveType() == Normal && m.Capture() == NoPiece
+	return !m.IsViolent()
 }
 
 // UCI converts a move to UCI format.

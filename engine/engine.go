@@ -572,7 +572,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	numMoves := int32(0)
 	localα := α
 
-	eng.stack.GenerateMoves(All, hash)
+	eng.stack.GenerateMoves(Violent|Quiet, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		if eng.isIgnoredRootMove(move) {
 			ignored = true
