@@ -84,18 +84,6 @@ var (
 	futilityFigureBonus [FigureArraySize]int32
 )
 
-// Eval contains necessary information for evaluation.
-type Eval struct {
-	Accum    Accum
-	position *Position
-	pad      [ColorArraySize]scratchpad
-}
-
-// Feed return the score phased between midgame and endgame score.
-func (e *Eval) Feed(phase int32) int32 {
-	return (e.Accum.M*(256-phase) + e.Accum.E*phase) / 256
-}
-
 // scratchpad stores various information about evaluation of a single side.
 type scratchpad struct {
 	us            Color
@@ -108,52 +96,47 @@ type scratchpad struct {
 	attackStrength int32 // strength of the attack
 }
 
-func init() {
-	// Initializes weights.
-	initWeights()
-	slice := func(w []Score, out []Score) []Score {
-		copy(out, w)
-		return w[len(out):]
-	}
-	entry := func(w []Score, out *Score) []Score {
-		*out = w[0]
-		return w[1:]
-	}
+// Eval contains necessary information for evaluation.
+type Eval struct {
+	Accum    Accum
+	position *Position
+	pad      [ColorArraySize]scratchpad
+}
 
-	w := Weights[:]
-	w = slice(w, wFigure[:])
-	w = slice(w, wMobility[:])
-	w = slice(w, wPawn[:])
-	w = slice(w, wPassedPawn[:])
-	w = slice(w, wPassedPawnKing[:])
-	w = slice(w, wFigureRank[Knight][:])
-	w = slice(w, wFigureFile[Knight][:])
-	w = slice(w, wFigureRank[Bishop][:])
-	w = slice(w, wFigureFile[Bishop][:])
-	w = slice(w, wFigureRank[King][:])
-	w = slice(w, wFigureFile[King][:])
-	w = slice(w, wKingAttack[:])
-	w = entry(w, &wBackwardPawn)
-	w = entry(w, &wConnectedPawn)
-	w = entry(w, &wDoublePawn)
-	w = entry(w, &wIsolatedPawn)
-	w = entry(w, &wPawnThreat)
-	w = entry(w, &wKingShelter)
-	w = entry(w, &wBishopPair)
-	w = entry(w, &wRookOnOpenFile)
-	w = entry(w, &wRookOnHalfOpenFile)
-
-	if len(w) != 0 {
-		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
+// init initializes some used info.
+func (eval *Eval) init(us Color) {
+	pos := eval.position
+	them := us.Opposite()
+	eval.pad[us] = scratchpad{
+		us:            us,
+		exclude:       pos.ByPiece(us, Pawn) | pos.PawnThreats(them),
+		theirPawns:    pos.ByPiece(them, Pawn),
+		theirKingArea: bbKingArea[pos.ByPiece(them, King).AsSquare()],
 	}
+}
 
-	// Initialize caches.
-	pawnsAndShelterCache = new(pawnsTable)
+// Feed return the score phased between midgame and endgame score.
+func (e *Eval) Feed(phase int32) int32 {
+	return (e.Accum.M*(256-phase) + e.Accum.E*phase) / 256
+}
 
-	// Initializes futility figure bonus
-	for i, w := range wFigure {
-		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
-	}
+// Evaluate evaluates position from White's POV.
+// The returned s fits into a int16.
+func Evaluate(pos *Position) int32 {
+	eval := EvaluatePosition(pos)
+	score := eval.Feed(Phase(pos))
+	return scaleToCentipawns(score)
+}
+
+// EvaluatePosition evaluates position exported to be used by the tuner.
+func EvaluatePosition(pos *Position) Eval {
+	eval := Eval{position: pos}
+	eval.init(White)
+	eval.init(Black)
+	eval.evaluateSide(White)
+	eval.evaluateSide(Black)
+	eval.merge()
+	return eval
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
@@ -213,6 +196,7 @@ func evaluatePawns(pos *Position, us Color) (accum Accum) {
 	return accum
 }
 
+// evaluateShelter evaluates king's shelter.
 func evaluateShelter(pos *Position, us Color) (accum Accum) {
 	pawns := pos.ByPiece(us, Pawn)
 	king := pos.ByPiece(us, King)
@@ -232,7 +216,7 @@ func evaluateShelter(pos *Position, us Color) (accum Accum) {
 }
 
 // evaluateFigure computes the material score for figure.
-func (pad *scratchpad) evaluateFigure(fig Figure, sq Square, mobility Bitboard) {
+func (eval *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility Bitboard) {
 	sq = sq.POV(pad.us)
 	pad.accum.add(wFigure[fig])
 	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
@@ -250,16 +234,9 @@ func (pad *scratchpad) evaluateFigure(fig Figure, sq Square, mobility Bitboard) 
 // evaluateSide evaluates position for a single side.
 func (eval *Eval) evaluateSide(us Color) {
 	pos := eval.position
-	all := pos.ByColor[White] | pos.ByColor[Black]
 	them := us.Opposite()
-
 	pad := &eval.pad[us]
-	*pad = scratchpad{
-		us:            us,
-		exclude:       pos.ByPiece(us, Pawn) | pos.PawnThreats(them),
-		theirPawns:    pos.ByPiece(them, Pawn),
-		theirKingArea: bbKingArea[pos.ByPiece(them, King).AsSquare()],
-	}
+	all := pos.ByColor[White] | pos.ByColor[Black]
 
 	pad.accum.merge(pawnsAndShelterCache.load(pos, us))
 
@@ -273,14 +250,14 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
-		pad.evaluateFigure(Knight, sq, mobility)
+		eval.evaluateFigure(pad, Knight, sq, mobility)
 	}
 	// Bishop
 	numBishops := int32(0)
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
-		pad.evaluateFigure(Bishop, sq, mobility)
+		eval.evaluateFigure(pad, Bishop, sq, mobility)
 		numBishops++
 	}
 	pad.accum.addN(wBishopPair, numBishops/2)
@@ -289,7 +266,7 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
-		pad.evaluateFigure(Rook, sq, mobility)
+		eval.evaluateFigure(pad, Rook, sq, mobility)
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
@@ -306,37 +283,20 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
-		pad.evaluateFigure(Queen, sq, mobility)
+		eval.evaluateFigure(pad, Queen, sq, mobility)
 	}
 
 	// King, each side has one.
 	{
 		sq := pos.ByPiece(us, King).AsSquare()
 		mobility := KingMobility(sq)
-		pad.evaluateFigure(King, sq, mobility)
+		eval.evaluateFigure(pad, King, sq, mobility)
 	}
 
 	// Evaluate attacking the king. See more at:
 	// https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
 	pad.numAttackers = min(pad.numAttackers, int32(len(wKingAttack)-1))
 	pad.accum.addN(wKingAttack[pad.numAttackers], pad.attackStrength)
-}
-
-// EvaluatePosition evalues position exported to be used by the tuner.
-func EvaluatePosition(pos *Position) Eval {
-	eval := Eval{position: pos}
-	eval.evaluateSide(White)
-	eval.evaluateSide(Black)
-	eval.merge()
-	return eval
-}
-
-// Evaluate evaluates position from White's POV.
-// The returned s fits into a int16.
-func Evaluate(pos *Position) int32 {
-	eval := EvaluatePosition(pos)
-	score := eval.Feed(Phase(pos))
-	return scaleToCentipawns(score)
 }
 
 // Phase computes the progress of the game.
@@ -355,4 +315,52 @@ func Phase(pos *Position) int32 {
 func scaleToCentipawns(score int32) int32 {
 	// Divides by 128 and rounds to the nearest integer.
 	return (score + 64 + score>>31) >> 7
+}
+
+func init() {
+	// Initializes weights.
+	initWeights()
+	slice := func(w []Score, out []Score) []Score {
+		copy(out, w)
+		return w[len(out):]
+	}
+	entry := func(w []Score, out *Score) []Score {
+		*out = w[0]
+		return w[1:]
+	}
+
+	w := Weights[:]
+	w = slice(w, wFigure[:])
+	w = slice(w, wMobility[:])
+	w = slice(w, wPawn[:])
+	w = slice(w, wPassedPawn[:])
+	w = slice(w, wPassedPawnKing[:])
+	w = slice(w, wFigureRank[Knight][:])
+	w = slice(w, wFigureFile[Knight][:])
+	w = slice(w, wFigureRank[Bishop][:])
+	w = slice(w, wFigureFile[Bishop][:])
+	w = slice(w, wFigureRank[King][:])
+	w = slice(w, wFigureFile[King][:])
+	w = slice(w, wKingAttack[:])
+	w = entry(w, &wBackwardPawn)
+	w = entry(w, &wConnectedPawn)
+	w = entry(w, &wDoublePawn)
+	w = entry(w, &wIsolatedPawn)
+	w = entry(w, &wPawnThreat)
+	w = entry(w, &wKingShelter)
+	w = entry(w, &wBishopPair)
+	w = entry(w, &wRookOnOpenFile)
+	w = entry(w, &wRookOnHalfOpenFile)
+
+	if len(w) != 0 {
+		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
+	}
+
+	// Initialize caches.
+	pawnsAndShelterCache = new(pawnsTable)
+
+	// Initializes futility figure bonus
+	for i, w := range wFigure {
+		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
+	}
 }
