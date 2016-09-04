@@ -85,23 +85,19 @@ type Logger interface {
 	BeginSearch()
 	// EndSearch signals end of search.
 	EndSearch()
-	// PrintPV logs the principal variation after
-	// iterative deepening completed one depth.
+	// PrintPV logs the principal variation after iterative deepening completed one depth.
 	PrintPV(stats Stats, multiPV int, score int32, pv []Move)
+	// CurrMove logs the current move. Current move index is 1-based.
+	CurrMove(depth int, move Move, num int)
 }
 
 // NulLogger is a logger that does nothing.
-type NulLogger struct {
-}
+type NulLogger struct{}
 
-func (nl *NulLogger) BeginSearch() {
-}
-
-func (nl *NulLogger) EndSearch() {
-}
-
-func (nl *NulLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {
-}
+func (nl *NulLogger) BeginSearch()                                             {}
+func (nl *NulLogger) EndSearch()                                               {}
+func (nl *NulLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {}
+func (nl *NulLogger) CurrMove(depth int, move Move, num int)                   {}
 
 // historyEntry keeps counts of how well move performed in the past.
 type historyEntry struct {
@@ -574,6 +570,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	eng.stack.GenerateMoves(Violent|Quiet, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
+		if ply == 0 {
+			eng.Log.CurrMove(int(depth), move, int(numMoves+1))
+		}
 		if eng.isIgnoredRootMove(move) {
 			ignored = true
 			continue

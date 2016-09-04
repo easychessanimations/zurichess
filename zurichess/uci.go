@@ -77,6 +77,13 @@ func (ul *uciLogger) PrintPV(stats engine.Stats, multiPV int, score int32, pv []
 	ul.flush()
 }
 
+func (ul *uciLogger) CurrMove(depth int, move engine.Move, num int) {
+	if depth > 15 && time.Now().Sub(ul.start) > 5*time.Second {
+		fmt.Fprintf(ul.buf, "info depth %d currmove %v currmovenumber %d\n", depth, move, num)
+		ul.flush()
+	}
+}
+
 // flush flushes the buf to stdout.
 func (ul *uciLogger) flush() {
 	os.Stdout.Write(ul.buf.Bytes())
