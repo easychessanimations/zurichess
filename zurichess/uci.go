@@ -98,7 +98,7 @@ type UCI struct {
 	timeControl *engine.TimeControl
 
 	// buffer of 1, if empty then the engine is available
-	ready chan struct{}
+	idle chan struct{}
 	// buffer of 1, if filled then the engine is pondering
 	ponder chan struct{}
 	// predicted position hash after 2 moves.
@@ -110,7 +110,7 @@ func NewUCI() *UCI {
 	return &UCI{
 		Engine:      engine.NewEngine(nil, newUCILogger(), options),
 		timeControl: nil,
-		ready:       make(chan struct{}, 1),
+		idle:        make(chan struct{}, 1),
 		ponder:      make(chan struct{}, 1),
 	}
 }
@@ -128,7 +128,7 @@ func (uci *UCI) Execute(line string) error {
 		return fmt.Errorf("invalid command line")
 	}
 
-	// These commands do not expect the engine to be ready.
+	// These commands do not expect the engine to be idle.
 	switch cmd {
 	case "isready":
 		return uci.isready(line)
@@ -142,11 +142,11 @@ func (uci *UCI) Execute(line string) error {
 		return uci.ponderhit(line)
 	}
 
-	// Make sure that the engine is ready.
-	uci.ready <- struct{}{}
-	<-uci.ready
+	// Make sure that the engine is idle.
+	uci.idle <- struct{}{}
+	<-uci.idle
 
-	// These commands expect engine to be ready.
+	// These commands expect engine to be idle.
 	switch cmd {
 	case "ucinewgame":
 		return uci.ucinewgame(line)
@@ -175,8 +175,6 @@ func (uci *UCI) uci(line string) error {
 }
 
 func (uci *UCI) isready(line string) error {
-	uci.ready <- struct{}{}
-	<-uci.ready
 	fmt.Println("readyok")
 	return nil
 }
@@ -284,7 +282,7 @@ func (uci *UCI) go_(line string) error {
 	}
 
 	uci.timeControl.Start(ponder)
-	uci.ready <- struct{}{}
+	uci.idle <- struct{}{}
 	go uci.play()
 	return nil
 }
@@ -305,9 +303,9 @@ func (uci *UCI) stop(line string) error {
 	case <-uci.ponder:
 	default:
 	}
-	// Waits until the engine becomes ready.
-	uci.ready <- struct{}{}
-	<-uci.ready
+	// Waits until the engine becomes idle.
+	uci.idle <- struct{}{}
+	<-uci.idle
 
 	return nil
 }
@@ -339,12 +337,12 @@ func (uci *UCI) play() {
 		fmt.Printf("bestmove %v ponder %v\n", moves[0].UCI(), moves[1].UCI())
 	}
 
-	// Marks the engine as ready.
-	// If the engine is made ready before best move is shown
+	// Marks the engine as idle.
+	// If the engine is made idle before best move is shown
 	// then sometimes (at very high rate of commands position / go)
 	// there is a race info / bestmove lines are intermixed wrongly.
 	// This confuses the tuner, at least.
-	<-uci.ready
+	<-uci.idle
 }
 
 var reOption = regexp.MustCompile(`^setoption\s+name\s+(.+?)(\s+value\s+(.*))?$`)
