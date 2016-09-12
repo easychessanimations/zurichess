@@ -93,11 +93,9 @@ type pvLog struct {
 
 type pvLogger []pvLog
 
-func (l *pvLogger) BeginSearch() {
-}
-
-func (l *pvLogger) EndSearch() {
-}
+func (l *pvLogger) BeginSearch()                           {}
+func (l *pvLogger) EndSearch()                             {}
+func (l *pvLogger) CurrMove(depth int, move Move, num int) {}
 
 func (l *pvLogger) PrintPV(stats Stats, multiPV int, score int32, moves []Move) {
 	*l = append(*l, pvLog{
