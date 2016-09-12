@@ -46,7 +46,7 @@ type moveStack struct {
 	kind   int     // violent or all
 	state  int     // current generation state
 	hash   Move    // hash move
-	killer [2]Move // killer moves
+	killer [3]Move // two killer moves and one counter move
 }
 
 // stack is a stack of plies (movesStack).
@@ -54,6 +54,7 @@ type stack struct {
 	position *Position
 	moves    []moveStack
 	history  *historyTable
+	counter  [1 << 11]Move // counter moves table
 }
 
 // Reset clear the stack for a new position.
@@ -82,6 +83,7 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms.kind = kind
 	ms.state = msHash
 	ms.hash = hash
+	ms.killer[2] = NullMove
 	// ms.killer = ms.killer // keep killers
 }
 
@@ -175,15 +177,23 @@ func (st *stack) PopMove() Move {
 				return m
 			}
 
-		// Return killer moves.
-		// NB: Not all killer moves are valid.
+		// Return two killer moves and one counter.
 		case msGenKiller:
+			// ms.moves is a stack so moves are pushed in the reversed order.
 			ms.state = msReturnKiller
-			for i := len(ms.killer) - 1; i >= 0; i-- {
-				if m := ms.killer[i]; m != NullMove {
-					ms.moves = append(ms.moves, ms.killer[i])
-					ms.order = append(ms.order, -int16(i))
-				}
+			cm := st.counter[st.counterIndex()]
+			if cm != ms.killer[0] && cm != ms.killer[1] && cm != NullMove {
+				ms.killer[2] = cm
+				ms.moves = append(ms.moves, cm)
+				ms.order = append(ms.order, -2)
+			}
+			if m := ms.killer[1]; m != NullMove {
+				ms.moves = append(ms.moves, m)
+				ms.order = append(ms.order, -1)
+			}
+			if m := ms.killer[0]; m != NullMove {
+				ms.moves = append(ms.moves, m)
+				ms.order = append(ms.order, 0)
 			}
 
 		case msReturnKiller:
@@ -214,14 +224,13 @@ func (st *stack) PopMove() Move {
 			// Just in case another move is requested.
 			return NullMove
 		}
-
 	}
 }
 
 // IsKiller returns true if m is a killer move for currenty ply.
 func (st *stack) IsKiller(m Move) bool {
 	ms := &st.moves[st.position.Ply]
-	return m == ms.killer[0] || m == ms.killer[1]
+	return m == ms.killer[0] || m == ms.killer[1] || m == ms.killer[2]
 }
 
 // SaveKiller saves a killer move, m.
@@ -229,6 +238,7 @@ func (st *stack) SaveKiller(m Move) {
 	st.history.add(m, 1)
 	ms := &st.moves[st.position.Ply]
 	if !m.IsViolent() {
+		st.counter[st.counterIndex()] = m
 		// Move the newly found killer first.
 		if m == ms.killer[0] {
 			// do nothing
@@ -237,4 +247,13 @@ func (st *stack) SaveKiller(m Move) {
 			ms.killer[0] = m
 		}
 	}
+}
+
+// counterIndex returns the index of the counter move in the counter table.
+// The hash is computed based on the last move.
+func (st *stack) counterIndex() int {
+	pos := st.position
+	pi := pos.LastMove().Piece()
+	bb := pos.ByPiece(pi.Color(), pi.Figure())
+	return int(murmurMix(uint64(bb), murmurSeed[pos.Us()]) % uint64(len(st.counter)))
 }
