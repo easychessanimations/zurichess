@@ -100,6 +100,7 @@ func (st *stack) generateMoves(kind int) {
 	for _, m := range ms.moves {
 		ms.order = append(ms.order, mvvlva(st.history, m))
 	}
+	st.sort()
 }
 
 // Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.
@@ -157,16 +158,11 @@ func (st *stack) PopMove() Move {
 		case msGenViolent:
 			ms.state = msReturnViolent
 			st.generateMoves(Violent)
-			st.sort()
 
 		case msReturnViolent:
-			// Most positions have only very violent moves so
-			// it doesn't make sense to sort given that captures have a high
-			// chance to fail high. We just pop the moves in order of score.
 			if m := st.popFront(); m == NullMove {
 				if ms.kind&Quiet == 0 {
-					// Optimization: skip remaining steps if no quiet moves
-					// were requested (e.g. in quiescence search).
+					// Skip killers and quiets if only violent moves are searched.
 					ms.state = msDone
 				} else {
 					ms.state = msGenKiller
@@ -177,7 +173,7 @@ func (st *stack) PopMove() Move {
 				return m
 			}
 
-		// Return two killer moves and one counter.
+		// Return two killer moves and one counter move.
 		case msGenKiller:
 			// ms.moves is a stack so moves are pushed in the reversed order.
 			ms.state = msReturnKiller
@@ -209,7 +205,6 @@ func (st *stack) PopMove() Move {
 		case msGenRest:
 			ms.state = msReturnRest
 			st.generateMoves(Quiet)
-			st.sort()
 
 		case msReturnRest:
 			if m := st.popFront(); m == NullMove {
