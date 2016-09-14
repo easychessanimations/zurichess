@@ -548,13 +548,17 @@ func (m Move) Promotion() Piece {
 	return m.Target()
 }
 
-// IsViolent returns true if the move can change the position's score significantly.
+// IsViolent returns true if the move is a capture or a queen promotion.
+// Castling and minor promotions (including captures) are not violent.
 // TODO: IsViolent should be in sync with GenerateViolentMoves.
 func (m Move) IsViolent() bool {
-	return m.Capture() != NoPiece || m.MoveType() == Promotion && m.Target().Figure() == Queen
+	if m.MoveType() != Promotion {
+		return m.Capture() != NoPiece
+	}
+	return m.Target().Figure() == Queen
 }
 
-// IsQuiet returns true if the move is quiet.
+// IsQuiet returns true if the move is not violent.
 func (m Move) IsQuiet() bool {
 	return !m.IsViolent()
 }

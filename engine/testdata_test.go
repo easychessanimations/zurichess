@@ -111,6 +111,10 @@ var (
 		"1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - - 0 1",
 		// http://www.talkchess.com/forum/viewtopic.php?topic_view=threads&p=419315&t=40054
 		"8/8/3p4/4r3/2RKP3/5k2/8/8 b - - 0 1",
+		// Pinned piece can give check: https://groups.google.com/forum/#!topic/fishcooking/S_4E_Xs5HaE
+		"r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1",
+		// SAN test position: http://talkchess.com/forum/viewtopic.php?t=61393
+		"Bn1N3R/ppPpNR1r/BnBr1NKR/k3pP2/3PR2R/N7/3P2P1/4Q2R w - e6 0 1",
 		// zurichess: various
 		"8/K5p1/1P1k1p1p/5P1P/2R3P1/8/8/8 b - - 0 78",
 		"8/1P6/5ppp/3k1P1P/6P1/8/1K6/8 w - - 0 78",
