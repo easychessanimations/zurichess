@@ -639,9 +639,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			bestMove, bestScore = move, score
 			localα = max(localα, score)
 		}
-		if !critical {
-			eng.history.add(move, -1)
-		}
+		eng.history.add(move, -1)
 	}
 
 	if !dropped {
