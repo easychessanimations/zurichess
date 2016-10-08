@@ -539,7 +539,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
-	bestMove, bestScore := NullMove, int32(-InfinityScore)
+	bestMove, localα := NullMove, int32(-InfinityScore)
 
 	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
@@ -566,7 +566,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// At root a mate score can be returned, but hash cannot updated.
 	dropped, ignored := false, false
 	numMoves := int32(0)
-	localα := α
 
 	eng.stack.GenerateMoves(Violent|Quiet, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
@@ -609,7 +608,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 		// Prune moves close to frontier.
 		// Don't prune in check, critical moves, if we haven't seen any moves or we are about to get mated.
-		if allowLeafsPruning && !givesCheck && !critical && bestScore > KnownLossScore {
+		if allowLeafsPruning && !givesCheck && !critical && localα > KnownLossScore {
 			// Prune quiet moves that performed bad historically.
 			if stat := eng.history.get(move); stat < -10 && (move.IsQuiet() || seeSign(pos, move)) {
 				dropped = true
@@ -617,15 +616,14 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 				continue
 			}
 			// Prune moves that do not raise alphas.
-			if isFutile(pos, static, localα, depth*futilityMargin, move) {
-				bestScore = max(bestScore, static)
+			if isFutile(pos, static, α, depth*futilityMargin, move) {
 				dropped = true
 				eng.UndoMove()
 				continue
 			}
 		}
 
-		score := eng.tryMove(localα, β, newDepth, lmr, nullWindow, move)
+		score := eng.tryMove(max(α, localα), β, newDepth, lmr, nullWindow, move)
 
 		if score >= β {
 			// Fail high, cut node.
@@ -634,10 +632,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			eng.updateHash(failedHigh|(entry.kind&hasStatic), depth, score, move, int32(entry.static))
 			return score
 		}
-		if score > bestScore {
+		if score > localα {
 			nullWindow = true
-			bestMove, bestScore = move, score
-			localα = max(localα, score)
+			bestMove, localα = move, score
 		}
 		eng.history.add(move, -1)
 	}
@@ -646,20 +643,20 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if bestMove == NullMove {
 			// If no move was found then the game is over.
 			if sideIsChecked {
-				bestScore = MatedScore + ply
+				localα = MatedScore + ply
 			} else {
-				bestScore = 0
+				localα = 0
 			}
 		}
-		if α < bestScore && bestScore < β {
+		if α < localα && localα < β {
 			eng.pvTable.Put(pos, bestMove)
 		}
 	}
 	if !dropped && !ignored {
-		eng.updateHash(getBound(α, β, bestScore)|(entry.kind&hasStatic), depth, bestScore, bestMove, int32(entry.static))
+		eng.updateHash(getBound(α, β, localα)|(entry.kind&hasStatic), depth, localα, bestMove, int32(entry.static))
 	}
 
-	return bestScore
+	return localα
 }
 
 // search starts the search up to depth depth.
