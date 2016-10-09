@@ -331,7 +331,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Prune futile moves that would anyway result in a stand-pat at that next depth.
-		if !inCheck && isFutile(pos, static, localα, futilityMargin, move) {
+		if !inCheck && isFutile(pos, static, α, futilityMargin, move) {
 			continue
 		}
 
