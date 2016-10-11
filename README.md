@@ -17,7 +17,7 @@ Winboard (Windows), Arena (Windows).
 zurichess partially implements [UCI
 protocol](http://wbec-ridderkerk.nl/html/UCIProtocol.html), but
 the available commands are enough for most purposes. zurichess was
-successfully tested under Linux AMD64 and Linux ARM and other people
+successfully tested under Linux AMD64 and Linux ARM7 and other people
 have tested zurichess under Windows AMD64.
 
 zurichess plays on [FICS](http://freechess.org) under the handle
@@ -27,7 +27,7 @@ than the latest stable version.
 
 ## Build and Compile
 
-First you need to get the latest version of Go (currently 1.5.2). For
+First you need to get the latest version of Go (currently 1.7.1). For
 instructions how to download and install Go for your OS see
 [documentation](https://golang.org/doc/install). After the Go compiler
 is installed, create a workspace:
@@ -57,10 +57,6 @@ Latest Linux AMD64 binaries can be downloaded from
 [drone.io](https://drone.io/bitbucket.org/zurichess/zurichess/files). These
 binaries should be stable for any kind of testing.
 
-
-## Testing
-
-[zuritest](https://bitbucket.org/zurichess/zuritest) is the framework used to test zurichess.
 
 ## Contributing
 
