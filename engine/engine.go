@@ -599,10 +599,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// Reduce late quiet moves and bad captures.
 		lmr := int32(0)
 		if allowLateMove && !givesCheck && !critical {
-			if move.IsQuiet() || seeSign(pos, move) {
-				// Reduce quie and bad capture moves more at high depths and after many quiet moves.
-				// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
-				lmr = 1 + min(depth, numMoves)/5
+			// Reduce quie and bad capture moves more at high depths and after many quiet moves.
+			// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
+			if move.IsQuiet() {
+				lmr = 2 + min(depth, numMoves)/6
+			} else if seeSign(pos, move) {
+				lmr = 1 + min(depth, numMoves)/6
 			}
 		}
 
