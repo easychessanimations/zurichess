@@ -248,7 +248,6 @@ func (st *stack) SaveKiller(m Move) {
 // The hash is computed based on the last move.
 func (st *stack) counterIndex() int {
 	pos := st.position
-	pi := pos.LastMove().Piece()
-	bb := pos.ByPiece(pi.Color(), pi.Figure())
-	return int(murmurMix(uint64(bb), murmurSeed[pos.Us()]) % uint64(len(st.counter)))
+	hash := murmurMix(uint64(pos.LastMove()), murmurSeed[pos.Us()])
+	return int(hash % uint64(len(st.counter)))
 }
