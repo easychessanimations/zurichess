@@ -223,12 +223,12 @@ func evaluateShelter(pos *Position, us Color) (accum Accum) {
 	return accum
 }
 
-// evaluateFigure computes the material score for figure.
+// evaluateFigure computes the material score for a figure fig at sq reaching mobility squares.
 func (eval *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility Bitboard) {
 	sq = sq.POV(pad.us)
 	pad.accum.add(wFigure[fig])
 	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
-	if fig == Knight || fig == Bishop || fig == Rook || fig == King {
+	if fig != Queen {
 		pad.accum.add(wFigureFile[fig][sq.File()])
 		pad.accum.add(wFigureRank[fig][sq.Rank()])
 	}
