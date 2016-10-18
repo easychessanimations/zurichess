@@ -398,31 +398,6 @@ func (eng *Engine) ply() int32 {
 	return int32(eng.Position.Ply - eng.rootPly)
 }
 
-// passed returns true if a passed pawn appears or disappears.
-//
-// TODO: The heuristic is incomplete and doesn't handle discovered passed pawns.
-func passed(pos *Position, m Move) bool {
-	if m.Piece().Figure() == Pawn {
-		// Checks no pawns are in front and on its adjacent files.
-		bb := m.To().Bitboard()
-		bb = West(bb) | bb | East(bb)
-		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
-		if ForwardSpan(m.Color(), bb)&pawns == 0 {
-			return true
-		}
-	}
-	if m.Capture().Figure() == Pawn {
-		// Checks no pawns are in front and on its adjacent files.
-		bb := m.To().Bitboard()
-		bb = West(bb) | bb | East(bb)
-		pawns := pos.ByFigure[Pawn] &^ m.To().Bitboard() &^ m.From().Bitboard()
-		if BackwardSpan(m.Color(), bb)&pawns == 0 {
-			return true
-		}
-	}
-	return false
-}
-
 // isIgnoredRootMove returns true if move should be ignored at root.
 func (eng *Engine) isIgnoredRootMove(move Move) bool {
 	if eng.ply() != 0 {
@@ -816,11 +791,11 @@ func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 // evaluation above α. This is just an heuristic and mistakes
 // can happen.
 func isFutile(pos *Position, static, α, margin int32, m Move) bool {
-	if m.MoveType() == Promotion {
+	if m.MoveType() == Promotion || m.Piece().Figure() == Pawn && BbPawnStartRank.Has(m.To()) {
 		// Promotion and passed pawns can increase the static evaluation
 		// by more than futilityMargin.
 		return false
 	}
 	δ := futilityFigureBonus[m.Capture().Figure()]
-	return static+δ+margin < α && !passed(pos, m)
+	return static+δ+margin < α
 }
