@@ -509,7 +509,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		eng.DoMove(NullMove)
 		reduction := pos.MinorsAndMajors(us).CountMax2()
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
-		if score >= β {
+		if score >= β && score < KnownWinScore {
 			return score
 		}
 	}
