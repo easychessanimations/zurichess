@@ -169,12 +169,13 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 	if log == nil {
 		log = &NulLogger{}
 	}
+	history := &historyTable{}
 	eng := &Engine{
 		Options: options,
 		Log:     log,
 		pvTable: newPvTable(),
-		history: new(historyTable),
-		stack:   stack{history: new(historyTable)},
+		history: history,
+		stack:   stack{history: history},
 	}
 	eng.SetPosition(pos)
 	return eng

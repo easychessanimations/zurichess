@@ -230,7 +230,6 @@ func (st *stack) IsKiller(m Move) bool {
 
 // SaveKiller saves a killer move, m.
 func (st *stack) SaveKiller(m Move) {
-	st.history.add(m, 1)
 	ms := &st.moves[st.position.Ply]
 	if !m.IsViolent() {
 		st.counter[st.counterIndex()] = m
