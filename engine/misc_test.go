@@ -47,7 +47,7 @@ func TestPopcnt(t *testing.T) {
 func TestDistance(t *testing.T) {
 	data := []struct {
 		i, j Square
-		d    int
+		d    int32
 	}{
 		{SquareA1, SquareA8, 7},
 		{SquareA1, SquareH8, 7},

@@ -167,7 +167,7 @@ func evaluatePawns(pos *Position, us Color) (accum Accum) {
 	passed := PassedPawns(us, ours, theirs)
 	backward := BackwardPawns(us, ours, theirs)
 
-	kingPawnDist := 8
+	kingPawnDist := int32(8)
 	kingSq := pos.ByPiece(us, King).AsSquare()
 
 	for bb := ours; bb != 0; {

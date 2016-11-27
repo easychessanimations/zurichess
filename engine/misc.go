@@ -12,7 +12,7 @@ const (
 var (
 	// distance stores the number of king steps required
 	// to reach from one square to another on an empty board.
-	distance [SquareArraySize][SquareArraySize]int
+	distance [SquareArraySize][SquareArraySize]int32
 
 	debrujin64 = [64]uint{
 		0, 1, 2, 7, 3, 13, 8, 19, 4, 25, 14, 28, 9, 34, 20, 40,
@@ -64,18 +64,9 @@ func min(a, b int32) int32 {
 func init() {
 	for i := SquareMinValue; i <= SquareMaxValue; i++ {
 		for j := SquareMinValue; j <= SquareMaxValue; j++ {
-			f, r := i.File()-j.File(), i.Rank()-j.Rank()
-			if f < 0 {
-				f = -f
-			}
-			if r < 0 {
-				r = -r
-			}
-			if f > r {
-				distance[i][j] = f
-			} else {
-				distance[i][j] = r
-			}
+			f, r := int32(i.File()-j.File()), int32(i.Rank()-j.Rank())
+			f, r = max(f, -f), max(r, -r) // absolute value
+			distance[i][j] = max(f, r)
 		}
 	}
 }
