@@ -70,6 +70,7 @@ type Position struct {
 	ByColor    [ColorArraySize]Bitboard  // bitboards of square occupancy by color.
 	SideToMove Color                     // which side is to move. SideToMove is updated by DoMove and UndoMove.
 	Ply        int                       // current ply
+	NumPieces  [PieceArraySize]int32     // number of pieces of each kind
 
 	fullmoveCounter int     // fullmove counter, incremented after black move
 	states          []state // a state for each Ply
@@ -386,6 +387,7 @@ func (pos *Position) Put(sq Square, pi Piece) {
 		bb := sq.Bitboard()
 		pos.ByColor[pi.Color()] |= bb
 		pos.ByFigure[pi.Figure()] |= bb
+		pos.NumPieces[pi]++
 	}
 }
 
@@ -397,6 +399,7 @@ func (pos *Position) Remove(sq Square, pi Piece) {
 		bb := ^sq.Bitboard()
 		pos.ByColor[pi.Color()] &= bb
 		pos.ByFigure[pi.Figure()] &= bb
+		pos.NumPieces[pi]--
 	}
 }
 

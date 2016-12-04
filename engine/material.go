@@ -315,10 +315,10 @@ func (eval *Eval) evaluateSide(us Color) {
 func Phase(pos *Position) int32 {
 	total := int32(4*1 + 4*1 + 4*3 + 2*6)
 	curr := total
-	curr -= pos.ByFigure[Knight].Count() * 1
-	curr -= pos.ByFigure[Bishop].Count() * 1
-	curr -= pos.ByFigure[Rook].Count() * 3
-	curr -= pos.ByFigure[Queen].Count() * 6
+	curr -= (pos.NumPieces[WhiteKnight] + pos.NumPieces[BlackKnight]) * 1
+	curr -= (pos.NumPieces[WhiteBishop] + pos.NumPieces[BlackBishop]) * 1
+	curr -= (pos.NumPieces[WhiteRook] + pos.NumPieces[BlackRook]) * 3
+	curr -= (pos.NumPieces[WhiteQueen] + pos.NumPieces[BlackQueen]) * 6
 	return (curr*256 + total/2) / total
 }
 
