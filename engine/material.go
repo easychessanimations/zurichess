@@ -87,8 +87,6 @@ var (
 
 	// Figure bonuses to use when computing the futility margin.
 	futilityFigureBonus [FigureArraySize]int32
-	// Figure bonuses when calulating the SEE.
-	seeBonus [FigureArraySize]int32
 )
 
 // scratchpad stores various information about evaluation of a single side.
@@ -376,8 +374,5 @@ func init() {
 	// Initializes futility figure bonus
 	for i, w := range wFigure {
 		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
-		seeBonus[i] = scaleToCentipawns(min(w.M, w.E))
 	}
-	futilityFigureBonus[King] = 2000
-	seeBonus[King] = 20000
 }
