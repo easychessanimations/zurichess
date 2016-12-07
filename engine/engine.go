@@ -25,7 +25,8 @@
 //   * Negamax framework - http://chessprogramming.wikispaces.com/Alpha-Beta#Implementation-Negamax%20Framework
 //   * Null move prunning (NMP) - https://chessprogramming.wikispaces.com/Null+Move+Pruning
 //   * Principal variation search (PVS) - https://chessprogramming.wikispaces.com/Principal+Variation+Search
-//   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search.
+//   * Quiescence search - https://chessprogramming.wikispaces.com/Quiescence+Search
+//   * Razoring - https://chessprogramming.wikispaces.com/Razoring
 //   * Static Single Evaluation - https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
 //   * Zobrist hashing - https://chessprogramming.wikispaces.com/Zobrist+Hashing
 //
@@ -511,6 +512,18 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		reduction := pos.MinorsAndMajors(us).CountMax2()
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β && score < KnownWinScore {
+			return score
+		}
+	}
+
+	// Razoring at very low depth: if QS is under a considerable margin
+	// we return that score.
+	if depth == 1 &&
+		!sideIsChecked && // disable in check
+		!pvNode && // disable in pv nodes
+		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
+		rα := α - futilityMargin
+		if score := eng.searchQuiescence(rα, rα+1); score <= rα {
 			return score
 		}
 	}
