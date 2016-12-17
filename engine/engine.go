@@ -279,6 +279,12 @@ func (eng *Engine) retrieveHash() hashEntry {
 
 // updateHash updates GlobalHashTable with the current position.
 func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, static int32) {
+	if eng.ply() == 0 && len(eng.ignoreRootMoves) != 0 {
+		// At root if there are moves to ignore (e.g. because of multipv)
+		// then this is an incomplete search, so don't update the hash.
+		return
+	}
+
 	// Save the mate score relative to the current position.
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
@@ -551,9 +557,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
-	// ignored is similar to dropped, but used with multipv.
-	// At root a mate score can be returned, but hash cannot updated.
-	dropped, ignored := false, false
+	dropped := false
 	numMoves := int32(0)
 
 	eng.stack.GenerateMoves(Violent|Quiet, hash)
@@ -562,7 +566,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			eng.Log.CurrMove(int(depth), move, int(numMoves+1))
 		}
 		if eng.isIgnoredRootMove(move) {
-			ignored = true
 			continue
 		}
 
@@ -642,11 +645,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if α < localα && localα < β {
 			eng.pvTable.Put(pos, bestMove)
 		}
-	}
-	if !dropped && !ignored {
 		eng.updateHash(getBound(α, β, localα)|(entry.kind&hasStatic), depth, localα, bestMove, int32(entry.static))
 	}
-
 	return localα
 }
 
