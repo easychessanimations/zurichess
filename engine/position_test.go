@@ -1009,3 +1009,25 @@ func TestNumPieces(t *testing.T) {
 		}
 	}
 }
+
+func TestGivesCheck(t *testing.T) {
+	num := 0
+	for i, fen := range testFENs {
+		pos, _ := PositionFromFEN(fen)
+		moves := []Move{NullMove}
+		pos.GenerateMoves(Violent|Quiet, &moves)
+		for _, m := range moves {
+			pos.DoMove(m)
+			wanted := pos.IsChecked(pos.Us())
+			pos.UndoMove()
+			if got := pos.GivesCheck(m); got != wanted {
+				num++
+				t.Errorf("#%d %v Got pos.GivesCheck(%v) = %v, expected %v",
+					i, pos, m, got, wanted)
+			}
+		}
+	}
+	if num > 0 {
+		t.Errorf("Failed %d time(s)", num)
+	}
+}

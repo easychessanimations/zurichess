@@ -442,7 +442,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	ply := eng.ply()
 	pvNode := α+1 < β
 	pos := eng.Position
-	us, them := pos.Us(), pos.Them()
+	us := pos.Us()
 
 	// Update statistics.
 	eng.Stats.Nodes++
@@ -567,12 +567,24 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			continue
 		}
 
-		critical := move == hash || eng.stack.IsKiller(move)
-		numMoves++
+		givesCheck := pos.GivesCheck(move)
+		critical := givesCheck || move == hash || eng.stack.IsKiller(move)
+		history := eng.history.get(move)
 		newDepth := depth
-		eng.DoMove(move)
+		numMoves++
+
+		if allowLeafsPruning && !critical && localα > KnownLossScore {
+			// Prune moves that do not raise alphas and
+			// quiet moves that performed bad historically.
+			if isFutile(pos, static, α, depth*futilityMargin, move) ||
+				history < -10 && move.IsQuiet() {
+				dropped = true
+				continue
+			}
+		}
 
 		// Skip illegal moves that leave the king in check.
+		eng.DoMove(move)
 		if pos.IsChecked(us) {
 			eng.UndoMove()
 			continue
@@ -581,14 +593,13 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// Extend good moves that also gives check.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
 		// When the move gives check, history pruning and futility pruning are also disabled.
-		givesCheck := pos.IsChecked(them)
 		if givesCheck && !seeSign(pos, move) {
 			newDepth += checkDepthExtension
 		}
 
 		// Reduce late quiet moves and bad captures.
 		lmr := int32(0)
-		if allowLateMove && !givesCheck && !critical {
+		if allowLateMove && !critical {
 			// Reduce quie and bad capture moves more at high depths and after many quiet moves.
 			// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
 			if move.IsQuiet() {
@@ -598,17 +609,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 
-		// Prune moves close to frontier.
-		// Don't prune in check, critical moves, if we haven't seen any moves or we are about to get mated.
-		if allowLeafsPruning && !givesCheck && !critical && localα > KnownLossScore {
-			// Prune quiet moves that performed bad historically.
-			if stat := eng.history.get(move); stat < -10 && (move.IsQuiet() || seeSign(pos, move)) {
-				dropped = true
-				eng.UndoMove()
-				continue
-			}
-			// Prune moves that do not raise alphas.
-			if isFutile(pos, static, α, depth*futilityMargin, move) {
+		// Prune bad captures moves that performed bad historically.
+		if allowLeafsPruning && !critical && localα > KnownLossScore {
+			if history < -10 && seeSign(pos, move) {
 				dropped = true
 				eng.UndoMove()
 				continue

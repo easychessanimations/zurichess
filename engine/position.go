@@ -379,6 +379,11 @@ func (pos *Position) ByPiece(col Color, fig Figure) Bitboard {
 	return pos.ByColor[col] & pos.ByFigure[fig]
 }
 
+// ByPiece is a shortcut for ByColor[col]&(ByFigure[fig0]|ByFigure[fig1])
+func (pos *Position) ByPiece2(col Color, fig0, fig1 Figure) Bitboard {
+	return pos.ByColor[col] & (pos.ByFigure[fig0] | pos.ByFigure[fig1])
+}
+
 // Put puts a piece on the board.
 // Does nothing if pi is NoPiece. Does not validate input.
 func (pos *Position) Put(sq Square, pi Piece) {
@@ -501,6 +506,66 @@ func (pos *Position) FiftyMoveRule() bool {
 func (pos *Position) IsChecked(side Color) bool {
 	kingSq := pos.ByPiece(side, King).AsSquare()
 	return pos.GetAttacker(kingSq, side.Opposite()) != NoFigure
+}
+
+// GivesCheck returns true if the opposite side is in check after m is executed.
+func (pos *Position) GivesCheck(m Move) bool {
+	if m.MoveType() == Castling {
+		// TODO: Bail out on castling because it can check via rook and king.
+		pos.DoMove(m)
+		givesCheck := pos.IsChecked(pos.Us())
+		pos.UndoMove()
+		return givesCheck
+	}
+
+	us := pos.Us()
+	all := pos.ByColor[White] | pos.ByColor[Black]
+	all = all&^m.From().Bitboard()&^m.CaptureSquare().Bitboard() | m.To().Bitboard()
+	kingSq := pos.ByPiece(pos.Them(), King).AsSquare()
+	fig := m.Target().Figure()
+
+	// Test pawn and king.
+	if fig == Pawn {
+		bb := m.To().Bitboard()
+		bb = Forward(us, bb)
+		bb = East(bb) | West(bb)
+		if bb.Has(kingSq) {
+			return true
+		}
+	}
+	mob := KnightMobility(kingSq) &^ m.From().Bitboard()
+	if mob&pos.ByPiece(us, Knight) != 0 ||
+		mob.Has(m.To()) && fig == Knight {
+		return true
+	}
+
+	// Fast check whether king can be attacked by a Bishop, Rook, Queen, King
+	// using the moves of a Queen on an empty table.
+	ours := pos.ByColor[pos.Us()]&^m.From().Bitboard() | m.To().Bitboard()
+	if ours&bbSuperAttack[kingSq] == 0 {
+		return false
+	}
+
+	// Test bishop, rook, queen and king.
+	mob = BishopMobility(kingSq, all) &^ m.From().Bitboard()
+	if mob&pos.ByPiece2(us, Bishop, Queen) != 0 ||
+		mob.Has(m.To()) && (fig == Bishop || fig == Queen) {
+		return true
+	}
+	mob = RookMobility(kingSq, all) &^ m.From().Bitboard()
+	if mob&pos.ByPiece2(us, Rook, Queen) != 0 ||
+		mob.Has(m.To()) && (fig == Rook || fig == Queen) {
+		return true
+	}
+	// King checking another king is an illegal move,
+	// but make the result consistent with IsChecked.
+	mob = KingMobility(kingSq) &^ m.From().Bitboard()
+	if mob&pos.ByPiece(us, King) != 0 ||
+		mob.Has(m.To()) && fig == King {
+		return true
+	}
+
+	return false
 }
 
 // PrettyPrint pretty prints the current position to log.
