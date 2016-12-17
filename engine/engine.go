@@ -285,6 +285,11 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 		return
 	}
 
+	// Update principal variation table in exact nodes.
+	if flags&exact != 0 {
+		eng.pvTable.Put(eng.Position, move)
+	}
+
 	// Save the mate score relative to the current position.
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
@@ -362,9 +367,6 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 		}
 	}
 
-	if α < localα && localα < β {
-		eng.pvTable.Put(eng.Position, bestMove)
-	}
 	eng.updateHash(getBound(α, β, localα)|hasStatic, 0, localα, bestMove, static)
 	return localα
 }
@@ -497,10 +499,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		hash = NullMove
 	}
 	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
-		if entry.kind&exact != 0 && α < score && score < β {
-			// Update principal variation table if possible.
-			eng.pvTable.Put(pos, hash)
-		}
 		return score
 	}
 
@@ -641,9 +639,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			} else {
 				localα = 0
 			}
-		}
-		if α < localα && localα < β {
-			eng.pvTable.Put(pos, bestMove)
 		}
 		eng.updateHash(getBound(α, β, localα)|(entry.kind&hasStatic), depth, localα, bestMove, int32(entry.static))
 	}
