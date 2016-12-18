@@ -4,11 +4,31 @@ Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of
 in alphabetical order.
 
 ## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (development)
+??.??.2017
+
+`git clone -b master https://bitbucket.org/zurichess/zurichess.git`
+
+An overview of the most important changes is:
+
+* Improve search:
+    * Implement razoring at depth 1.
+    * Implement counter move heuristics.
+    * Tweak LMR and NMP.
+* Improve evaluation:
+    * Retune using training data at https://bitbucket.org/zurichess/tuner/downloads.
+    * Add King-Queen tropism.
+    * Add Rook PSqT.
+    * Evaluate connected pawns based on their file.
+* Tweak time control to reduce more of the forfeits.
+* Usual code clean ups, speed ups and bug fixes.
 
 ## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (stable)
 16.Aug.2016
 
+`git clone -b release.graubuenden https://bitbucket.org/zurichess/zurichess.git`
+
 The theme of this release is tweaking and improving the static evaluation.
+Elo is about 2691 on CCRL 40/40 and 2541 on CEGT 40/4.
 
 An overview of the most important changes is:
 
@@ -43,8 +63,10 @@ No playing strength tests or improvements were done other than fixing the crash 
 ## zurichess [glarus](https://en.wikipedia.org/wiki/Canton_of_Glarus)
 17.Apr.2016
 
+`git clone -b release.glarus https://bitbucket.org/zurichess/zurichess.git`
+
 The theme of this release is king safety and leaf pruning.
-ELO is about 2554 on CCRL 40/40 and 2402 on CEGT 40/4.
+Elo is about 2554 on CCRL 40/40 and 2402 on CEGT 40/4.
 
 * Improve futility conditions. Geneva's futility is a bit too aggressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
@@ -60,8 +82,10 @@ ELO is about 2554 on CCRL 40/40 and 2402 on CEGT 40/4.
 ## zurichess [geneva](https://en.wikipedia.org/wiki/Canton_of_Geneva)
 04.Dec.2015
 
+`git clone -b release.geneva https://bitbucket.org/zurichess/zurichess.git`
+
 The theme of this release is improving evaluation.
-ELO is about 2475 on CCRL 40/40 and 2320 on CEGT 40/4.
+Elo is about 2475 on CCRL 40/40 and 2320 on CEGT 40/4.
 
 * Implement fifty-move draw rule. Add HasLegalMoves and InsufficientMaterial methods.
 * Improve move ordering: add killer phase; remove sorting.
@@ -76,8 +100,10 @@ ELO is about 2475 on CCRL 40/40 and 2320 on CEGT 40/4.
 ## zurichess [fribourg](https://en.wikipedia.org/wiki/Canton_of_Fribourg)
 04.Sep.2015
 
+`git clone -b release.fribourg https://bitbucket.org/zurichess/zurichess.git`
+
 The theme of this release is tuning the evaluation, search and move generation.
-ELO is about 2442 on CCRL 40/40.
+Elo is about 2442 on CCRL 40/40.
 
 * Move to the new page http://bitbucket.org/zurichess/zurichess.
 * Evaluate passed, connected and isolated pawns. Tuning was done
@@ -93,7 +119,7 @@ bad quiet (SEE < 0) moves at higher depths.
 captures, and quiets. Phased move generation allows the engine to skip
 generation or sorting of the moves in many cases.
 * Implement `setoption Clear Hash`.
-* Implement pondering. Should give some ELO boost for online competitions.
+* Implement pondering. Should give some Elo boost for online competitions.
 * Improve move generation order. Picked the best among 20 random orders.
 * Prune two-fold repetitions at non-root nodes. This pruning cuts huge parts
 of the search tree without affecting search quality. >30ELO improvement
@@ -105,7 +131,9 @@ game. Abort search if it takes much more time than alloted.
 ## zurichess [bern](http://en.wikipedia.org/wiki/Canton_of_Bern)
 25.Jun.2015
 
-This release's theme is pruning the search. ELO is about 2234 on CCRL 40/4.
+`git clone -b release.bern https://bitbucket.org/zurichess/zurichess.git`
+
+This release's theme is pruning the search. Elo is about 2234 on CCRL 40/4.
 
 * Implement Principal Variation Search (PVS).
 * Reduce late quiet moves (LMR).
@@ -117,6 +145,8 @@ This release's theme is pruning the search. ELO is about 2234 on CCRL 40/4.
 
 ## zurichess [basel](http://en.wikipedia.org/wiki/Basel-Stadt)
 28.Apr.2015
+
+`git clone -b release.basel https://bitbucket.org/zurichess/zurichess.git`
 
 This release's theme is improving evaluation function.
 
@@ -133,7 +163,9 @@ This release's theme is improving evaluation function.
 ## zurichess [appenzeller](http://en.wikipedia.org/wiki/Appenzeller_cheese)
 23.Feb.2015
 
-This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
+`git clone -b release.appenzeller https://bitbucket.org/zurichess/zurichess.git`
+
+This release's theme is improving search. Elo is about 1823 on CCRL 40/4.
 
 * Clean code and improved documentation.
 * Implement aspiration window search with gradual widening.
@@ -150,7 +182,9 @@ This release's theme is improving search. ELO is about 1823 on CCRL 40/4.
 ## zurichess [aargau](http://en.wikipedia.org/wiki/Aargau)
 22.Jan.2015
 
-This is the first public release. ELO is about 1727 on CCRL 40/4.
+`git clone -b release.aargau https://bitbucket.org/zurichess/zurichess.git`
+
+This is the first public release. Elo is about 1727 on CCRL 40/4.
 
 * Core search function is a mini-max with alpha-beta pruning on top of a negamax framework.
 * Sliding attacks are implemented using fancy magic bitboards.
