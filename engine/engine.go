@@ -631,17 +631,16 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		eng.history.add(move, -1)
 	}
 
-	if !dropped {
-		if bestMove == NullMove {
-			// If no move was found then the game is over.
-			if sideIsChecked {
-				localα = MatedScore + ply
-			} else {
-				localα = 0
-			}
+	if !dropped && bestMove == NullMove {
+		// If no move was found then the game is over.
+		if sideIsChecked {
+			localα = MatedScore + ply
+		} else {
+			localα = 0
 		}
-		eng.updateHash(getBound(α, β, localα)|(entry.kind&hasStatic), depth, localα, bestMove, int32(entry.static))
 	}
+
+	eng.updateHash(getBound(α, β, localα)|(entry.kind&hasStatic), depth, localα, bestMove, int32(entry.static))
 	return localα
 }
 
