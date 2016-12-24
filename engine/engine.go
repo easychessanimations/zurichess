@@ -568,12 +568,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 
 		givesCheck := pos.GivesCheck(move)
-		critical := givesCheck || move == hash || eng.stack.IsKiller(move)
+		critical := move == hash || eng.stack.IsKiller(move)
 		history := eng.history.get(move)
 		newDepth := depth
 		numMoves++
 
-		if allowLeafsPruning && !critical && localα > KnownLossScore {
+		if allowLeafsPruning && !critical && !givesCheck && localα > KnownLossScore {
 			// Prune moves that do not raise alphas and
 			// quiet moves that performed bad historically.
 			if isFutile(pos, static, α, depth*futilityMargin, move) ||
@@ -595,6 +595,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		// When the move gives check, history pruning and futility pruning are also disabled.
 		if givesCheck && !seeSign(pos, move) {
 			newDepth += checkDepthExtension
+			critical = true
 		}
 
 		// Reduce late quiet moves and bad captures.
