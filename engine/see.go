@@ -29,7 +29,7 @@ func seeSign(pos *Position, m Move) bool {
 }
 
 // see returns the static exchange evaluation for m, where is
-// the last move executed.
+// valid for current position (not yet executed).
 //
 // https://chessprogramming.wikispaces.com/Static+Exchange+Evaluation
 // https://chessprogramming.wikispaces.com/SEE+-+The+Swap+Algorithm
@@ -46,10 +46,16 @@ func see(pos *Position, m Move) int32 {
 	bb27 := bb &^ (BbRank1 | BbRank8)
 	bb18 := bb & (BbRank1 | BbRank8)
 
-	// Occupancy tables as if moves are executed.
 	var occ [ColorArraySize]Bitboard
 	occ[White] = pos.ByColor[White]
 	occ[Black] = pos.ByColor[Black]
+
+	// Occupancy tables as if moves are executed.
+	occ[us] &^= m.From().Bitboard()
+	occ[us] |= m.To().Bitboard()
+	occ[us.Opposite()] &^= m.CaptureSquare().Bitboard()
+	us = us.Opposite()
+
 	all := occ[White] | occ[Black]
 
 	// Adjust score for move.

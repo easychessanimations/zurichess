@@ -347,10 +347,13 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 		if !inCheck && isFutile(pos, static, α, futilityMargin, move) {
 			continue
 		}
+		if !inCheck && seeSign(pos, move) {
+			continue
+		}
 
 		// Discard illegal or losing captures.
 		eng.DoMove(move)
-		if eng.Position.IsChecked(us) || !inCheck && seeSign(pos, move) {
+		if eng.Position.IsChecked(us) {
 			eng.UndoMove()
 			continue
 		}
@@ -583,13 +586,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			}
 		}
 
-		// Skip illegal moves that leave the king in check.
-		eng.DoMove(move)
-		if pos.IsChecked(us) {
-			eng.UndoMove()
-			continue
-		}
-
 		// Extend good moves that also gives check.
 		// See discussion: http://www.talkchess.com/forum/viewtopic.php?t=56361
 		// When the move gives check, history pruning and futility pruning are also disabled.
@@ -614,9 +610,15 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		if allowLeafsPruning && !critical && localα > KnownLossScore {
 			if history < -10 && seeSign(pos, move) {
 				dropped = true
-				eng.UndoMove()
 				continue
 			}
+		}
+
+		// Skip illegal moves that leave the king in check.
+		eng.DoMove(move)
+		if pos.IsChecked(us) {
+			eng.UndoMove()
+			continue
 		}
 
 		score := eng.tryMove(max(α, localα), β, newDepth, lmr, nullWindow, move)

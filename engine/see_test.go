@@ -50,8 +50,8 @@ func TestSEE(t *testing.T) {
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Violent|Quiet, &moves)
 		for _, m := range moves {
-			pos.DoMove(m)
 			actual := see(pos, m)
+			pos.DoMove(m)
 			expected := seeSlow(pos, m, 0)
 			pos.UndoMove()
 
