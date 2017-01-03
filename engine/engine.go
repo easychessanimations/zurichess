@@ -577,10 +577,14 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		numMoves++
 
 		if allowLeafsPruning && !critical && !givesCheck && localα > KnownLossScore {
-			// Prune moves that do not raise alphas and
-			// quiet moves that performed bad historically.
+			// Prune moves that do not raise alphas and moves that performed bad historically.
 			if isFutile(pos, static, α, depth*futilityMargin, move) ||
 				history < -10 && move.IsQuiet() {
+				dropped = true
+				continue
+			}
+			// Prune bad captures moves that performed bad historically.
+			if history < -10 && seeSign(pos, move) {
 				dropped = true
 				continue
 			}
@@ -603,14 +607,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 				lmr = 2 + min(depth, numMoves)/6
 			} else if seeSign(pos, move) {
 				lmr = 1 + min(depth, numMoves)/6
-			}
-		}
-
-		// Prune bad captures moves that performed bad historically.
-		if allowLeafsPruning && !critical && localα > KnownLossScore {
-			if history < -10 && seeSign(pos, move) {
-				dropped = true
-				continue
 			}
 		}
 
