@@ -141,6 +141,11 @@ func EvaluatePosition(pos *Position) Eval {
 	eval := Eval{position: pos}
 	eval.init(White)
 	eval.init(Black)
+
+	white, black := pawnsAndShelterCache.load(pos)
+	eval.pad[White].accum.merge(white)
+	eval.pad[Black].accum.merge(black)
+
 	eval.evaluateSide(White)
 	eval.evaluateSide(Black)
 	eval.merge()
@@ -245,8 +250,6 @@ func (eval *Eval) evaluateSide(us Color) {
 	them := us.Opposite()
 	pad := &eval.pad[us]
 	all := pos.ByColor[White] | pos.ByColor[Black]
-
-	pad.accum.merge(pawnsAndShelterCache.load(pos, us))
 
 	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all

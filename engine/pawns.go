@@ -63,44 +63,48 @@ func BackwardPawns(us Color, ours Bitboard, theirs Bitboard) Bitboard {
 // pawnsTable is a cache entry.
 type pawnsEntry struct {
 	lock  uint64
-	accum Accum
+	white Accum
+	black Accum
 }
 
 // pawnsTable implements a fixed size cache.
 type pawnsTable [1 << 9]pawnsEntry
 
 // put puts a new entry in the cache.
-func (c *pawnsTable) put(lock uint64, accum Accum) {
+func (c *pawnsTable) put(lock uint64, white, black Accum) {
 	indx := lock & uint64(len(*c)-1)
-	(*c)[indx] = pawnsEntry{lock: lock, accum: accum}
+	c[indx] = pawnsEntry{lock, white, black}
 }
 
 // get gets an entry from the cache.
-func (c *pawnsTable) get(lock uint64) (Accum, bool) {
+func (c *pawnsTable) get(lock uint64) (Accum, Accum, bool) {
 	indx := lock & uint64(len(*c)-1)
-	return (*c)[indx].accum, (*c)[indx].lock == lock
+	return c[indx].white, c[indx].black, c[indx].lock == lock
 }
 
 // load evaluates position, using the cache if possible.
-func (c *pawnsTable) load(pos *Position, us Color) Accum {
+func (c *pawnsTable) load(pos *Position) (Accum, Accum) {
 	if disableCache {
-		return evaluatePawnsAndShelter(pos, us)
+		white := evaluatePawnsAndShelter(pos, White)
+		black := evaluatePawnsAndShelter(pos, Black)
+		return white, black
 	}
-	h := pawnsHash(pos, us)
-	if accum, ok := c.get(h); ok {
-		return accum
+	h := pawnsHash(pos)
+	white, black, ok := c.get(h)
+	if !ok {
+		white = evaluatePawnsAndShelter(pos, White)
+		black = evaluatePawnsAndShelter(pos, Black)
+		c.put(h, white, black)
 	}
-	accum := evaluatePawnsAndShelter(pos, us)
-	c.put(h, accum)
-	return accum
+	return white, black
 }
 
 // pawnsHash returns a hash of the pawns and king in position.
-func pawnsHash(pos *Position, us Color) uint64 {
-	h := murmurSeed[us]
-	h = murmurMix(h, uint64(pos.ByPiece(us, Pawn)))
-	h = murmurMix(h, uint64(pos.ByPiece(us.Opposite(), Pawn)))
-	h = murmurMix(h, uint64(pos.ByPiece(us, King)))
+func pawnsHash(pos *Position) uint64 {
+	h := murmurSeed[pos.Us()]
+	h = murmurMix(h, uint64(pos.ByPiece2(White, Pawn, King)))
+	h = murmurMix(h, uint64(pos.ByPiece2(Black, Pawn, King)))
+	h = murmurMix(h, uint64(pos.ByFigure[Pawn]))
 	return h
 }
 
