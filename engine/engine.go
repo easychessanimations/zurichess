@@ -520,7 +520,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		KnownLossScore < α && β < KnownWinScore && // disable in lost or won positions
 		(entry.kind&hasStatic == 0 || int32(entry.static) >= β) {
 		eng.DoMove(NullMove)
-		reduction := pos.MinorsAndMajors(us).CountMax2()
+		reduction := 1 + depth/3
 		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
 		if score >= β && score < KnownWinScore {
 			return score
