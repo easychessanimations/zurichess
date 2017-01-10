@@ -84,11 +84,6 @@ func (c *pawnsTable) get(lock uint64) (Accum, Accum, bool) {
 
 // load evaluates position, using the cache if possible.
 func (c *pawnsTable) load(pos *Position) (Accum, Accum) {
-	if disableCache {
-		white := evaluatePawnsAndShelter(pos, White)
-		black := evaluatePawnsAndShelter(pos, Black)
-		return white, black
-	}
 	h := pawnsHash(pos)
 	white, black, ok := c.get(h)
 	if !ok {

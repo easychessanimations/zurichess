@@ -6,8 +6,6 @@
 
 package engine
 
-const disableCache = false
-
 // Score represents a pair of mid and end game scores.
 type Score struct {
 	M, E int32 // mid game, end game

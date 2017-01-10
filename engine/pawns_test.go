@@ -161,19 +161,19 @@ func TestCachePutGet(t *testing.T) {
 	h1 = murmurMix(h1, c1)
 	h1 = murmurMix(h1, c2)
 
-	e := Accum{1, 2}
+	ew, eb := Accum{1, 2}, Accum{3, 5}
 	c := new(pawnsTable)
-	c.put(h1, e)
-	if got, ok := c.get(h1); !ok {
+	c.put(h1, ew, eb)
+	if gw, gb, ok := c.get(h1); !ok {
 		t.Errorf("entry not in the cache, expecting a git")
-	} else if e != got {
-		t.Errorf("got get(%d) == %v, wanted %v", h1, got, e)
+	} else if ew != gw || eb != gb {
+		t.Errorf("got get(%d) == %v, %v; wanted %v. %v", h1, gw, gb, ew, eb)
 	}
 
 	h2 := murmurSeed[NoFigure]
 	h2 = murmurMix(h2, c2)
 	h2 = murmurMix(h2, c1)
-	if _, ok := c.get(h2); ok {
+	if _, _, ok := c.get(h2); ok {
 		t.Errorf("entry in the cache, expecting a miss")
 	}
 }
