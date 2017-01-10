@@ -284,6 +284,10 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 		// then this is an incomplete search, so don't update the hash.
 		return
 	}
+	if eng.stopped {
+		// If search is stopped then score cannot be trusted.
+		return
+	}
 
 	// Update principal variation table in exact nodes.
 	if flags&exact != 0 {
