@@ -264,13 +264,9 @@ func (eng *Engine) retrieveHash() hashEntry {
 	// Return mate score relative to root.
 	// The score was adjusted relative to position before the hash table was updated.
 	if entry.score < KnownLossScore {
-		if entry.kind&exact != 0 {
-			entry.score += int16(eng.ply())
-		}
+		entry.score += int16(eng.ply())
 	} else if entry.score > KnownWinScore {
-		if entry.kind&exact != 0 {
-			entry.score -= int16(eng.ply())
-		}
+		entry.score -= int16(eng.ply())
 	}
 
 	eng.Stats.CacheHit++
@@ -297,17 +293,9 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 	// Save the mate score relative to the current position.
 	// When retrieving from hash the score will be adjusted relative to root.
 	if score < KnownLossScore {
-		if flags&exact != 0 {
-			score -= eng.ply()
-		} else {
-			return
-		}
+		score -= eng.ply()
 	} else if score > KnownWinScore {
-		if flags&exact != 0 {
-			score += eng.ply()
-		} else {
-			return
-		}
+		score += eng.ply()
 	}
 
 	GlobalHashTable.put(eng.Position, hashEntry{
