@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // pawns.go contains various utilities for handling pawns.
-// TODO: Add connected pawns.
 
 package engine
 
@@ -68,7 +67,7 @@ type pawnsEntry struct {
 }
 
 // pawnsTable implements a fixed size cache.
-type pawnsTable [1 << 9]pawnsEntry
+type pawnsTable [1 << 11]pawnsEntry
 
 // put puts a new entry in the cache.
 func (c *pawnsTable) put(lock uint64, white, black Accum) {
