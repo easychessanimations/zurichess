@@ -568,6 +568,8 @@ func (pos *Position) GivesCheck(m Move) bool {
 	return false
 }
 
+var prettyPieceToSymbol = []string{".", "?", "♟", "♙", "♞", "♘", "♝", "♗", "♜", "♖", "♛", "♕", "♚", "♔"}
+
 // PrettyPrint pretty prints the current position to log.
 func (pos *Position) PrettyPrint() {
 	log.Println("zobrist =", pos.Zobrist())
@@ -579,7 +581,7 @@ func (pos *Position) PrettyPrint() {
 			if pos.IsEnpassantSquare(sq) {
 				line += ","
 			} else {
-				line += string(pieceToSymbol[pos.Get(sq)])
+				line += prettyPieceToSymbol[pos.Get(sq)]
 			}
 		}
 		if r == 7 && pos.SideToMove == Black {

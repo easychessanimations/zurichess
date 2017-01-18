@@ -6,9 +6,7 @@
 
 package engine
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	// KnownWinScore is strictly greater than all evaluation scores (mate not included).
@@ -82,8 +80,12 @@ var (
 	wRookOnHalfOpenFile Score
 	wQueenKingTropism   [8]Score
 
+	// Indexed name of the features.
+	// When compiled with -tags tuner, Score.I is the index in this array.
+	FeatureNames [len(Weights)]string
+
 	// Evaluation caches.
-	pawnsAndShelterCache *pawnsTable
+	pawnsAndShelterCache = &pawnsTable{}
 
 	// Figure bonuses to use when computing the futility margin.
 	futilityFigureBonus [FigureArraySize]int32
@@ -329,50 +331,53 @@ func scaleToCentipawns(score int32) int32 {
 	return (score + 64 + score>>31) >> 7
 }
 
+func registerMany(n int, name string, out []Score) int {
+	for i := range out {
+		out[i] = Weights[n+i]
+		FeatureNames[n+i] = fmt.Sprint(name, ".", i)
+	}
+	return n + len(out)
+}
+
+func registerOne(n int, name string, out *Score) int {
+	*out = Weights[n]
+	FeatureNames[n] = name
+	return n + 1
+}
+
 func init() {
 	// Initializes weights.
 	initWeights()
-	slice := func(w []Score, out []Score) []Score {
-		copy(out, w)
-		return w[len(out):]
-	}
-	entry := func(w []Score, out *Score) []Score {
-		*out = w[0]
-		return w[1:]
-	}
 
-	w := Weights[:]
-	w = slice(w, wFigure[:])
-	w = slice(w, wMobility[:])
-	w = slice(w, wPawn[:])
-	w = slice(w, wPassedPawn[:])
-	w = slice(w, wPassedPawnKing[:])
-	w = slice(w, wFigureRank[Knight][:])
-	w = slice(w, wFigureFile[Knight][:])
-	w = slice(w, wFigureRank[Bishop][:])
-	w = slice(w, wFigureFile[Bishop][:])
-	w = slice(w, wFigureRank[Rook][:])
-	w = slice(w, wFigureFile[Rook][:])
-	w = slice(w, wFigureRank[King][:])
-	w = slice(w, wFigureFile[King][:])
-	w = slice(w, wKingAttack[:])
-	w = entry(w, &wBackwardPawn)
-	w = slice(w, wConnectedPawn[:])
-	w = entry(w, &wDoublePawn)
-	w = entry(w, &wIsolatedPawn)
-	w = entry(w, &wPawnThreat)
-	w = entry(w, &wKingShelter)
-	w = entry(w, &wBishopPair)
-	w = entry(w, &wRookOnOpenFile)
-	w = entry(w, &wRookOnHalfOpenFile)
-	w = slice(w, wQueenKingTropism[:])
+	n := 0
+	n = registerMany(n, "Figure", wFigure[:])
+	n = registerMany(n, "Mobility", wMobility[:])
+	n = registerMany(n, "Pawn", wPawn[:])
+	n = registerMany(n, "PassedPawn", wPassedPawn[:])
+	n = registerMany(n, "PassedPawnKing", wPassedPawnKing[:])
+	n = registerMany(n, "FigureRank[Knight]", wFigureRank[Knight][:])
+	n = registerMany(n, "FigureFile[Knight]", wFigureFile[Knight][:])
+	n = registerMany(n, "FigureRank[Bishop]", wFigureRank[Bishop][:])
+	n = registerMany(n, "FigureFile[Bishop]", wFigureFile[Bishop][:])
+	n = registerMany(n, "FigureRank[Rook]", wFigureRank[Rook][:])
+	n = registerMany(n, "FigureFile[Rook]", wFigureFile[Rook][:])
+	n = registerMany(n, "FigureRank[King]", wFigureRank[King][:])
+	n = registerMany(n, "FigureFile[King]", wFigureFile[King][:])
+	n = registerMany(n, "KingAttack", wKingAttack[:])
+	n = registerOne(n, "BackwardPawn", &wBackwardPawn)
+	n = registerMany(n, "ConnectedPawn", wConnectedPawn[:])
+	n = registerOne(n, "DoublePawn", &wDoublePawn)
+	n = registerOne(n, "IsolatedPawn", &wIsolatedPawn)
+	n = registerOne(n, "PawnThreat", &wPawnThreat)
+	n = registerOne(n, "KingShelter", &wKingShelter)
+	n = registerOne(n, "BishopPair", &wBishopPair)
+	n = registerOne(n, "RookOnOpenFile", &wRookOnOpenFile)
+	n = registerOne(n, "RookOnHalfOpenFile", &wRookOnHalfOpenFile)
+	n = registerMany(n, "QueenKingTropism", wQueenKingTropism[:])
 
-	if len(w) != 0 {
-		panic(fmt.Sprintf("not all weights used, left with %d out of %d", len(w), len(Weights)))
+	if n != len(Weights) {
+		panic(fmt.Sprintf("not all weights used, used %d out of %d", n, len(Weights)))
 	}
-
-	// Initialize caches.
-	pawnsAndShelterCache = new(pawnsTable)
 
 	// Initializes futility figure bonus
 	for i, w := range wFigure {

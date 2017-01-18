@@ -519,7 +519,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// we return that score.
 	if depth == 1 &&
 		!sideIsChecked && // disable in check
-		pos.MinorsAndMajors(us) != 0 && // at least one minor/major piece.
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
 		rα := α - futilityMargin
