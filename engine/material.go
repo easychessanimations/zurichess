@@ -60,24 +60,44 @@ var (
 		{M: 1470, E: -7270}, {M: 2356, E: -9148},
 	}
 
-	// Named chunks of Weights
+	// The following variables are named chunks of Weights
+
+	// wFigure stores how much each figure is valued.
 	wFigure             [FigureArraySize]Score
+	// wMobility stores bonus for each figure's reachable square.
 	wMobility           [FigureArraySize]Score
+	// wPawn is a piece square table dedicated to pawns.
 	wPawn               [SquareArraySize]Score
+	// wPassedPawn contains bonuses for passed pawns based on how advanced they are.
 	wPassedPawn         [8]Score
+	// wPassedPawnKing is a bonus between king and closest passed pawn.
 	wPassedPawnKing     [8]Score
+	// wFigureFile gives bonus to each figure depending on its file.
 	wFigureFile         [FigureArraySize][8]Score
+	// wFigureRank gives bonus to each figure depending on its Rank.
 	wFigureRank         [FigureArraySize][8]Score
 	wKingAttack         [4]Score
+	// wBackwardPawn is the bonus of a backward pawn.
 	wBackwardPawn       Score
+	// wConnectedPawn is the bonus of a connected pawn.
 	wConnectedPawn      [8]Score
+	// wDoublePawn is the bonus of a double pawn, a pawn with another
+	// friendly in right in front of it.
 	wDoublePawn         Score
+	// wIsolatedPawn is the bonus of an isolated pawn, a pawn with no
+	// other friendlyy pawns on adjacent files.
 	wIsolatedPawn       Score
+	// wPassedThreat is a small bonus for each enemy piece attacked by a pawn.
 	wPawnThreat         Score
+	// wKingShelter rewards pawns in front of the king.
 	wKingShelter        Score
+	// wBishopPair rewards the bishop pair, useful in endgames.
 	wBishopPair         Score
+	// wBishopPair rewards a rook on a open file, a file with no pawns.
 	wRookOnOpenFile     Score
+	// wBishopPair rewards a rook on a open file, a file with no enemy pawns.
 	wRookOnHalfOpenFile Score
+	// wQueenKingTropism rewards queen being closer to the enemy king.
 	wQueenKingTropism   [8]Score
 
 	// Indexed name of the features.
@@ -331,6 +351,7 @@ func scaleToCentipawns(score int32) int32 {
 	return (score + 64 + score>>31) >> 7
 }
 
+// registerMany registers a slice of weights, setting the correct name.
 func registerMany(n int, name string, out []Score) int {
 	for i := range out {
 		out[i] = Weights[n+i]
@@ -339,6 +360,7 @@ func registerMany(n int, name string, out []Score) int {
 	return n + len(out)
 }
 
+// registerone registers one weight, setting the correct name.
 func registerOne(n int, name string, out *Score) int {
 	*out = Weights[n]
 	FeatureNames[n] = name

@@ -167,9 +167,7 @@ func (st *stack) PopMove() Move {
 				} else {
 					ms.state = msGenKiller
 				}
-			} else if m == ms.hash {
-				break
-			} else if m != NullMove {
+			} else if m != ms.hash && m != NullMove {
 				return m
 			}
 
@@ -195,9 +193,7 @@ func (st *stack) PopMove() Move {
 		case msReturnKiller:
 			if m := st.popFront(); m == NullMove {
 				ms.state = msGenRest
-			} else if m == ms.hash {
-				break
-			} else if st.position.IsPseudoLegal(m) {
+			} else if m != ms.hash && st.position.IsPseudoLegal(m) {
 				return m
 			}
 
@@ -234,9 +230,7 @@ func (st *stack) SaveKiller(m Move) {
 	if !m.IsViolent() {
 		st.counter[st.counterIndex()] = m
 		// Move the newly found killer first.
-		if m == ms.killer[0] {
-			// do nothing
-		} else {
+		if m != ms.killer[0] {
 			ms.killer[1] = ms.killer[0]
 			ms.killer[0] = m
 		}
