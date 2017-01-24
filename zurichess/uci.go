@@ -25,7 +25,7 @@ var (
 
 const (
 	maxMultiPV    = 16
-	maxSkillLevel = 10
+	maxSkillLevel = 20
 )
 
 // uciLogger outputs search in uci format.

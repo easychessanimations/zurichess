@@ -275,19 +275,18 @@ func (eng *Engine) retrieveHash() hashEntry {
 
 // updateHash updates GlobalHashTable with the current position.
 func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, static int32) {
+	// If search is stopped then score cannot be trusted.
+	if eng.stopped {
+		return
+	}
+	// Update principal variation table in exact nodes.
+	if flags&exact != 0 {
+		eng.pvTable.Put(eng.Position, move)
+	}
 	if eng.ply() == 0 && len(eng.ignoreRootMoves) != 0 {
 		// At root if there are moves to ignore (e.g. because of multipv)
 		// then this is an incomplete search, so don't update the hash.
 		return
-	}
-	if eng.stopped {
-		// If search is stopped then score cannot be trusted.
-		return
-	}
-
-	// Update principal variation table in exact nodes.
-	if flags&exact != 0 {
-		eng.pvTable.Put(eng.Position, move)
 	}
 
 	// Save the mate score relative to the current position.
@@ -687,9 +686,9 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	}
 
 	multiPV := eng.Options.MultiPV
-	skillMultiPv := (eng.Options.SkillLevel+3)/4 + 1
-	if multiPV < skillMultiPv {
-		multiPV = skillMultiPv
+	searchMultiPV := (eng.Options.SkillLevel+4)/5 + 1
+	if multiPV < searchMultiPV {
+		multiPV = searchMultiPV
 	}
 
 	pvs := make([]pv, 0, eng.Options.MultiPV)
@@ -726,6 +725,7 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 			}
 		}
 	}
+
 	for i := range pvs {
 		eng.Log.PrintPV(eng.Stats, i+1, pvs[i].score, pvs[i].moves)
 	}
@@ -737,12 +737,14 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 
 	// PVs are sorted by score. Pick one PV at random
 	// and if the score is not too far off, return it.
-	if len(pvs) > 3 {
-		pvs = pvs[:3]
-	}
-	n := rand.Intn(len(pvs))
 	s := int32(eng.Options.SkillLevel)
-	d := s*s + s*10 + 5
+	d := s*s/2 + s*10 + 5
+	n := rand.Intn(len(pvs))
+	if rand.Intn(eng.Options.SkillLevel) == 0 {
+		if n1 := rand.Intn(len(pvs)); n1 > n {
+			n1 = n
+		}
+	}
 	for pvs[n].score+d < pvs[0].score {
 		n--
 	}
@@ -752,8 +754,8 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 // Play evaluates current position.
 //
 // Returns the principal variation, that is
-//	moves[0] is the best move found and
-//	moves[1] is the pondering move.
+//      moves[0] is the best move found and
+//      moves[1] is the pondering move.
 //
 // Returns a nil pv if no move was found because the game is already finished.
 // Returns empty pv array if it's valid position, but no pv was found (e.g. search depth is 0).
