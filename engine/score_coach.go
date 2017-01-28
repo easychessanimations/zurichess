@@ -38,11 +38,11 @@ func (a *Accum) merge(o Accum) {
 	}
 }
 
-func (e *Eval) merge() {
-	e.Accum.M = e.pad[White].accum.M - e.pad[Black].accum.M
-	e.Accum.E = e.pad[White].accum.E - e.pad[Black].accum.E
-	for i := range e.Accum.Values {
-		e.Accum.Values[i] = e.pad[White].accum.Values[i] - e.pad[Black].accum.Values[i]
+func (a *Accum) deduct(o Accum) {
+	a.M -= o.M
+	a.E -= o.E
+	for i := range o.Values {
+		a.Values[i] -= o.Values[i]
 	}
 }
 

@@ -31,9 +31,9 @@ func (a *Accum) merge(o Accum) {
 	a.E += o.E
 }
 
-func (e *Eval) merge() {
-	e.Accum.M = e.pad[White].accum.M - e.pad[Black].accum.M
-	e.Accum.E = e.pad[White].accum.E - e.pad[Black].accum.E
+func (a *Accum) deduct(o Accum) {
+	a.M -= o.M
+	a.E -= o.E
 }
 
 func initWeights() {

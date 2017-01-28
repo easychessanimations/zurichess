@@ -176,7 +176,10 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 		Log:     log,
 		pvTable: newPvTable(),
 		history: history,
-		stack:   stack{history: history},
+		stack: stack{
+			history: history,
+			counter: new([1 << 11]Move),
+		},
 	}
 	eng.SetPosition(pos)
 	return eng
@@ -251,12 +254,7 @@ func (eng *Engine) endPosition() (int32, bool) {
 // retrieveHash gets from GlobalHashTable the current position.
 func (eng *Engine) retrieveHash() hashEntry {
 	entry := GlobalHashTable.get(eng.Position)
-
-	if entry.kind == 0 {
-		eng.Stats.CacheMiss++
-		return hashEntry{}
-	}
-	if entry.move != NullMove && !eng.Position.IsPseudoLegal(entry.move) {
+	if entry.kind == 0 || entry.move != NullMove && !eng.Position.IsPseudoLegal(entry.move) {
 		eng.Stats.CacheMiss++
 		return hashEntry{}
 	}
@@ -335,10 +333,8 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Prune futile moves that would anyway result in a stand-pat at that next depth.
-		if !inCheck && isFutile(pos, static, α, futilityMargin, move) {
-			continue
-		}
-		if !inCheck && seeSign(pos, move) {
+		if !inCheck && isFutile(pos, static, α, futilityMargin, move) ||
+			!inCheck && seeSign(pos, move) {
 			continue
 		}
 
@@ -569,13 +565,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 		if allowLeafsPruning && !critical && !givesCheck && localα > KnownLossScore {
 			// Prune moves that do not raise alphas and moves that performed bad historically.
-			if isFutile(pos, static, α, depth*futilityMargin, move) ||
-				history < -10 && move.IsQuiet() {
-				dropped = true
-				continue
-			}
 			// Prune bad captures moves that performed bad historically.
-			if history < -10 && seeSign(pos, move) {
+			if isFutile(pos, static, α, depth*futilityMargin, move) ||
+				history < -10 && move.IsQuiet() ||
+				history < -10 && seeSign(pos, move) {
 				dropped = true
 				continue
 			}
@@ -654,9 +647,7 @@ func (eng *Engine) search(depth, estimated int32) int32 {
 
 	if depth < 4 {
 		// Disable aspiration window for very low search depths.
-		// This wastes a lot of time when for tunning.
-		α = -InfinityScore
-		β = +InfinityScore
+		α, β = -InfinityScore, +InfinityScore
 	}
 
 	for !eng.stopped {

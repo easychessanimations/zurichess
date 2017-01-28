@@ -278,7 +278,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	// White
-	pos.SideToMove = White
+	pos.SetSideToMove(White)
 	te.Move("e1c1")
 	te.Piece(SquareA1, NoPiece)
 	te.Piece(SquareC1, WhiteKing)
@@ -292,7 +292,7 @@ func TestCastleMovesPieces(t *testing.T) {
 	te.Piece(SquareE1, WhiteKing)
 
 	// Black
-	pos.SideToMove = Black
+	pos.SetSideToMove(Black)
 	te.Move("e8g8")
 	te.Piece(SquareH8, NoPiece)
 	te.Piece(SquareG8, BlackKing)
@@ -525,7 +525,7 @@ func TestPawnAttacks(t *testing.T) {
 
 func TestPawnPromotions(t *testing.T) {
 	pos, _ := PositionFromFEN(testBoard2)
-	pos.SideToMove = Black
+	pos.SetSideToMove(Black)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Pawn(SquareF2, []string{"f2f1n", "f2f1b", "f2f1r", "f2f1q"})
@@ -608,7 +608,7 @@ func TestPawnTakesEnpassant(t *testing.T) {
 	te.Piece(SquareD5, BlackPawn)
 
 	// Makes sure that black pawn at A2/B2 doesn't take Enpassant.
-	pos.SideToMove = Black
+	pos.SetSideToMove(Black)
 	pos.SetEnpassantSquare(SquareA1)
 	pos.Remove(SquareB2, pos.Get(SquareB2))
 	pos.Remove(SquareA1, pos.Get(SquareA1))
@@ -745,8 +745,8 @@ func TestNullMoveSimple(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("")
-	if Black != pos.SideToMove {
-		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.SideToMove)
+	if Black != pos.Us() {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.Us())
 	}
 	te.Undo()
 	if FENStartPos != pos.String() {
@@ -767,8 +767,8 @@ func TestNullMoveEnpassantSquare(t *testing.T) {
 	}
 
 	te.Move("")
-	if Black != pos.SideToMove {
-		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", White, pos.SideToMove)
+	if Black != pos.Us() {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", White, pos.Us())
 	}
 	if SquareA1 != pos.EnpassantSquare() {
 		t.Fatalf("bad nullmove EnpassantSquare. expected none, got %v", pos.EnpassantSquare())
@@ -785,8 +785,8 @@ func TestNullMoveCastlingAbility(t *testing.T) {
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("")
-	if Black != pos.SideToMove {
-		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.SideToMove)
+	if Black != pos.Us() {
+		t.Fatalf("bad nullmove SideToMove. expected %v, got %v", Black, pos.Us())
 	}
 	if AnyCastle != pos.CastlingAbility() {
 		t.Fatalf("bad nullmove CastlingAbility. expected %v, got %v", AnyCastle, pos.CastlingAbility())
@@ -860,17 +860,17 @@ func TestGenerateMovesColor(t *testing.T) {
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Violent|Quiet, &all)
 		for _, m := range all {
-			if m.Piece().Color() != pos.SideToMove {
+			if m.Piece().Color() != pos.Us() {
 				t.Errorf("for move %v and fen %v", m, fen)
-				t.Errorf("expected piece color %v, got %v", pos.SideToMove, m.Piece().Color())
+				t.Errorf("expected piece color %v, got %v", pos.Us(), m.Piece().Color())
 			}
-			if m.Target().Color() != pos.SideToMove {
+			if m.Target().Color() != pos.Us() {
 				t.Errorf("for move %v and fen %v", m, fen)
-				t.Errorf("expected target color %v, got %v", pos.SideToMove, m.Piece().Color())
+				t.Errorf("expected target color %v, got %v", pos.Us(), m.Piece().Color())
 			}
-			if m.MoveType() == Promotion && m.Promotion().Color() != pos.SideToMove {
+			if m.MoveType() == Promotion && m.Promotion().Color() != pos.Us() {
 				t.Errorf("for move %v and fen %v", m, fen)
-				t.Errorf("expected target color %v, got %v", pos.SideToMove, m.Piece().Color())
+				t.Errorf("expected target color %v, got %v", pos.Us(), m.Piece().Color())
 			}
 		}
 	}
@@ -1004,7 +1004,7 @@ func TestNumPieces(t *testing.T) {
 
 	for pi := PieceMinValue; pi <= PieceMaxValue; pi++ {
 		if expected[pi] != pos.NumPieces[pi] {
-			t.Errorf("For %s got pos.NumPieces[pi] == %d, wanted %s",
+			t.Errorf("For %v got pos.NumPieces[pi] == %d, wanted %d",
 				pi, pos.NumPieces[pi], expected[pi])
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2017 The Zurichess Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,13 +6,13 @@
 
 package engine
 
-import (
-	"unsafe"
-)
+import "unsafe"
 
 var (
-	DefaultHashTableSizeMB = 64       // DefaultHashTableSizeMB is the default size in MB.
-	GlobalHashTable        *HashTable // GlobalHashTable is the global transposition table.
+	// DefaultHashTableSizeMB is the default size in MB.
+	DefaultHashTableSizeMB = 64
+	// GlobalHashTable is the global transposition table.
+	GlobalHashTable *HashTable
 )
 
 type hashFlags uint8

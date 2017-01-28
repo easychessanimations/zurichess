@@ -25,6 +25,8 @@ var (
 type Square uint
 
 const (
+	// Set of possible board squares.
+
 	SquareA1 = Square(iota)
 	SquareB1
 	SquareC1
@@ -158,6 +160,8 @@ func (sq Square) String() string {
 type Figure uint
 
 const (
+	// Set of possible chess figures.
+
 	NoFigure Figure = iota
 	Pawn
 	Knight
@@ -175,6 +179,8 @@ const (
 type Color uint
 
 const (
+	// Set of possible chess colors.
+
 	NoColor Color = iota
 	Black
 	White
@@ -185,9 +191,7 @@ const (
 	ColorMaxValue  = White
 )
 
-var (
-	kingHomeRank = [ColorArraySize]int{0, 7, 0}
-)
+var kingHomeRank = [ColorArraySize]int{0, 7, 0}
 
 // Opposite returns the reversed color.
 // Result is undefined if c is not White or Black.
@@ -592,13 +596,19 @@ func (m Move) String() string {
 type Castle uint
 
 const (
-	WhiteOO  Castle = 1 << iota // WhiteOO indicates that White can castle on King side.
-	WhiteOOO                    // WhiteOOO indicates that White can castle on Queen side.
-	BlackOO                     // BlackOO indicates that Black can castle on King side.
-	BlackOOO                    // BlackOOO indicates that Black can castle on Queen side.
+	// WhiteOO indicates that White can castle on King side.
+	WhiteOO Castle = 1 << iota
+	// WhiteOOO indicates that White can castle on Queen side.
+	WhiteOOO
+	// BlackOO indicates that Black can castle on King side.
+	BlackOO
+	// BlackOOO indicates that Black can castle on Queen side.
+	BlackOOO
 
-	NoCastle  Castle = 0                                       // NoCastle indicates no castling rights.
-	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO // AnyCastle indicates all castling rights.
+	// NoCastle indicates no castling rights.
+	NoCastle Castle = 0
+	// AnyCastle indicates all castling rights.
+	AnyCastle Castle = WhiteOO | WhiteOOO | BlackOO | BlackOOO
 
 	CastleArraySize = int(AnyCastle + 1)
 	CastleMinValue  = NoCastle

@@ -63,45 +63,45 @@ var (
 	// The following variables are named chunks of Weights
 
 	// wFigure stores how much each figure is valued.
-	wFigure             [FigureArraySize]Score
+	wFigure [FigureArraySize]Score
 	// wMobility stores bonus for each figure's reachable square.
-	wMobility           [FigureArraySize]Score
+	wMobility [FigureArraySize]Score
 	// wPawn is a piece square table dedicated to pawns.
-	wPawn               [SquareArraySize]Score
+	wPawn [SquareArraySize]Score
 	// wPassedPawn contains bonuses for passed pawns based on how advanced they are.
-	wPassedPawn         [8]Score
+	wPassedPawn [8]Score
 	// wPassedPawnKing is a bonus between king and closest passed pawn.
-	wPassedPawnKing     [8]Score
+	wPassedPawnKing [8]Score
 	// wFigureFile gives bonus to each figure depending on its file.
-	wFigureFile         [FigureArraySize][8]Score
+	wFigureFile [FigureArraySize][8]Score
 	// wFigureRank gives bonus to each figure depending on its Rank.
-	wFigureRank         [FigureArraySize][8]Score
-	wKingAttack         [4]Score
+	wFigureRank [FigureArraySize][8]Score
+	wKingAttack [4]Score
 	// wBackwardPawn is the bonus of a backward pawn.
-	wBackwardPawn       Score
+	wBackwardPawn Score
 	// wConnectedPawn is the bonus of a connected pawn.
-	wConnectedPawn      [8]Score
+	wConnectedPawn [8]Score
 	// wDoublePawn is the bonus of a double pawn, a pawn with another
 	// friendly in right in front of it.
-	wDoublePawn         Score
+	wDoublePawn Score
 	// wIsolatedPawn is the bonus of an isolated pawn, a pawn with no
 	// other friendlyy pawns on adjacent files.
-	wIsolatedPawn       Score
+	wIsolatedPawn Score
 	// wPassedThreat is a small bonus for each enemy piece attacked by a pawn.
-	wPawnThreat         Score
+	wPawnThreat Score
 	// wKingShelter rewards pawns in front of the king.
-	wKingShelter        Score
+	wKingShelter Score
 	// wBishopPair rewards the bishop pair, useful in endgames.
-	wBishopPair         Score
+	wBishopPair Score
 	// wBishopPair rewards a rook on a open file, a file with no pawns.
-	wRookOnOpenFile     Score
+	wRookOnOpenFile Score
 	// wBishopPair rewards a rook on a open file, a file with no enemy pawns.
 	wRookOnHalfOpenFile Score
 	// wQueenKingTropism rewards queen being closer to the enemy king.
-	wQueenKingTropism   [8]Score
+	wQueenKingTropism [8]Score
 
-	// Indexed name of the features.
-	// When compiled with -tags tuner, Score.I is the index in this array.
+	// FeatureNames is an array with the names of features.
+	// When compiled with -tags coach, Score.I is the index in this array.
 	FeatureNames [len(Weights)]string
 
 	// Evaluation caches.
@@ -115,9 +115,9 @@ var (
 type scratchpad struct {
 	us            Color
 	exclude       Bitboard // squares to exclude from mobility calculation
-	kingSq        Square
-	theirPawns    Bitboard
-	theirKingArea Bitboard
+	kingSq        Square   // position of the king
+	theirPawns    Bitboard // opponent's pawns
+	theirKingArea Bitboard // opponent's king area
 
 	accum          Accum
 	numAttackers   int32 // number of pieces attacking opposite king
@@ -132,11 +132,11 @@ type Eval struct {
 }
 
 // init initializes some used info.
-func (eval *Eval) init(us Color) {
-	pos := eval.position
+func (e *Eval) init(us Color) {
+	pos := e.position
 	them := us.Opposite()
 	kingSq := pos.ByPiece(us, King).AsSquare()
-	eval.pad[us] = scratchpad{
+	e.pad[us] = scratchpad{
 		us:            us,
 		exclude:       pos.ByPiece(us, Pawn) | pos.PawnThreats(them),
 		kingSq:        kingSq,
@@ -145,7 +145,7 @@ func (eval *Eval) init(us Color) {
 	}
 }
 
-// Feed return the score phased between midgame and endgame score.
+// Feed returns the score phased between midgame and endgame score.
 func (e *Eval) Feed(phase int32) int32 {
 	return (e.Accum.M*(256-phase) + e.Accum.E*phase) / 256
 }
@@ -153,25 +153,27 @@ func (e *Eval) Feed(phase int32) int32 {
 // Evaluate evaluates position from White's POV.
 // The returned s fits into a int16.
 func Evaluate(pos *Position) int32 {
-	eval := EvaluatePosition(pos)
-	score := eval.Feed(Phase(pos))
+	e := EvaluatePosition(pos)
+	score := e.Feed(Phase(pos))
 	return scaleToCentipawns(score)
 }
 
 // EvaluatePosition evaluates position exported to be used by the tuner.
 func EvaluatePosition(pos *Position) Eval {
-	eval := Eval{position: pos}
-	eval.init(White)
-	eval.init(Black)
+	e := Eval{position: pos}
+	e.init(White)
+	e.init(Black)
 
 	white, black := pawnsAndShelterCache.load(pos)
-	eval.pad[White].accum.merge(white)
-	eval.pad[Black].accum.merge(black)
+	e.pad[White].accum.merge(white)
+	e.pad[Black].accum.merge(black)
 
-	eval.evaluateSide(White)
-	eval.evaluateSide(Black)
-	eval.merge()
-	return eval
+	e.evaluateSide(White)
+	e.evaluateSide(Black)
+
+	e.Accum.merge(e.pad[White].accum)
+	e.Accum.deduct(e.pad[Black].accum)
+	return e
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
@@ -251,7 +253,7 @@ func evaluateShelter(pos *Position, us Color) (accum Accum) {
 }
 
 // evaluateFigure computes the material score for a figure fig at sq reaching mobility squares.
-func (eval *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility Bitboard) {
+func (e *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility Bitboard) {
 	sq = sq.POV(pad.us)
 	pad.accum.add(wFigure[fig])
 	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
@@ -267,10 +269,10 @@ func (eval *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobilit
 }
 
 // evaluateSide evaluates position for a single side.
-func (eval *Eval) evaluateSide(us Color) {
-	pos := eval.position
+func (e *Eval) evaluateSide(us Color) {
+	pos := e.position
 	them := us.Opposite()
-	pad := &eval.pad[us]
+	pad := &e.pad[us]
 	all := pos.ByColor[White] | pos.ByColor[Black]
 
 	// Pawn forward mobility.
@@ -283,14 +285,14 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
-		eval.evaluateFigure(pad, Knight, sq, mobility)
+		e.evaluateFigure(pad, Knight, sq, mobility)
 	}
 	// Bishop
 	numBishops := int32(0)
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
-		eval.evaluateFigure(pad, Bishop, sq, mobility)
+		e.evaluateFigure(pad, Bishop, sq, mobility)
 		numBishops++
 	}
 	pad.accum.addN(wBishopPair, numBishops/2)
@@ -299,7 +301,7 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
-		eval.evaluateFigure(pad, Rook, sq, mobility)
+		e.evaluateFigure(pad, Rook, sq, mobility)
 
 		// Evaluate rook on open and semi open files.
 		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
@@ -316,15 +318,15 @@ func (eval *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
-		eval.evaluateFigure(pad, Queen, sq, mobility)
-		pad.accum.add(wQueenKingTropism[distance[sq][eval.pad[them].kingSq]])
+		e.evaluateFigure(pad, Queen, sq, mobility)
+		pad.accum.add(wQueenKingTropism[distance[sq][e.pad[them].kingSq]])
 	}
 
 	// King, each side has one.
 	{
 		sq := pad.kingSq
 		mobility := KingMobility(sq)
-		eval.evaluateFigure(pad, King, sq, mobility)
+		e.evaluateFigure(pad, King, sq, mobility)
 	}
 
 	// Evaluate attacking the king. See more at:
@@ -368,7 +370,7 @@ func registerOne(n int, name string, out *Score) int {
 }
 
 func init() {
-	// Initializes weights.
+	// Initialize weights.
 	initWeights()
 
 	n := 0
@@ -401,7 +403,7 @@ func init() {
 		panic(fmt.Sprintf("not all weights used, used %d out of %d", n, len(Weights)))
 	}
 
-	// Initializes futility figure bonus
+	// Initialize futility figure bonus.
 	for i, w := range wFigure {
 		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
 	}

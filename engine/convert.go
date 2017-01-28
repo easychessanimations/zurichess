@@ -70,7 +70,7 @@ var (
 // http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 //
 // Rejects FEN with only four fields,
-// i.e. no full move counter or have move number.
+// i.e. no full move counter or halfmove number.
 func PositionFromFEN(fen string) (*Position, error) {
 	// Split fen into 6 fields.
 	// Same as string.Fields() but creates much less garbage.
@@ -121,7 +121,7 @@ func PositionFromFEN(fen string) (*Position, error) {
 		return nil, err
 	}
 	pos.Ply = (pos.fullmoveCounter - 1) * 2
-	if pos.SideToMove == Black {
+	if pos.Us() == Black {
 		pos.Ply++
 	}
 	return pos, nil
