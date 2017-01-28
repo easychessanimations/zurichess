@@ -1,0 +1,19 @@
+dependencies:
+  override:
+    - go get -t -d -v ./...
+    - go build -v ./...
+    - go build -v -o ./zurichess/zurichess ./zurichess
+
+test:
+  override:
+    - go test -v -race ./...
+
+general:
+  artifacts:
+    - "zurichess/zurichess"
+
+machine:
+  environment:
+    GOROOT: ""
+    PATH: "/usr/local/go/bin:/usr/local/go_workspace/bin:~/.go_workspace/bin:${PATH}"
+    GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${HOME}/.go_project"

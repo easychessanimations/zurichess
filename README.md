@@ -1,8 +1,8 @@
 # zurichess: a chess engine
 
-[Website](http://www.zurichess.xyz) |
+[www.zurichess.xyz](http://www.zurichess.xyz) |
 [![Reference](https://godoc.org/bitbucket.org/zurichess/zurichess?status.svg)](https://godoc.org/bitbucket.org/zurichess/zurichess)
-[![Build Status](https://drone.io/bitbucket.org/zurichess/zurichess/status.png)](https://drone.io/bitbucket.org/zurichess/zurichess/latest)
+[![Build Status](https://circleci.com/bb/zurichess/zurichess.svg?style=svg)](https://circleci.com/bb/zurichess/zurichess)
 
 zurichess is a chess engine and a chess library written in
 [Go](http://www.golang.org). Its main goals are: to be a relatively
@@ -27,7 +27,7 @@ than the latest stable version.
 
 ## Build and Compile
 
-First you need to get the latest version of Go (currently 1.7.1). For
+First you need to get the latest version of Go (currently 1.7.4). For
 instructions how to download and install Go for your OS see
 [documentation](https://golang.org/doc/install). After the Go compiler
 is installed, create a workspace:
@@ -52,10 +52,6 @@ zurichess (devel), build with go1.5 at (just now), running on amd64
 Precompiled binaries for several platforms and architectures can be found
 on the [downloads](https://bitbucket.org/zurichess/zurichess/downloads)
 page.
-
-Latest Linux AMD64 binaries can be downloaded from
-[drone.io](https://drone.io/bitbucket.org/zurichess/zurichess/files). These
-binaries should be stable for any kind of testing.
 
 
 ## Contributing
