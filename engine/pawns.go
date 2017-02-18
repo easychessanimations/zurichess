@@ -52,7 +52,7 @@ func PawnThreats(us Color, ours Bitboard) Bitboard {
 // BackwardPawns returns the our backward pawns.
 // A backward pawn is a pawn that has no pawns behind them on its file or
 // adjacent file, it's not isolated and cannot advance safely.
-func BackwardPawns(us Color, ours Bitboard, theirs Bitboard) Bitboard {
+func BackwardPawns(us Color, ours, theirs Bitboard) Bitboard {
 	behind := ForwardFill(us, East(ours)|West(ours))
 	doubled := BackwardSpan(us, ours)
 	isolated := IsolatedPawns(ours)
