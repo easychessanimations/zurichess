@@ -3,17 +3,17 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (development)
-??.??.2017
+## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (stable)
+17.Jan.2017
 
-`git clone -b master https://bitbucket.org/zurichess/zurichess.git`
+`git clone -b release.jura https://bitbucket.org/zurichess/zurichess.git`
 
 An overview of the most important changes is:
 
 * Improve search:
     * Implement razoring at depth 1.
     * Implement counter move heuristics.
-    * Tweak LMR and NMP.
+    * Tweak LMR, NMP and FP.
 * Improve evaluation:
     * Retune using training data at https://bitbucket.org/zurichess/tuner/downloads.
     * Add King-Queen tropism.
@@ -21,8 +21,9 @@ An overview of the most important changes is:
     * Evaluate connected pawns based on their file.
 * Tweak time control to reduce more of the forfeits.
 * Usual code clean ups, speed ups and bug fixes.
+* Library API: added Position.GivesCheck
 
-## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden) (stable)
+## zurichess [graubuenden](https://en.wikipedia.org/wiki/Graub%C3%BCnden)
 16.Aug.2016
 
 `git clone -b release.graubuenden https://bitbucket.org/zurichess/zurichess.git`
