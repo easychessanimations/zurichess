@@ -3,6 +3,11 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (development)
+??.???.????
+
+
+
 ## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (stable)
 17.Jan.2017
 
