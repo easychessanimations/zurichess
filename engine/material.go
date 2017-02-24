@@ -140,7 +140,7 @@ func (e *Eval) init(us Color) {
 	kingSq := pos.ByPiece(us, King).AsSquare()
 	e.pad[us] = scratchpad{
 		us:            us,
-		exclude:       pos.ByPiece(us, Pawn) | pos.PawnThreats(them),
+		exclude:       pos.ByPiece(us, Pawn) | PawnThreats(pos, them),
 		kingSq:        kingSq,
 		theirPawns:    pos.ByPiece(them, Pawn),
 		theirKingArea: bbKingArea[pos.ByPiece(them, King).AsSquare()],
@@ -185,21 +185,16 @@ func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
 }
 
 func evaluatePawns(pos *Position, us Color) (accum Accum) {
-	them := us.Opposite()
-	ours := pos.ByPiece(us, Pawn)
-	theirs := pos.ByPiece(them, Pawn)
-
-	wings := East(ours) | West(ours)
-	connected := ours & (North(wings) | wings | South(wings)) // has neighbouring pawns
-	double := DoubledPawns(us, ours)
-	isolated := IsolatedPawns(ours)
-	passed := PassedPawns(us, ours, theirs)
-	backward := BackwardPawns(us, ours, theirs)
+	connected := ConnectedPawns(pos, us)
+	double := DoubledPawns(pos, us)
+	isolated := IsolatedPawns(pos, us)
+	passed := PassedPawns(pos, us)
+	backward := BackwardPawns(pos, us)
 
 	kingPawnDist := int32(8)
 	kingSq := pos.ByPiece(us, King).AsSquare()
 
-	for bb := ours; bb != 0; {
+	for bb := pos.ByPiece(us, Pawn); bb != 0; {
 		sq := bb.Pop()
 		povSq := sq.POV(us)
 		rank := povSq.Rank()
@@ -280,10 +275,10 @@ func (e *Eval) evaluateSide(us Color) {
 	// Pawn forward mobility.
 	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
 	pad.accum.addN(wMobility[Pawn], mobility.Count())
-	mobility = pos.PawnThreats(us)
+	mobility = PawnThreats(pos, us)
 	pad.accum.addN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
 
-	if pos.ByPiece2(them, Rook, Queen) == 0 {
+	if Majors(pos, them) == 0 {
 		pad.accum.addN(wEndgamePawn, pos.ByPiece(us, Pawn).Count())
 	}
 

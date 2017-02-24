@@ -432,12 +432,6 @@ func (pos *Position) Get(sq Square) Piece {
 	panic("unreachable: square has color, but no figure")
 }
 
-// PawnThreats returns the set of squares threatened by side's pawns.
-func (pos *Position) PawnThreats(side Color) Bitboard {
-	pawns := Forward(side, pos.ByPiece(side, Pawn))
-	return West(pawns) | East(pawns)
-}
-
 // HasLegalMoves returns true if current side has any legal moves.
 // This function is very expensive.
 func (pos *Position) HasLegalMoves() bool {
@@ -980,7 +974,7 @@ EndCastleOOO:
 func (pos *Position) GetAttacker(sq Square, them Color) Figure {
 	enemy := pos.ByColor[them]
 	// Pawn
-	if pos.PawnThreats(them).Has(sq) {
+	if PawnThreats(pos, them).Has(sq) {
 		return Pawn
 	}
 	// Knight
