@@ -68,3 +68,16 @@ func Minors(pos *Position, us Color) Bitboard {
 func Majors(pos *Position, us Color) Bitboard {
 	return pos.ByPiece2(us, Rook, Queen)
 }
+
+// OpenFiles returns all fully set files with no pawns.
+func OpenFiles(pos *Position, us Color) Bitboard {
+	pawns := pos.ByFigure[Pawn]
+	return ^Fill(pawns)
+}
+
+// SemiOpenFiles returns all fully set files with enemy pawns, but no friendly pawns.
+func SemiOpenFiles(pos *Position, us Color) Bitboard {
+	ours := pos.ByPiece(us, Pawn)
+	theirs := pos.ByPiece(us.Opposite(), Pawn)
+	return Fill(theirs) &^ Fill(ours)
+}
