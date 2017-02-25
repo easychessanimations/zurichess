@@ -7,6 +7,9 @@ package engine
 import (
 	"strings"
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 func TestGame(t *testing.T) {
@@ -21,11 +24,11 @@ func TestGame(t *testing.T) {
 }
 
 func TestMateIn1(t *testing.T) {
-	for i, d := range mateIn1 {
-		pos, _ := PositionFromFEN(d.fen)
-		bm, err := pos.UCIToMove(d.bm)
+	for i, d := range MateIn1 {
+		pos, _ := PositionFromFEN(d.FEN)
+		bm, err := pos.UCIToMove(d.BM)
 		if err != nil {
-			t.Errorf("#%d cannot parse move %s", i, d.bm)
+			t.Errorf("#%d cannot parse move %s", i, d.BM)
 			continue
 		}
 
@@ -50,7 +53,7 @@ func TestMateIn1(t *testing.T) {
 
 // Test score is the same if we start with the position or move.
 func TestScore(t *testing.T) {
-	for _, game := range testGames {
+	for _, game := range TestGames {
 		pos, _ := PositionFromFEN(FENStartPos)
 		dynamic := NewEngine(pos, nil, Options{})
 		static := NewEngine(pos, nil, Options{})
@@ -107,7 +110,7 @@ func (l *pvLogger) PrintPV(stats Stats, multiPV int, score int32, moves []Move) 
 }
 
 func TestMultiPV(t *testing.T) {
-	for f, fen := range testFENs {
+	for f, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		tc := NewFixedDepthTimeControl(pos, 4)
 		tc.Start(false)

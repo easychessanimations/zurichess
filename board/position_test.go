@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package engine
+package board
 
 import (
-	"log"
 	"strings"
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 var (
-	_          = log.Println
 	testBoard1 = "r3k2r/3ppp2/1BB3B1/pp2P1pp/PP4PP/5b2/3PPP2/R3K2R w KQkq - 0 1"
 	testBoard2 = "3k4/8/8/p1P2p2/PpP1pP2/pPPpP3/2P2pp1/3K3R w - - 0 1"
 	testBoard3 = "4K3/8/3n4/8/4N3/3n4/8/4k3 w - - 0 1"
@@ -261,7 +261,7 @@ func TestCastle(t *testing.T) {
 }
 
 func TestKingCannotCastleWhenUnderAttack(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("f3f5")
@@ -359,7 +359,7 @@ func TestCastleRightsAreUpdated(t *testing.T) {
 }
 
 func TestCannotCastleAfterRookCapture(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("f3f5")
@@ -441,7 +441,7 @@ func TestGenPawnAttackMoves1(t *testing.T) {
 
 func TestGenPawnAttackMoves2(t *testing.T) {
 	var moves []Move
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 	pos.genPawnAttackMoves(Violent|Quiet, &moves)
 	testMoves(t, moves, []string{"d5e6", "g2h3"})
 
@@ -549,7 +549,7 @@ func TestPawnPromotions(t *testing.T) {
 }
 
 func TestPawnPromotions2(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Piece(SquareF5, NoPiece)
@@ -781,7 +781,7 @@ func TestNullMoveEnpassantSquare(t *testing.T) {
 }
 
 func TestNullMoveCastlingAbility(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 	te := &testEngine{T: t, Pos: pos}
 
 	te.Move("")
@@ -793,7 +793,7 @@ func TestNullMoveCastlingAbility(t *testing.T) {
 	}
 
 	te.Undo()
-	if fenKiwipete != pos.String() {
+	if FENKiwipete != pos.String() {
 		t.Fatalf("bad nullmove undo. expected %s, got %s", FENStartPos, pos.String())
 	}
 	if AnyCastle != pos.CastlingAbility() {
@@ -802,7 +802,7 @@ func TestNullMoveCastlingAbility(t *testing.T) {
 }
 
 func TestGenerateMovesKind(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 
 		v := make(map[Move]int)
@@ -829,7 +829,7 @@ func TestGenerateMovesKind(t *testing.T) {
 }
 
 func TestGenerateMovesQuiet(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		var all []Move
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Quiet, &all)
@@ -842,7 +842,7 @@ func TestGenerateMovesQuiet(t *testing.T) {
 }
 
 func TestGenerateMovesViolent(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		var all []Move
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Violent, &all)
@@ -855,7 +855,7 @@ func TestGenerateMovesViolent(t *testing.T) {
 }
 
 func TestGenerateMovesColor(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		var all []Move
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Violent|Quiet, &all)
@@ -920,7 +920,7 @@ func TestFiftyMoveRule(t *testing.T) {
 }
 
 func TestLastMove(t *testing.T) {
-	for g, game := range testGames {
+	for g, game := range TestGames {
 		var tmp []Move
 		moves := strings.Fields(game)
 		pos, _ := PositionFromFEN(FENStartPos)
@@ -981,7 +981,7 @@ func TestInsufficientMaterial(t *testing.T) {
 		{"8/5K2/8/4k2B/7b/8/B7/8 b - - 5 3", false},
 		{"8/8/2B5/8/2k2K1B/8/8/8 b - - 0 14", false},
 		{"8/8/8/4K3/4B2B/2k5/8/8 b - - 0 37", false},
-		{fenKiwipete, false},
+		{FENKiwipete, false},
 
 		// Cutechess doesn't see draws in this position.
 		{"3K4/1b6/8/kB5B/8/8/8/8 w - - 0 1", true},
@@ -1012,7 +1012,7 @@ func TestNumPieces(t *testing.T) {
 
 func TestGivesCheck(t *testing.T) {
 	num := 0
-	for i, fen := range testFENs {
+	for i, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		moves := []Move{NullMove}
 		pos.GenerateMoves(Violent|Quiet, &moves)

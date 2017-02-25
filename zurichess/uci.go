@@ -16,7 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/zurichess/zurichess/engine"
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/engine"
 )
 
 var (
@@ -47,16 +48,16 @@ func (ul *uciLogger) EndSearch() {
 	ul.flush()
 }
 
-func (ul *uciLogger) PrintPV(stats engine.Stats, multiPV int, score int32, pv []engine.Move) {
+func (ul *uciLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {
 	// Write depth.
 	now := time.Now()
 	fmt.Fprintf(ul.buf, "info depth %d seldepth %d multipv %d ", stats.Depth, stats.SelDepth, multiPV)
 
 	// Write score.
-	if score > engine.KnownWinScore {
-		fmt.Fprintf(ul.buf, "score mate %d ", (engine.MateScore-score+1)/2)
-	} else if score < engine.KnownLossScore {
-		fmt.Fprintf(ul.buf, "score mate %d ", (engine.MatedScore-score)/2)
+	if score > KnownWinScore {
+		fmt.Fprintf(ul.buf, "score mate %d ", (MateScore-score+1)/2)
+	} else if score < KnownLossScore {
+		fmt.Fprintf(ul.buf, "score mate %d ", (MatedScore-score)/2)
 	} else {
 		fmt.Fprintf(ul.buf, "score cp %d ", score)
 	}
@@ -77,7 +78,7 @@ func (ul *uciLogger) PrintPV(stats engine.Stats, multiPV int, score int32, pv []
 	ul.flush()
 }
 
-func (ul *uciLogger) CurrMove(depth int, move engine.Move, num int) {
+func (ul *uciLogger) CurrMove(depth int, move Move, num int) {
 	if depth > 15 && time.Now().Sub(ul.start) > 5*time.Second {
 		fmt.Fprintf(ul.buf, "info depth %d currmove %v currmovenumber %d\n", depth, move, num)
 		ul.flush()
@@ -101,8 +102,8 @@ func maxDuration(a, b time.Duration) time.Duration {
 
 // UCI implements uci protocol.
 type UCI struct {
-	Engine      *engine.Engine
-	timeControl *engine.TimeControl
+	Engine      *Engine
+	timeControl *TimeControl
 
 	// buffer of 1, if empty then the engine is available
 	idle chan struct{}
@@ -113,9 +114,9 @@ type UCI struct {
 }
 
 func NewUCI() *UCI {
-	options := engine.Options{}
+	options := Options{}
 	return &UCI{
-		Engine:      engine.NewEngine(nil, newUCILogger(), options),
+		Engine:      NewEngine(nil, newUCILogger(), options),
 		timeControl: nil,
 		idle:        make(chan struct{}, 1),
 		ponder:      make(chan struct{}, 1),
@@ -172,7 +173,7 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("id name zurichess %v\n", buildVersion)
 	fmt.Printf("id author Alexandru Moșoi\n")
 	fmt.Printf("\n")
-	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", engine.DefaultHashTableSizeMB)
+	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", DefaultHashTableSizeMB)
 	fmt.Printf("option name MultiPV type spin default %d min 1 max %d\n", uci.Engine.Options.MultiPV, maxMultiPV)
 	fmt.Printf("option name Ponder type check default true\n")
 	fmt.Printf("option name Skill Level type spin default %d min 0 max %d\n", uci.Engine.Options.SkillLevel, maxSkillLevel)
@@ -188,7 +189,7 @@ func (uci *UCI) isready(line string) error {
 
 func (uci *UCI) ucinewgame(line string) error {
 	// Clear the hash at the beginning of each game.
-	engine.GlobalHashTable.Clear()
+	GlobalHashTable.Clear()
 	return nil
 }
 
@@ -198,16 +199,16 @@ func (uci *UCI) position(line string) error {
 		return fmt.Errorf("expected argument for 'position'")
 	}
 
-	var pos *engine.Position
+	var pos *Position
 
 	i := 0
 	var err error
 	switch args[i] {
 	case "startpos":
-		pos, err = engine.PositionFromFEN(engine.FENStartPos)
+		pos, err = PositionFromFEN(FENStartPos)
 		i++
 	case "fen":
-		pos, err = engine.PositionFromFEN(strings.Join(args[1:7], " "))
+		pos, err = PositionFromFEN(strings.Join(args[1:7], " "))
 		i += 7
 	default:
 		err = fmt.Errorf("unknown position command: %s", args[0])
@@ -237,7 +238,7 @@ func (uci *UCI) position(line string) error {
 func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
 	predicted := uci.predicted == uci.Engine.Position.Zobrist()
-	uci.timeControl = engine.NewTimeControl(uci.Engine.Position, predicted)
+	uci.timeControl = NewTimeControl(uci.Engine.Position, predicted)
 	ponder := false
 
 	args := strings.Fields(line)[1:]
@@ -246,7 +247,7 @@ func (uci *UCI) go_(line string) error {
 		case "ponder":
 			ponder = true
 		case "infinite":
-			uci.timeControl = engine.NewTimeControl(uci.Engine.Position, false)
+			uci.timeControl = NewTimeControl(uci.Engine.Position, false)
 		case "wtime":
 			i++
 			t, _ := strconv.Atoi(args[i])
@@ -317,7 +318,7 @@ func (uci *UCI) stop(line string) error {
 	return nil
 }
 
-// play starts the engine.
+// play starts the negine.
 // Should run in its own separate goroutine.
 func (uci *UCI) play() {
 	_, moves := uci.Engine.Play(uci.timeControl)
@@ -366,7 +367,7 @@ func (uci *UCI) setoption(line string) error {
 	}
 	switch option[1] {
 	case "Clear Hash":
-		engine.GlobalHashTable.Clear()
+		GlobalHashTable.Clear()
 		return nil
 	}
 
@@ -386,7 +387,7 @@ func (uci *UCI) setoption(line string) error {
 		if hashSizeMB, err := strconv.ParseInt(option[3], 10, 64); err != nil {
 			return err
 		} else {
-			engine.GlobalHashTable = engine.NewHashTable(int(hashSizeMB))
+			GlobalHashTable = NewHashTable(int(hashSizeMB))
 		}
 		return nil
 	case "MultiPV":

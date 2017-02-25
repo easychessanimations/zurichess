@@ -4,7 +4,7 @@
 
 // util.go contains various utility functions.
 
-package engine
+package board
 
 // PawnThreats returns the squares threatened by our pawns.
 func PawnThreats(pos *Position, us Color) Bitboard {

@@ -7,12 +7,15 @@ package engine
 import (
 	"strings"
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 func TestPV(t *testing.T) {
 	pos, _ := PositionFromFEN(FENStartPos)
 	pvTable := newPvTable()
-	for _, game := range testGames {
+	for _, game := range TestGames {
 		var moves []Move
 		movesStr := strings.Fields(game)
 		for _, moveStr := range movesStr {

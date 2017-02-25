@@ -9,7 +9,7 @@
 //go:generate stringer -type Piece
 //go:generate stringer -type MoveType
 
-package engine
+package board
 
 import (
 	"fmt"

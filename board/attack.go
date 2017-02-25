@@ -9,7 +9,7 @@
 //
 // TODO: move magic generation into an internal package.
 
-package engine
+package board
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ var (
 	bbKnightAttack [64]Bitboard
 	// bbKingAttack contains king's attack tables (excluding castling).
 	bbKingAttack [64]Bitboard
-	bbKingArea   [64]Bitboard
+	BbKingArea   [64]Bitboard
 	// bbSuperAttack contains queen piece's attack tables. This queen can jump.
 	bbSuperAttack [64]Bitboard
 
@@ -87,7 +87,7 @@ func initBbKingArea() {
 		{+0, +1}, {+0, +0}, {+0, +1},
 		{-1, -1}, {-1, +0}, {-1, +1},
 	}
-	initJumpAttack(kingJump, bbKingArea[:])
+	initJumpAttack(kingJump, BbKingArea[:])
 }
 
 func initBbSuperAttack() {
@@ -380,6 +380,11 @@ func RookMobility(sq Square, all Bitboard) Bitboard {
 // QueenMobility returns the squares a queen can reach from sq given all pieces.
 func QueenMobility(sq Square, all Bitboard) Bitboard {
 	return rookMagic[sq].Attack(all) | bishopMagic[sq].Attack(all)
+}
+
+// SuperQueenMobility returns the squares a queen can reach from sq on an empty board.
+func SuperQueenMobility(sq Square) Bitboard {
+	return bbSuperAttack[sq]
 }
 
 // KingMobility returns all squares a king can reach from sq.

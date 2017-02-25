@@ -6,13 +6,13 @@
 
 package engine
 
-var (
-	murmurSeed = [ColorArraySize]uint64{
-		0x77a166129ab66e91,
-		0x4f4863d5038ea3a3,
-		0xe14ec7e648a4068b,
-	}
-)
+import . "bitbucket.org/zurichess/zurichess/board"
+
+var murmurSeed = [ColorArraySize]uint64{
+	0x77a166129ab66e91,
+	0x4f4863d5038ea3a3,
+	0xe14ec7e648a4068b,
+}
 
 // pawnsTable is a cache entry.
 type pawnsEntry struct {

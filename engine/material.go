@@ -15,7 +15,11 @@
 
 package engine
 
-import "fmt"
+import (
+	"fmt"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+)
 
 const (
 	// KnownWinScore is strictly greater than all evaluation scores (mate not included).
@@ -111,12 +115,14 @@ func (e *Eval) init(us Color) {
 	pos := e.position
 	them := us.Opposite()
 	kingSq := pos.ByPiece(us, King).AsSquare()
+	theirKing := pos.ByPiece(them, King)
+
 	e.pad[us] = scratchpad{
 		us:            us,
 		exclude:       pos.ByPiece(us, Pawn) | PawnThreats(pos, them),
 		kingSq:        kingSq,
 		theirPawns:    pos.ByPiece(them, Pawn),
-		theirKingArea: bbKingArea[pos.ByPiece(them, King).AsSquare()],
+		theirKingArea: BbKingArea[theirKing.AsSquare()],
 	}
 }
 

@@ -4,6 +4,10 @@
 
 package engine
 
+import (
+	. "bitbucket.org/zurichess/zurichess/board"
+)
+
 const (
 	pvTableSize = 1 << 13
 	pvTableMask = pvTableSize - 1

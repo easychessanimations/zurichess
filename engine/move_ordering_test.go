@@ -6,10 +6,13 @@ package engine
 
 import (
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		st := &stack{
 			history: new(historyTable),
@@ -30,7 +33,7 @@ func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 }
 
 func TestReturnsHashMove(t *testing.T) {
-	pos, _ := PositionFromFEN(fenKiwipete)
+	pos, _ := PositionFromFEN(FENKiwipete)
 
 	for i, str := range []string{"f3f5", "e2b5", "a1b1"} {
 		hash, _ := pos.UCIToMove(str)
@@ -44,7 +47,7 @@ func TestReturnsHashMove(t *testing.T) {
 }
 
 func TestReturnsMoves(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		seen := make(map[Move]int)
 

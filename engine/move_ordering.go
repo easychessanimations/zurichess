@@ -8,6 +8,8 @@
 
 package engine
 
+import . "bitbucket.org/zurichess/zurichess/board"
+
 const (
 	// Move generation states.
 

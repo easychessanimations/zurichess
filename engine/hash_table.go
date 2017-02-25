@@ -6,7 +6,11 @@
 
 package engine
 
-import "unsafe"
+import (
+	"unsafe" // for sizeof
+
+	. "bitbucket.org/zurichess/zurichess/board"
+)
 
 var (
 	// DefaultHashTableSizeMB is the default size in MB.

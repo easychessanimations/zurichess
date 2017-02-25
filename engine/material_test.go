@@ -6,10 +6,13 @@ package engine
 
 import (
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 func TestScoreRange(t *testing.T) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		score := Evaluate(pos)
 		if KnownLossScore >= score || score >= KnownWinScore {
@@ -20,7 +23,7 @@ func TestScoreRange(t *testing.T) {
 }
 
 func BenchmarkScore(b *testing.B) {
-	for _, fen := range testFENs {
+	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
 		for i := 0; i < b.N; i++ {
 			Evaluate(pos)

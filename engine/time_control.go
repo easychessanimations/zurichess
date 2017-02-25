@@ -5,6 +5,7 @@
 package engine
 
 import (
+	. "bitbucket.org/zurichess/zurichess/board"
 	"sync"
 	"time"
 )

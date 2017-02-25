@@ -6,6 +6,8 @@
 
 package engine
 
+import . "bitbucket.org/zurichess/zurichess/board"
+
 // piece bonuses when calulating the see.
 // The values are fixed to approximatively the figure bonus in mid game.
 var seeBonus = [FigureArraySize]int32{0, 55, 325, 341, 454, 1110, 20000}
@@ -79,12 +81,12 @@ func see(pos *Position, m Move) int32 {
 			goto makeMove
 		}
 
-		if att = bbKnightAttack[sq] & ours & pos.ByFigure[Knight]; att != 0 {
+		if att = KnightMobility(sq) & ours & pos.ByFigure[Knight]; att != 0 {
 			fig = Knight
 			goto makeMove
 		}
 
-		if bbSuperAttack[sq]&ours == 0 {
+		if SuperQueenMobility(sq)&ours == 0 {
 			// No other figure can attack sq so we give up early.
 			break
 		}
@@ -113,7 +115,7 @@ func see(pos *Position, m Move) int32 {
 			goto makeMove
 		}
 
-		if att = bbKingAttack[sq] & ours & pos.ByFigure[King]; att != 0 {
+		if att = KingMobility(sq) & ours & pos.ByFigure[King]; att != 0 {
 			fig = King
 			goto makeMove
 		}

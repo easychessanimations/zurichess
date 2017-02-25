@@ -4,7 +4,11 @@
 
 package engine
 
-import "testing"
+import (
+	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+)
 
 const (
 	c1 = uint64(3080512559332270987)

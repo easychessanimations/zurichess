@@ -4,7 +4,7 @@
 
 // Methods here are exported because they are used also by the notation package.
 
-package engine
+package board
 
 import (
 	"fmt"

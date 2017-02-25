@@ -47,7 +47,11 @@
 //
 package engine
 
-import "math/rand"
+import (
+	"math/rand"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+)
 
 const (
 	checkDepthExtension int32 = 1 // how much to extend search in case of checks

@@ -6,6 +6,9 @@ package engine
 
 import (
 	"testing"
+
+	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 
 func seeSlow(pos *Position, m Move, score int32) int32 {
@@ -45,7 +48,7 @@ func seeSlow(pos *Position, m Move, score int32) int32 {
 
 func TestSEE(t *testing.T) {
 	good, bad := 0, 0
-	for i, fen := range testFENs {
+	for i, fen := range TestFENs {
 		var moves []Move
 		pos, _ := PositionFromFEN(fen)
 		pos.GenerateMoves(Violent|Quiet, &moves)
