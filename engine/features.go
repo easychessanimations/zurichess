@@ -16,8 +16,18 @@ const (
 	fRook         int = 4
 	fQueen        int = 5
 	fKing         int = 6
-	fBishopAttack int = 7
-	fRookAttack   int = 8
-	fQueenAttack  int = 9
-	fKnightAttack int = 10
+	fBishopFile   int = 7
+	fBishopRank   int = 15
+	fBishopAttack int = 23
+	fRookFile     int = 24
+	fRookRank     int = 32
+	fRookAttack   int = 40
+	fQueenFile    int = 41
+	fQueenRank    int = 49
+	fQueenAttack  int = 57
+	fKingFile     int = 58
+	fKingRank     int = 66
+	fKnightFile   int = 74
+	fKnightRank   int = 82
+	fKnightAttack int = 90
 )

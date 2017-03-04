@@ -16,6 +16,18 @@ const (
 	fQueen    string = "Queen"
 	fKing     string = "King"
 
+	// PSqT
+	fKnightFile string = "KnightFile"
+	fKnightRank string = "KnightRank"
+	fBishopFile string = "BishopFile"
+	fBishopRank string = "BishopRank"
+	fRookFile   string = "RookFile"
+	fRookRank   string = "RookRank"
+	fQueenFile  string = "QueenFile"
+	fQueenRank  string = "QueenRank"
+	fKingFile   string = "KingFile"
+	fKingRank   string = "KingRank"
+
 	// Mobility.
 	fKnightAttack string = "KnightAttack"
 	fBishopAttack string = "BishopAttack"

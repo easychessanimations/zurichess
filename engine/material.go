@@ -256,30 +256,40 @@ func (e *Eval) evaluateSide(us Color) {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
+		groupByFileSq(fKnightFile, sq, &pad.accum)
+		groupByRankSq(fKnightRank, sq, &pad.accum)
 		groupByBoard(fKnightAttack, mobility, &pad.accum)
 	}
 	// Bishop
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
+		groupByFileSq(fBishopFile, sq, &pad.accum)
+		groupByRankSq(fBishopRank, sq, &pad.accum)
 		groupByBoard(fBishopAttack, mobility, &pad.accum)
 	}
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
+		groupByFileSq(fRookFile, sq, &pad.accum)
+		groupByRankSq(fRookRank, sq, &pad.accum)
 		groupByBoard(fRookAttack, mobility, &pad.accum)
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
+		groupByFileSq(fQueenFile, sq, &pad.accum)
+		groupByRankSq(fQueenRank, sq, &pad.accum)
 		groupByBoard(fQueenAttack, mobility, &pad.accum)
 	}
 	// King, each side has one.
 	{
 		sq := pad.kingSq
 		mobility := KingMobility(sq)
+		groupByFileSq(fKingFile, sq, &pad.accum)
+		groupByRankSq(fKingRank, sq, &pad.accum)
 		groupByBoard(fQueenAttack, mobility, &pad.accum)
 	}
 

@@ -13,3 +13,11 @@ import (
 func groupByBoard(feature int, bb Bitboard, accum *Accum) {
 	accum.addN(Weights[feature], bb.Count())
 }
+
+func groupByFileSq(feature int, sq Square, accum *Accum) {
+	accum.add(Weights[feature+sq.File()])
+}
+
+func groupByRankSq(feature int, sq Square, accum *Accum) {
+	accum.add(Weights[feature+sq.Rank()])
+}

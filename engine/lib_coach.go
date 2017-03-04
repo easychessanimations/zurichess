@@ -44,3 +44,13 @@ func groupByBoard(feature string, bb Bitboard, accum *Accum) {
 	start := getFeatureStart(feature, 1)
 	accum.addN(Weights[start], bb.Count())
 }
+
+func groupByFileSq(feature string, sq Square, accum *Accum) {
+	start := getFeatureStart(feature, 8)
+	accum.add(Weights[start+sq.File()])
+}
+
+func groupByRankSq(feature string, sq Square, accum *Accum) {
+	start := getFeatureStart(feature, 8)
+	accum.add(Weights[start+sq.Rank()])
+}
