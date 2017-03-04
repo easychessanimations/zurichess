@@ -14,7 +14,7 @@ func groupByBoard(feature int, bb Bitboard, accum *Accum) {
 	accum.addN(Weights[feature], bb.Count())
 }
 
-func groupBySquare(feature int, bb Bitboard, accum *Accum) {
+func groupBySquare(feature int, us Color, bb Bitboard, accum *Accum) {
 	for bb != BbEmpty {
 		sq := bb.Pop()
 		accum.add(Weights[feature+int(sq)])
@@ -29,17 +29,17 @@ func groupByBool(feature int, b bool, accum *Accum) {
 	}
 }
 
-func groupByFileSq(feature int, sq Square, accum *Accum) {
-	accum.add(Weights[feature+sq.File()])
+func groupByFileSq(feature int, us Color, sq Square, accum *Accum) {
+	accum.add(Weights[feature+sq.POV(us).File()])
 }
 
-func groupByRankSq(feature int, sq Square, accum *Accum) {
-	accum.add(Weights[feature+sq.Rank()])
+func groupByRankSq(feature int, us Color, sq Square, accum *Accum) {
+	accum.add(Weights[feature+sq.POV(us).Rank()])
 }
 
-func groupByRank(feature int, bb Bitboard, accum *Accum) {
+func groupByRank(feature int, us Color, bb Bitboard, accum *Accum) {
 	for bb != BbEmpty {
 		sq := bb.Pop()
-		groupByRankSq(feature, sq, accum)
+		groupByRankSq(feature, us, sq, accum)
 	}
 }

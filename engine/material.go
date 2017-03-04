@@ -42,15 +42,6 @@ var (
 
 // scratchpad stores various information about evaluation of a single side.
 type scratchpad struct {
-	us            Color
-	exclude       Bitboard // squares to exclude from mobility calculation
-	kingSq        Square   // position of the king
-	theirPawns    Bitboard // opponent's pawns
-	theirKingArea Bitboard // opponent's king area
-
-	accum          Accum
-	numAttackers   int32 // number of pieces attacking opposite king
-	attackStrength int32 // strength of the attack
 }
 
 // Eval contains necessary information for evaluation.
@@ -58,22 +49,6 @@ type Eval struct {
 	Accum    Accum
 	position *Position
 	pad      [ColorArraySize]scratchpad
-}
-
-// init initializes some used info.
-func (e *Eval) init(us Color) {
-	pos := e.position
-	them := us.Opposite()
-	kingSq := pos.ByPiece(us, King).AsSquare()
-	theirKing := pos.ByPiece(them, King)
-
-	e.pad[us] = scratchpad{
-		us:            us,
-		exclude:       pos.ByPiece(us, Pawn) | PawnThreats(pos, them),
-		kingSq:        kingSq,
-		theirPawns:    pos.ByPiece(them, Pawn),
-		theirKingArea: BbKingArea[theirKing.AsSquare()],
-	}
 }
 
 // Feed returns the score phased between midgame and endgame score.
@@ -91,51 +66,46 @@ func Evaluate(pos *Position) int32 {
 
 // EvaluatePosition evaluates position exported to be used by the tuner.
 func EvaluatePosition(pos *Position) Eval {
+	w := evaluate(pos, White)
+	b := evaluate(pos, Black)
+
+	wps, bps := pawnsAndShelterCache.load(pos)
+	w.merge(wps)
+	b.merge(bps)
+
 	e := Eval{position: pos}
-	e.init(White)
-	e.init(Black)
-
-	e.Accum.merge(evaluate(pos, White))
-	e.Accum.deduct(evaluate(pos, Black))
-
-	white, black := pawnsAndShelterCache.load(pos)
-	e.Accum.merge(white)
-	e.Accum.deduct(black)
-
+	e.Accum.merge(w)
+	e.Accum.deduct(b)
 	return e
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
-	accum.merge(evaluatePawns(pos, us))
-	accum.merge(evaluateShelter(pos, us))
+	evaluatePawns(pos, us, &accum)
+	evaluateShelter(pos, us, &accum)
 	return accum
 }
 
-func evaluatePawns(pos *Position, us Color) Accum {
-	var accum Accum
-	groupBySquare(fPawnSquare, pos.ByPiece(us, Pawn), &accum)
-	groupByBoard(fBackwardPawns, BackwardPawns(pos, us), &accum)
-	groupByBoard(fConnectedPawns, ConnectedPawns(pos, us), &accum)
-	groupByBoard(fDoubledPawns, DoubledPawns(pos, us), &accum)
-	groupByBoard(fIsolatedPawns, IsolatedPawns(pos, us), &accum)
-	groupByRank(fPassedPawnRank, PassedPawns(pos, us), &accum)
-	return accum
+func evaluatePawns(pos *Position, us Color, accum *Accum) {
+	groupBySquare(fPawnSquare, us, pos.ByPiece(us, Pawn), accum)
+	groupByBoard(fBackwardPawns, BackwardPawns(pos, us), accum)
+	groupByBoard(fConnectedPawns, ConnectedPawns(pos, us), accum)
+	groupByBoard(fDoubledPawns, DoubledPawns(pos, us), accum)
+	groupByBoard(fIsolatedPawns, IsolatedPawns(pos, us), accum)
+	groupByRank(fPassedPawnRank, us, PassedPawns(pos, us), accum)
 }
 
-func evaluateShelter(pos *Position, us Color) Accum {
-	var accum Accum
-
+func evaluateShelter(pos *Position, us Color, accum *Accum) {
+	// King's position and mobility.
 	sq := pos.ByPiece(us, King).AsSquare()
 	mobility := KingMobility(sq)
-	groupByFileSq(fKingFile, sq, &accum)
-	groupByRankSq(fKingRank, sq, &accum)
-	groupByBoard(fKingAttack, mobility, &accum)
+	groupByFileSq(fKingFile, us, sq, accum)
+	groupByRankSq(fKingRank, us, sq, accum)
+	groupByBoard(fKingAttack, mobility, accum)
 
+	// King's shelter.
 	ourPawns := pos.ByPiece(us, Pawn)
 	ring := mobility | Forward(us, mobility)
-	groupByBoard(fKingShelter, ring&ourPawns, &accum)
-
-	return accum
+	groupByBoard(fKingShelter, ring&ourPawns, accum)
 }
 
 // evaluate evaluates position for a single side.
@@ -162,16 +132,16 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
-		groupByFileSq(fKnightFile, sq, &accum)
-		groupByRankSq(fKnightRank, sq, &accum)
+		groupByFileSq(fKnightFile, us, sq, &accum)
+		groupByRankSq(fKnightRank, us, sq, &accum)
 		groupByBoard(fKnightAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Bishop
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
-		groupByFileSq(fBishopFile, sq, &accum)
-		groupByRankSq(fBishopRank, sq, &accum)
+		groupByFileSq(fBishopFile, us, sq, &accum)
+		groupByRankSq(fBishopRank, us, sq, &accum)
 		groupByBoard(fBishopAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Rook
@@ -180,8 +150,8 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
-		groupByFileSq(fRookFile, sq, &accum)
-		groupByRankSq(fRookRank, sq, &accum)
+		groupByFileSq(fRookFile, us, sq, &accum)
+		groupByRankSq(fRookRank, us, sq, &accum)
 		groupByBoard(fRookAttack, mobility&^danger&^ourPawns, &accum)
 		groupByBool(fRookOnOpenFile, openFiles.Has(sq), &accum)
 		groupByBool(fRookOnSemiOpenFile, semiOpenFiles.Has(sq), &accum)
@@ -190,8 +160,8 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
-		groupByFileSq(fQueenFile, sq, &accum)
-		groupByRankSq(fQueenRank, sq, &accum)
+		groupByFileSq(fQueenFile, us, sq, &accum)
+		groupByRankSq(fQueenRank, us, sq, &accum)
 		groupByBoard(fQueenAttack, mobility&^danger&^ourPawns, &accum)
 	}
 
