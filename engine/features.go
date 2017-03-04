@@ -9,11 +9,15 @@
 package engine
 
 const (
-	fNoFigure int = 0
-	fPawn     int = 1
-	fKnight   int = 2
-	fBishop   int = 3
-	fRook     int = 4
-	fQueen    int = 5
-	fKing     int = 6
+	fNoFigure     int = 0
+	fPawn         int = 1
+	fKnight       int = 2
+	fBishop       int = 3
+	fRook         int = 4
+	fQueen        int = 5
+	fKing         int = 6
+	fBishopAttack int = 7
+	fRookAttack   int = 8
+	fQueenAttack  int = 9
+	fKnightAttack int = 10
 )

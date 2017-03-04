@@ -9,7 +9,8 @@
 package engine
 
 // Weights stores the network parameters.
-// Network has train error 0.07091402 and validation error 0.07095083.
+// Network has train error 0.06735051 and validation error 0.06742997.
 var Weights = [...]Score{
-	{M: -100, E: 146}, {M: 10890, E: 18652}, {M: 44782, E: 43383}, {M: 46326, E: 46965}, {M: 52824, E: 83227}, {M: 105237, E: 148542}, {M: 59, E: 24},
+	{M: 109, E: 55}, {M: 13373, E: 19423}, {M: 42587, E: 31728}, {M: 44346, E: 40779}, {M: 54047, E: 80455}, {M: 112179, E: 134579}, {M: 148, E: 39}, {M: 1354, E: 1211},
+	{M: 1210, E: 761}, {M: 63, E: 2189}, {M: 1281, E: 2314},
 }

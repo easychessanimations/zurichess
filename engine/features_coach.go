@@ -7,6 +7,7 @@
 package engine
 
 const (
+	// Figure.
 	fNoFigure string = "NoFigure"
 	fPawn     string = "Pawn"
 	fKnight   string = "Knight"
@@ -14,4 +15,11 @@ const (
 	fRook     string = "Rook"
 	fQueen    string = "Queen"
 	fKing     string = "King"
+
+	// Mobility.
+	fKnightAttack string = "KnightAttack"
+	fBishopAttack string = "BishopAttack"
+	fRookAttack   string = "RookAttack"
+	fQueenAttack  string = "QueenAttack"
+	fKingAttack   string = "KingAttack"
 )

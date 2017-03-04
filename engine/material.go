@@ -242,6 +242,7 @@ func (e *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility B
 func (e *Eval) evaluateSide(us Color) {
 	pos := e.position
 	pad := &e.pad[us]
+	all := pos.ByColor[White] | pos.ByColor[Black]
 
 	groupByBoard(fNoFigure, BbEmpty, &pad.accum)
 	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &pad.accum)
@@ -250,6 +251,38 @@ func (e *Eval) evaluateSide(us Color) {
 	groupByBoard(fRook, pos.ByPiece(us, Rook), &pad.accum)
 	groupByBoard(fQueen, pos.ByPiece(us, Queen), &pad.accum)
 	groupByBoard(fKing, BbEmpty, &pad.accum)
+
+	// Knight
+	for bb := pos.ByPiece(us, Knight); bb > 0; {
+		sq := bb.Pop()
+		mobility := KnightMobility(sq)
+		groupByBoard(fKnightAttack, mobility, &pad.accum)
+	}
+	// Bishop
+	for bb := pos.ByPiece(us, Bishop); bb > 0; {
+		sq := bb.Pop()
+		mobility := BishopMobility(sq, all)
+		groupByBoard(fBishopAttack, mobility, &pad.accum)
+	}
+	// Rook
+	for bb := pos.ByPiece(us, Rook); bb > 0; {
+		sq := bb.Pop()
+		mobility := RookMobility(sq, all)
+		groupByBoard(fRookAttack, mobility, &pad.accum)
+	}
+	// Queen
+	for bb := pos.ByPiece(us, Queen); bb > 0; {
+		sq := bb.Pop()
+		mobility := QueenMobility(sq, all)
+		groupByBoard(fQueenAttack, mobility, &pad.accum)
+	}
+	// King, each side has one.
+	{
+		sq := pad.kingSq
+		mobility := KingMobility(sq)
+		groupByBoard(fQueenAttack, mobility, &pad.accum)
+	}
+
 }
 
 // Phase computes the progress of the game.
