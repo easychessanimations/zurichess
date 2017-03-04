@@ -37,12 +37,14 @@ const (
 	fKingAttack   string = "KingAttack"
 
 	// Pawn structur.
-	fBackwardPawns  string = "BackwardPawns"
-	fConnectedPawns string = "ConnectedPawns"
-	fDoubledPawns   string = "DoubledPawns"
-	fIsolatedPawns  string = "IsolatedPawns"
-	fPassedPawnRank string = "PassedPawnRank"
-	fPawnMobility   string = "PawnMobility"
+	fBackwardPawns     string = "BackwardPawns"
+	fConnectedPawns    string = "ConnectedPawns"
+	fDoubledPawns      string = "DoubledPawns"
+	fIsolatedPawns     string = "IsolatedPawns"
+	fPassedPawnRank    string = "PassedPawnRank"
+	fPawnMobility      string = "PawnMobility"
+	fMinorsPawnsAttack string = "MinorsPawnsAttack"
+	fMajorsPawnsAttack string = "MajorsPawnsAttack"
 
 	// Other stuff.
 	fRookOnOpenFile     string = "RookOnOpenFile"

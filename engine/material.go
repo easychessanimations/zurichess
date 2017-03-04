@@ -155,6 +155,8 @@ func evaluate(pos *Position, us Color) Accum {
 
 	// Pawns
 	groupByBoard(fPawnMobility, ourPawns&^Backward(us, all), &accum)
+	groupByBoard(fMinorsPawnsAttack, Minors(pos, us)&danger, &accum)
+	groupByBoard(fMajorsPawnsAttack, Majors(pos, us)&danger, &accum)
 
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
