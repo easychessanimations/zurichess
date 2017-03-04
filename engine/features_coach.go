@@ -36,12 +36,13 @@ const (
 	fQueenAttack  string = "QueenAttack"
 	fKingAttack   string = "KingAttack"
 
-	// Pawn structre.
+	// Pawn structur.
 	fBackwardPawns  string = "BackwardPawns"
 	fConnectedPawns string = "ConnectedPawns"
 	fDoubledPawns   string = "DoubledPawns"
 	fIsolatedPawns  string = "IsolatedPawns"
 	fPassedPawnRank string = "PassedPawnRank"
+	fPawnMobility   string = "PawnMobility"
 
 	// Other stuff.
 	fRookOnOpenFile     string = "RookOnOpenFile"

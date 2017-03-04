@@ -153,6 +153,9 @@ func evaluate(pos *Position, us Color) Accum {
 	groupByBoard(fQueen, pos.ByPiece(us, Queen), &accum)
 	groupByBoard(fKing, BbEmpty, &accum)
 
+	// Pawns
+	groupByBoard(fPawnMobility, ourPawns&^Backward(us, all), &accum)
+
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
