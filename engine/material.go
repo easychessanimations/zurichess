@@ -143,6 +143,7 @@ func evaluate(pos *Position, us Color) Accum {
 	var accum Accum
 	all := pos.ByColor[White] | pos.ByColor[Black]
 	danger := PawnThreats(pos, us.Opposite())
+	ourPawns := pos.ByPiece(us, Pawn)
 
 	groupByBoard(fNoFigure, BbEmpty, &accum)
 	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &accum)
@@ -158,7 +159,7 @@ func evaluate(pos *Position, us Color) Accum {
 		mobility := KnightMobility(sq)
 		groupByFileSq(fKnightFile, sq, &accum)
 		groupByRankSq(fKnightRank, sq, &accum)
-		groupByBoard(fKnightAttack, mobility&^danger, &accum)
+		groupByBoard(fKnightAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Bishop
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
@@ -166,7 +167,7 @@ func evaluate(pos *Position, us Color) Accum {
 		mobility := BishopMobility(sq, all)
 		groupByFileSq(fBishopFile, sq, &accum)
 		groupByRankSq(fBishopRank, sq, &accum)
-		groupByBoard(fBishopAttack, mobility&^danger, &accum)
+		groupByBoard(fBishopAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
@@ -174,7 +175,7 @@ func evaluate(pos *Position, us Color) Accum {
 		mobility := RookMobility(sq, all)
 		groupByFileSq(fRookFile, sq, &accum)
 		groupByRankSq(fRookRank, sq, &accum)
-		groupByBoard(fRookAttack, mobility&^danger, &accum)
+		groupByBoard(fRookAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
@@ -182,7 +183,7 @@ func evaluate(pos *Position, us Color) Accum {
 		mobility := QueenMobility(sq, all)
 		groupByFileSq(fQueenFile, sq, &accum)
 		groupByRankSq(fQueenRank, sq, &accum)
-		groupByBoard(fQueenAttack, mobility&^danger, &accum)
+		groupByBoard(fQueenAttack, mobility&^danger&^ourPawns, &accum)
 	}
 
 	return accum
