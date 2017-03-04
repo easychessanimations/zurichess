@@ -21,6 +21,14 @@ func groupBySquare(feature int, bb Bitboard, accum *Accum) {
 	}
 }
 
+func groupByBool(feature int, b bool, accum *Accum) {
+	if b {
+		accum.addN(Weights[feature], 1)
+	} else {
+		accum.addN(Weights[feature], 0)
+	}
+}
+
 func groupByFileSq(feature int, sq Square, accum *Accum) {
 	accum.add(Weights[feature+sq.File()])
 }

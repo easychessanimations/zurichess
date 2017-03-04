@@ -29,20 +29,24 @@ const (
 	fKingFile   string = "KingFile"
 	fKingRank   string = "KingRank"
 
-	// Pawns
-	fBackwardPawns  string = "BackwardPawns"
-	fConnectedPawns string = "ConnectedPawns"
-	fDoubledPawns   string = "DoubledPawns"
-	fIsolatedPawns  string = "IsolatedPawns"
-	fPassedPawnRank string = "PassedPawnRank"
-
-	// Shelter
-	fKingShelter string = "KingShelter"
-
 	// Mobility.
 	fKnightAttack string = "KnightAttack"
 	fBishopAttack string = "BishopAttack"
 	fRookAttack   string = "RookAttack"
 	fQueenAttack  string = "QueenAttack"
 	fKingAttack   string = "KingAttack"
+
+	// Pawn structre.
+	fBackwardPawns  string = "BackwardPawns"
+	fConnectedPawns string = "ConnectedPawns"
+	fDoubledPawns   string = "DoubledPawns"
+	fIsolatedPawns  string = "IsolatedPawns"
+	fPassedPawnRank string = "PassedPawnRank"
+
+	// Other stuff.
+	fRookOnOpenFile     string = "RookOnOpenFile"
+	fRookOnSemiOpenFile string = "RookOnSemiOpenFile"
+
+	// Shelter
+	fKingShelter string = "KingShelter"
 )

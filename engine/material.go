@@ -170,12 +170,16 @@ func evaluate(pos *Position, us Color) Accum {
 		groupByBoard(fBishopAttack, mobility&^danger&^ourPawns, &accum)
 	}
 	// Rook
+	openFiles := OpenFiles(pos, us)
+	semiOpenFiles := SemiOpenFiles(pos, us)
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
 		groupByFileSq(fRookFile, sq, &accum)
 		groupByRankSq(fRookRank, sq, &accum)
 		groupByBoard(fRookAttack, mobility&^danger&^ourPawns, &accum)
+		groupByBool(fRookOnOpenFile, openFiles.Has(sq), &accum)
+		groupByBool(fRookOnSemiOpenFile, semiOpenFiles.Has(sq), &accum)
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
