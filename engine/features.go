@@ -8,39 +8,45 @@
 
 package engine
 
+type featureType int
+
 const (
-	fNoFigure           int = 0
-	fPawn               int = 1
-	fKnight             int = 2
-	fBishop             int = 3
-	fRook               int = 4
-	fQueen              int = 5
-	fKing               int = 6
-	fPawnMobility       int = 7
-	fMinorsPawnsAttack  int = 8
-	fMajorsPawnsAttack  int = 9
-	fKnightFile         int = 10
-	fKnightRank         int = 18
-	fKnightAttack       int = 26
-	fBishopFile         int = 27
-	fBishopRank         int = 35
-	fBishopAttack       int = 43
-	fRookFile           int = 44
-	fRookRank           int = 52
-	fRookAttack         int = 60
-	fRookOnOpenFile     int = 61
-	fRookOnSemiOpenFile int = 62
-	fQueenFile          int = 63
-	fQueenRank          int = 71
-	fQueenAttack        int = 79
-	fPawnSquare         int = 80
-	fBackwardPawns      int = 144
-	fConnectedPawns     int = 145
-	fDoubledPawns       int = 146
-	fIsolatedPawns      int = 147
-	fKingFile           int = 148
-	fKingRank           int = 156
-	fKingAttack         int = 164
-	fKingShelter        int = 165
-	fPassedPawnRank     int = 166
+	fNoFigure           featureType = 0
+	fPawn               featureType = 1
+	fKnight             featureType = 2
+	fBishop             featureType = 3
+	fRook               featureType = 4
+	fQueen              featureType = 5
+	fKing               featureType = 6
+	fPawnMobility       featureType = 7
+	fMinorsPawnsAttack  featureType = 8
+	fMajorsPawnsAttack  featureType = 9
+	fKnightFile         featureType = 10
+	fKnightRank         featureType = 18
+	fKnightAttack       featureType = 26
+	fBishopFile         featureType = 27
+	fBishopRank         featureType = 35
+	fBishopAttack       featureType = 43
+	fRookFile           featureType = 44
+	fRookRank           featureType = 52
+	fRookAttack         featureType = 60
+	fRookOnOpenFile     featureType = 61
+	fRookOnSemiOpenFile featureType = 62
+	fQueenFile          featureType = 63
+	fQueenRank          featureType = 71
+	fQueenAttack        featureType = 79
+	fPawnSquare         featureType = 80
+	fBackwardPawns      featureType = 144
+	fConnectedPawns     featureType = 145
+	fDoubledPawns       featureType = 146
+	fIsolatedPawns      featureType = 147
+	fKingFile           featureType = 148
+	fKingRank           featureType = 156
+	fKingAttack         featureType = 164
+	fKingShelter        featureType = 165
+	fPassedPawnRank     featureType = 166
 )
+
+func getFeatureStart(feature featureType, num int) int {
+	return int(feature)
+}

@@ -8,66 +8,68 @@ package engine
 
 import "sync"
 
+type featureType string
+
 const (
 	// Figure.
-	fNoFigure string = "NoFigure"
-	fPawn     string = "Pawn"
-	fKnight   string = "Knight"
-	fBishop   string = "Bishop"
-	fRook     string = "Rook"
-	fQueen    string = "Queen"
-	fKing     string = "King"
+	fNoFigure featureType = "NoFigure"
+	fPawn     featureType = "Pawn"
+	fKnight   featureType = "Knight"
+	fBishop   featureType = "Bishop"
+	fRook     featureType = "Rook"
+	fQueen    featureType = "Queen"
+	fKing     featureType = "King"
 
 	// PSqT
-	fPawnSquare string = "PawnSquare"
-	fKnightFile string = "KnightFile"
-	fKnightRank string = "KnightRank"
-	fBishopFile string = "BishopFile"
-	fBishopRank string = "BishopRank"
-	fRookFile   string = "RookFile"
-	fRookRank   string = "RookRank"
-	fQueenFile  string = "QueenFile"
-	fQueenRank  string = "QueenRank"
-	fKingFile   string = "KingFile"
-	fKingRank   string = "KingRank"
+	fPawnSquare featureType = "PawnSquare"
+	fKnightFile featureType = "KnightFile"
+	fKnightRank featureType = "KnightRank"
+	fBishopFile featureType = "BishopFile"
+	fBishopRank featureType = "BishopRank"
+	fRookFile   featureType = "RookFile"
+	fRookRank   featureType = "RookRank"
+	fQueenFile  featureType = "QueenFile"
+	fQueenRank  featureType = "QueenRank"
+	fKingFile   featureType = "KingFile"
+	fKingRank   featureType = "KingRank"
 
 	// Mobility.
-	fKnightAttack string = "KnightAttack"
-	fBishopAttack string = "BishopAttack"
-	fRookAttack   string = "RookAttack"
-	fQueenAttack  string = "QueenAttack"
-	fKingAttack   string = "KingAttack"
+	fKnightAttack featureType = "KnightAttack"
+	fBishopAttack featureType = "BishopAttack"
+	fRookAttack   featureType = "RookAttack"
+	fQueenAttack  featureType = "QueenAttack"
+	fKingAttack   featureType = "KingAttack"
 
 	// Pawn structur.
-	fBackwardPawns     string = "BackwardPawns"
-	fConnectedPawns    string = "ConnectedPawns"
-	fDoubledPawns      string = "DoubledPawns"
-	fIsolatedPawns     string = "IsolatedPawns"
-	fPassedPawnRank    string = "PassedPawnRank"
-	fPawnMobility      string = "PawnMobility"
-	fMinorsPawnsAttack string = "MinorsPawnsAttack"
-	fMajorsPawnsAttack string = "MajorsPawnsAttack"
+	fBackwardPawns     featureType = "BackwardPawns"
+	fConnectedPawns    featureType = "ConnectedPawns"
+	fDoubledPawns      featureType = "DoubledPawns"
+	fIsolatedPawns     featureType = "IsolatedPawns"
+	fPassedPawnRank    featureType = "PassedPawnRank"
+	fPawnMobility      featureType = "PawnMobility"
+	fMinorsPawnsAttack featureType = "MinorsPawnsAttack"
+	fMajorsPawnsAttack featureType = "MajorsPawnsAttack"
 
 	// Other stuff.
-	fRookOnOpenFile     string = "RookOnOpenFile"
-	fRookOnSemiOpenFile string = "RookOnSemiOpenFile"
+	fRookOnOpenFile     featureType = "RookOnOpenFile"
+	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
 
 	// Shelter
-	fKingShelter string = "KingShelter"
+	fKingShelter featureType = "KingShelter"
 )
 
 var (
-	FeaturesMap     = make(map[string]*FeatureInfo)
+	FeaturesMap     = make(map[featureType]*FeatureInfo)
 	featuresMapLock sync.Mutex
 )
 
 type FeatureInfo struct {
-	Name  string // Name of this feature.
-	Start int    // Start position in the weights array.
-	Num   int    // Number of weights used.
+	Name  featureType // Name of this feature.
+	Start int         // Start position in the weights array.
+	Num   int         // Number of weights used.
 }
 
-func getFeatureStart(feature string, num int) int {
+func getFeatureStart(feature featureType, num int) int {
 	featuresMapLock.Lock()
 	defer featuresMapLock.Unlock()
 
