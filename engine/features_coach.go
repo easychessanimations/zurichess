@@ -17,6 +17,7 @@ const (
 	fKing     string = "King"
 
 	// PSqT
+	fPawnSquare string = "PawnSquare"
 	fKnightFile string = "KnightFile"
 	fKnightRank string = "KnightRank"
 	fBishopFile string = "BishopFile"

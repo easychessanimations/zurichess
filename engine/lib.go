@@ -14,6 +14,13 @@ func groupByBoard(feature int, bb Bitboard, accum *Accum) {
 	accum.addN(Weights[feature], bb.Count())
 }
 
+func groupBySquare(feature int, bb Bitboard, accum *Accum) {
+	for bb != BbEmpty {
+		sq := bb.Pop()
+		accum.addN(Weights[feature+int(sq)], bb.Count())
+	}
+}
+
 func groupByFileSq(feature int, sq Square, accum *Accum) {
 	accum.add(Weights[feature+sq.File()])
 }

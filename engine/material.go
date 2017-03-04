@@ -113,6 +113,7 @@ func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
 func evaluatePawns(pos *Position, us Color) Accum {
 	var accum Accum
 
+	groupBySquare(fPawnSquare, pos.ByPiece(us, Pawn), &accum)
 	groupByBoard(fBackwardPawns, BackwardPawns(pos, us), &accum)
 	groupByBoard(fConnectedPawns, ConnectedPawns(pos, us), &accum)
 	groupByBoard(fDoubledPawns, DoubledPawns(pos, us), &accum)

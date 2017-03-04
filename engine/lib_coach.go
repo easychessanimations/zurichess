@@ -45,6 +45,14 @@ func groupByBoard(feature string, bb Bitboard, accum *Accum) {
 	accum.addN(Weights[start], bb.Count())
 }
 
+func groupBySquare(feature string, bb Bitboard, accum *Accum) {
+	start := getFeatureStart(feature, 64)
+	for bb != BbEmpty {
+		sq := bb.Pop()
+		accum.addN(Weights[start+int(sq)], bb.Count())
+	}
+}
+
 func groupByFileSq(feature string, sq Square, accum *Accum) {
 	start := getFeatureStart(feature, 8)
 	accum.add(Weights[start+sq.File()])
