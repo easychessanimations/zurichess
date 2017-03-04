@@ -33,50 +33,6 @@ const (
 )
 
 var (
-	// Weights stores all evaluation parameters under one array for easy handling.
-	// All numbers are multiplied by 128.
-
-	// The following variables are named chunks of Weights
-
-	// wFigure stores how much each figure is valued.
-	wFigure [FigureArraySize]Score
-	// wMobility stores bonus for each figure's reachable square.
-	wMobility [FigureArraySize]Score
-	// wPawn is a piece square table dedicated to pawns.
-	wPawn        [SquareArraySize]Score
-	wEndgamePawn Score
-	// wPassedPawn contains bonuses for passed pawns based on how advanced they are.
-	wPassedPawn [8]Score
-	// wPassedPawnKing is a bonus between king and closest passed pawn.
-	wPassedPawnKing [8]Score
-	// wFigureFile gives bonus to each figure depending on its file.
-	wFigureFile [FigureArraySize][8]Score
-	// wFigureRank gives bonus to each figure depending on its Rank.
-	wFigureRank [FigureArraySize][8]Score
-	wKingAttack [4]Score
-	// wBackwardPawn is the bonus of a backward pawn.
-	wBackwardPawn Score
-	// wConnectedPawn is the bonus of a connected pawn.
-	wConnectedPawn [8]Score
-	// wDoublePawn is the bonus of a double pawn, a pawn with another
-	// friendly in right in front of it.
-	wDoublePawn Score
-	// wIsolatedPawn is the bonus of an isolated pawn, a pawn with no
-	// other friendlyy pawns on adjacent files.
-	wIsolatedPawn Score
-	// wPassedThreat is a small bonus for each enemy piece attacked by a pawn.
-	wPawnThreat Score
-	// wKingShelter rewards pawns in front of the king.
-	wKingShelter Score
-	// wBishopPair rewards the bishop pair, useful in endgames.
-	wBishopPair Score
-	// wBishopPair rewards a rook on a open file, a file with no pawns.
-	wRookOnOpenFile Score
-	// wBishopPair rewards a rook on a open file, a file with no enemy pawns.
-	wRookOnHalfOpenFile Score
-	// wQueenKingTropism rewards queen being closer to the enemy king.
-	wQueenKingTropism [8]Score
-
 	// Evaluation caches.
 	pawnsAndShelterCache = &pawnsTable{}
 
@@ -139,160 +95,82 @@ func EvaluatePosition(pos *Position) Eval {
 	e.init(White)
 	e.init(Black)
 
-	//white, black := pawnsAndShelterCache.load(pos)
-	//e.pad[White].accum.merge(white)
-	//e.pad[Black].accum.merge(black)
+	e.Accum.merge(evaluate(pos, White))
+	e.Accum.deduct(evaluate(pos, Black))
 
-	e.evaluateSide(White)
-	e.evaluateSide(Black)
+	white, black := pawnsAndShelterCache.load(pos)
+	e.Accum.merge(white)
+	e.Accum.merge(black)
 
-	e.Accum.merge(e.pad[White].accum)
-	e.Accum.deduct(e.pad[Black].accum)
 	return e
 }
 
 func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
 	accum.merge(evaluatePawns(pos, us))
-	accum.merge(evaluateShelter(pos, us))
 	return accum
 }
 
-func evaluatePawns(pos *Position, us Color) (accum Accum) {
-	connected := ConnectedPawns(pos, us)
-	double := DoubledPawns(pos, us)
-	isolated := IsolatedPawns(pos, us)
-	passed := PassedPawns(pos, us)
-	backward := BackwardPawns(pos, us)
-
-	kingPawnDist := int32(8)
-	kingSq := pos.ByPiece(us, King).AsSquare()
-
-	for bb := pos.ByPiece(us, Pawn); bb != 0; {
-		sq := bb.Pop()
-		povSq := sq.POV(us)
-		rank := povSq.Rank()
-
-		accum.add(wFigure[Pawn])
-		accum.add(wPawn[povSq])
-
-		if passed.Has(sq) {
-			accum.add(wPassedPawn[rank])
-			if kingPawnDist > distance[sq][kingSq] {
-				kingPawnDist = distance[sq][kingSq]
-			}
-		}
-		if connected.Has(sq) {
-			accum.add(wConnectedPawn[povSq.File()])
-		}
-		if double.Has(sq) {
-			accum.add(wDoublePawn)
-		}
-		if isolated.Has(sq) {
-			accum.add(wIsolatedPawn)
-		}
-		if backward.Has(sq) {
-			accum.add(wBackwardPawn)
-		}
-	}
-
-	if kingPawnDist != 8 {
-		// Add a bonus for king protecting most advance pawn.
-		accum.add(wPassedPawnKing[kingPawnDist])
-	}
-
+func evaluatePawns(pos *Position, us Color) Accum {
+	var accum Accum
+	groupByRank(fPassedPawnRank, PassedPawns(pos, us), &accum)
 	return accum
 }
 
-// evaluateShelter evaluates king's shelter.
-func evaluateShelter(pos *Position, us Color) (accum Accum) {
-	pawns := pos.ByPiece(us, Pawn)
-	king := pos.ByPiece(us, King)
-	sq := king.AsSquare().POV(us)
-	king = ForwardSpan(us, king)
-	file := sq.File()
-	if file > 0 && West(king)&pawns == 0 {
-		accum.add(wKingShelter)
-	}
-	if king&pawns == 0 {
-		accum.addN(wKingShelter, 2)
-	}
-	if file < 7 && East(king)&pawns == 0 {
-		accum.add(wKingShelter)
-	}
-	return accum
-}
-
-// evaluateFigure computes the material score for a figure fig at sq reaching mobility squares.
-func (e *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility Bitboard) {
-	sq = sq.POV(pad.us)
-	pad.accum.add(wFigure[fig])
-	pad.accum.addN(wMobility[fig], (mobility &^ pad.exclude).Count())
-	if fig != Queen {
-		pad.accum.add(wFigureFile[fig][sq.File()])
-		pad.accum.add(wFigureRank[fig][sq.Rank()])
-	}
-
-	if a := mobility & pad.theirKingArea &^ pad.theirPawns &^ pad.exclude; fig != King && a != 0 {
-		pad.numAttackers++
-		pad.attackStrength += a.CountMax2()
-	}
-}
-
-// evaluateSide evaluates position for a single side.
-func (e *Eval) evaluateSide(us Color) {
-	pos := e.position
-	pad := &e.pad[us]
+// evaluate evaluates position for a single side.
+func evaluate(pos *Position, us Color) Accum {
+	var accum Accum
 	all := pos.ByColor[White] | pos.ByColor[Black]
 
-	groupByBoard(fNoFigure, BbEmpty, &pad.accum)
-	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &pad.accum)
-	groupByBoard(fKnight, pos.ByPiece(us, Knight), &pad.accum)
-	groupByBoard(fBishop, pos.ByPiece(us, Bishop), &pad.accum)
-	groupByBoard(fRook, pos.ByPiece(us, Rook), &pad.accum)
-	groupByBoard(fQueen, pos.ByPiece(us, Queen), &pad.accum)
-	groupByBoard(fKing, BbEmpty, &pad.accum)
+	groupByBoard(fNoFigure, BbEmpty, &accum)
+	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &accum)
+	groupByBoard(fKnight, pos.ByPiece(us, Knight), &accum)
+	groupByBoard(fBishop, pos.ByPiece(us, Bishop), &accum)
+	groupByBoard(fRook, pos.ByPiece(us, Rook), &accum)
+	groupByBoard(fQueen, pos.ByPiece(us, Queen), &accum)
+	groupByBoard(fKing, BbEmpty, &accum)
 
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
-		groupByFileSq(fKnightFile, sq, &pad.accum)
-		groupByRankSq(fKnightRank, sq, &pad.accum)
-		groupByBoard(fKnightAttack, mobility, &pad.accum)
+		groupByFileSq(fKnightFile, sq, &accum)
+		groupByRankSq(fKnightRank, sq, &accum)
+		groupByBoard(fKnightAttack, mobility, &accum)
 	}
 	// Bishop
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
-		groupByFileSq(fBishopFile, sq, &pad.accum)
-		groupByRankSq(fBishopRank, sq, &pad.accum)
-		groupByBoard(fBishopAttack, mobility, &pad.accum)
+		groupByFileSq(fBishopFile, sq, &accum)
+		groupByRankSq(fBishopRank, sq, &accum)
+		groupByBoard(fBishopAttack, mobility, &accum)
 	}
 	// Rook
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
-		groupByFileSq(fRookFile, sq, &pad.accum)
-		groupByRankSq(fRookRank, sq, &pad.accum)
-		groupByBoard(fRookAttack, mobility, &pad.accum)
+		groupByFileSq(fRookFile, sq, &accum)
+		groupByRankSq(fRookRank, sq, &accum)
+		groupByBoard(fRookAttack, mobility, &accum)
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
-		groupByFileSq(fQueenFile, sq, &pad.accum)
-		groupByRankSq(fQueenRank, sq, &pad.accum)
-		groupByBoard(fQueenAttack, mobility, &pad.accum)
+		groupByFileSq(fQueenFile, sq, &accum)
+		groupByRankSq(fQueenRank, sq, &accum)
+		groupByBoard(fQueenAttack, mobility, &accum)
 	}
 	// King, each side has one.
 	{
-		sq := pad.kingSq
+		sq := pos.ByPiece(us, King).AsSquare()
 		mobility := KingMobility(sq)
-		groupByFileSq(fKingFile, sq, &pad.accum)
-		groupByRankSq(fKingRank, sq, &pad.accum)
-		groupByBoard(fQueenAttack, mobility, &pad.accum)
+		groupByFileSq(fKingFile, sq, &accum)
+		groupByRankSq(fKingRank, sq, &accum)
+		groupByBoard(fQueenAttack, mobility, &accum)
 	}
 
+	return accum
 }
 
 // Phase computes the progress of the game.
@@ -318,7 +196,9 @@ func init() {
 	initWeights()
 
 	// Initialize futility figure bonus.
-	for i, w := range wFigure {
-		futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
+	if len(Weights) != 0 {
+		for i, w := range Weights[:FigureArraySize] {
+			futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
+		}
 	}
 }

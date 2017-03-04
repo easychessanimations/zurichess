@@ -54,3 +54,10 @@ func groupByRankSq(feature string, sq Square, accum *Accum) {
 	start := getFeatureStart(feature, 8)
 	accum.add(Weights[start+sq.Rank()])
 }
+
+func groupByRank(feature string, bb Bitboard, accum *Accum) {
+	for bb != BbEmpty {
+		sq := bb.Pop()
+		groupByRankSq(feature, sq, accum)
+	}
+}

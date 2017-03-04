@@ -9,25 +9,26 @@
 package engine
 
 const (
-	fNoFigure     int = 0
-	fPawn         int = 1
-	fKnight       int = 2
-	fBishop       int = 3
-	fRook         int = 4
-	fQueen        int = 5
-	fKing         int = 6
-	fBishopFile   int = 7
-	fBishopRank   int = 15
-	fBishopAttack int = 23
-	fRookFile     int = 24
-	fRookRank     int = 32
-	fRookAttack   int = 40
-	fQueenFile    int = 41
-	fQueenRank    int = 49
-	fQueenAttack  int = 57
-	fKingFile     int = 58
-	fKingRank     int = 66
-	fKnightFile   int = 74
-	fKnightRank   int = 82
-	fKnightAttack int = 90
+	fNoFigure       int = 0
+	fPawn           int = 1
+	fKnight         int = 2
+	fBishop         int = 3
+	fRook           int = 4
+	fQueen          int = 5
+	fKing           int = 6
+	fKnightFile     int = 7
+	fKnightRank     int = 15
+	fKnightAttack   int = 23
+	fRookFile       int = 24
+	fRookRank       int = 32
+	fRookAttack     int = 40
+	fBishopFile     int = 41
+	fBishopRank     int = 49
+	fBishopAttack   int = 57
+	fQueenFile      int = 58
+	fQueenRank      int = 66
+	fQueenAttack    int = 74
+	fKingFile       int = 75
+	fKingRank       int = 83
+	fPassedPawnRank int = 91
 )

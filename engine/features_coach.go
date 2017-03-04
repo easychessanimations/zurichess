@@ -28,6 +28,9 @@ const (
 	fKingFile   string = "KingFile"
 	fKingRank   string = "KingRank"
 
+	// Pawns
+	fPassedPawnRank string = "PassedPawnRank"
+
 	// Mobility.
 	fKnightAttack string = "KnightAttack"
 	fBishopAttack string = "BishopAttack"

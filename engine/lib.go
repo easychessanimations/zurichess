@@ -21,3 +21,10 @@ func groupByFileSq(feature int, sq Square, accum *Accum) {
 func groupByRankSq(feature int, sq Square, accum *Accum) {
 	accum.add(Weights[feature+sq.Rank()])
 }
+
+func groupByRank(feature int, bb Bitboard, accum *Accum) {
+	for bb != BbEmpty {
+		sq := bb.Pop()
+		groupByRankSq(feature, sq, accum)
+	}
+}
