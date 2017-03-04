@@ -29,6 +29,10 @@ const (
 	fKingRank   string = "KingRank"
 
 	// Pawns
+	fBackwardPawns  string = "BackwardPawns"
+	fConnectedPawns string = "ConnectedPawns"
+	fDoubledPawns   string = "DoubledPawns"
+	fIsolatedPawns  string = "IsolatedPawns"
 	fPassedPawnRank string = "PassedPawnRank"
 
 	// Mobility.
