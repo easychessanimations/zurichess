@@ -17,7 +17,7 @@ func groupByBoard(feature int, bb Bitboard, accum *Accum) {
 func groupBySquare(feature int, bb Bitboard, accum *Accum) {
 	for bb != BbEmpty {
 		sq := bb.Pop()
-		accum.addN(Weights[feature+int(sq)], bb.Count())
+		accum.add(Weights[feature+int(sq)])
 	}
 }
 

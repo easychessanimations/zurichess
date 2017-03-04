@@ -49,7 +49,7 @@ func groupBySquare(feature string, bb Bitboard, accum *Accum) {
 	start := getFeatureStart(feature, 64)
 	for bb != BbEmpty {
 		sq := bb.Pop()
-		accum.addN(Weights[start+int(sq)], bb.Count())
+		accum.add(Weights[start+int(sq)])
 	}
 }
 
