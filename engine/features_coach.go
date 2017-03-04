@@ -41,14 +41,16 @@ const (
 	fKingAttack   featureType = "KingAttack"
 
 	// Pawn structur.
-	fBackwardPawns     featureType = "BackwardPawns"
-	fConnectedPawns    featureType = "ConnectedPawns"
-	fDoubledPawns      featureType = "DoubledPawns"
-	fIsolatedPawns     featureType = "IsolatedPawns"
-	fPassedPawnRank    featureType = "PassedPawnRank"
-	fPawnMobility      featureType = "PawnMobility"
-	fMinorsPawnsAttack featureType = "MinorsPawnsAttack"
-	fMajorsPawnsAttack featureType = "MajorsPawnsAttack"
+	fBackwardPawns              featureType = "BackwardPawns"
+	fConnectedPawns             featureType = "ConnectedPawns"
+	fDoubledPawns               featureType = "DoubledPawns"
+	fIsolatedPawns              featureType = "IsolatedPawns"
+	fPassedPawnRank             featureType = "PassedPawnRank"
+	fPawnMobility               featureType = "PawnMobility"
+	fMinorsPawnsAttack          featureType = "MinorsPawnsAttack"
+	fMajorsPawnsAttack          featureType = "MajorsPawnsAttack"
+	fMinorsPawnsPotentialAttack featureType = "MinorsPawnsPotentialAttack"
+	fMajorsPawnsPotentialAttack featureType = "MajorsPawnsPotentialAttack"
 
 	// Other stuff.
 	fRookOnOpenFile     featureType = "RookOnOpenFile"

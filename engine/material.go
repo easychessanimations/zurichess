@@ -133,6 +133,8 @@ func evaluate(pos *Position, us Color) Accum {
 	groupByBoard(fPawnMobility, ourPawns&^Backward(us, all), &accum)
 	groupByBoard(fMinorsPawnsAttack, Minors(pos, us)&danger, &accum)
 	groupByBoard(fMajorsPawnsAttack, Majors(pos, us)&danger, &accum)
+	groupByBoard(fMinorsPawnsPotentialAttack, Minors(pos, us)&Backward(us, danger), &accum)
+	groupByBoard(fMajorsPawnsPotentialAttack, Majors(pos, us)&Backward(us, danger), &accum)
 
 	numAttackers := 0
 
