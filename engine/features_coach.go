@@ -36,6 +36,9 @@ const (
 	fIsolatedPawns  string = "IsolatedPawns"
 	fPassedPawnRank string = "PassedPawnRank"
 
+	// Shelter
+	fKingShelter string = "KingShelter"
+
 	// Mobility.
 	fKnightAttack string = "KnightAttack"
 	fBishopAttack string = "BishopAttack"
