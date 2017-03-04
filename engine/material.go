@@ -16,8 +16,6 @@
 package engine
 
 import (
-	"fmt"
-
 	. "bitbucket.org/zurichess/zurichess/board"
 )
 
@@ -78,10 +76,6 @@ var (
 	wRookOnHalfOpenFile Score
 	// wQueenKingTropism rewards queen being closer to the enemy king.
 	wQueenKingTropism [8]Score
-
-	// FeatureNames is an array with the names of features.
-	// When compiled with -tags coach, Score.I is the index in this array.
-	FeatureNames [len(Weights)]string
 
 	// Evaluation caches.
 	pawnsAndShelterCache = &pawnsTable{}
@@ -145,9 +139,9 @@ func EvaluatePosition(pos *Position) Eval {
 	e.init(White)
 	e.init(Black)
 
-	white, black := pawnsAndShelterCache.load(pos)
-	e.pad[White].accum.merge(white)
-	e.pad[Black].accum.merge(black)
+	//white, black := pawnsAndShelterCache.load(pos)
+	//e.pad[White].accum.merge(white)
+	//e.pad[Black].accum.merge(black)
 
 	e.evaluateSide(White)
 	e.evaluateSide(Black)
@@ -247,72 +241,15 @@ func (e *Eval) evaluateFigure(pad *scratchpad, fig Figure, sq Square, mobility B
 // evaluateSide evaluates position for a single side.
 func (e *Eval) evaluateSide(us Color) {
 	pos := e.position
-	them := us.Opposite()
 	pad := &e.pad[us]
-	all := pos.ByColor[White] | pos.ByColor[Black]
 
-	// Pawn forward mobility.
-	mobility := Forward(us, pos.ByPiece(us, Pawn)) &^ all
-	pad.accum.addN(wMobility[Pawn], mobility.Count())
-	mobility = PawnThreats(pos, us)
-	pad.accum.addN(wPawnThreat, (mobility & pos.ByColor[them]).Count())
-
-	if Majors(pos, them) == 0 {
-		pad.accum.addN(wEndgamePawn, pos.ByPiece(us, Pawn).Count())
-	}
-
-	// Knight
-	for bb := pos.ByPiece(us, Knight); bb > 0; {
-		sq := bb.Pop()
-		mobility := KnightMobility(sq)
-		e.evaluateFigure(pad, Knight, sq, mobility)
-	}
-	// Bishop
-	numBishops := int32(0)
-	for bb := pos.ByPiece(us, Bishop); bb > 0; {
-		sq := bb.Pop()
-		mobility := BishopMobility(sq, all)
-		e.evaluateFigure(pad, Bishop, sq, mobility)
-		numBishops++
-	}
-	pad.accum.addN(wBishopPair, numBishops/2)
-
-	// Rook
-	for bb := pos.ByPiece(us, Rook); bb > 0; {
-		sq := bb.Pop()
-		mobility := RookMobility(sq, all)
-		e.evaluateFigure(pad, Rook, sq, mobility)
-
-		// Evaluate rook on open and semi open files.
-		// https://chessprogramming.wikispaces.com/Rook+on+Open+File
-		f := FileBb(sq.File())
-		if pos.ByPiece(us, Pawn)&f == 0 {
-			if pos.ByPiece(them, Pawn)&f == 0 {
-				pad.accum.add(wRookOnOpenFile)
-			} else {
-				pad.accum.add(wRookOnHalfOpenFile)
-			}
-		}
-	}
-	// Queen
-	for bb := pos.ByPiece(us, Queen); bb > 0; {
-		sq := bb.Pop()
-		mobility := QueenMobility(sq, all)
-		e.evaluateFigure(pad, Queen, sq, mobility)
-		pad.accum.add(wQueenKingTropism[distance[sq][e.pad[them].kingSq]])
-	}
-
-	// King, each side has one.
-	{
-		sq := pad.kingSq
-		mobility := KingMobility(sq)
-		e.evaluateFigure(pad, King, sq, mobility)
-	}
-
-	// Evaluate attacking the king. See more at:
-	// https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
-	pad.numAttackers = min(pad.numAttackers, int32(len(wKingAttack)-1))
-	pad.accum.addN(wKingAttack[pad.numAttackers], pad.attackStrength)
+	groupByBoard(fNoFigure, BbEmpty, &pad.accum)
+	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &pad.accum)
+	groupByBoard(fKnight, pos.ByPiece(us, Knight), &pad.accum)
+	groupByBoard(fBishop, pos.ByPiece(us, Bishop), &pad.accum)
+	groupByBoard(fRook, pos.ByPiece(us, Rook), &pad.accum)
+	groupByBoard(fQueen, pos.ByPiece(us, Queen), &pad.accum)
+	groupByBoard(fKing, BbEmpty, &pad.accum)
 }
 
 // Phase computes the progress of the game.
@@ -333,56 +270,9 @@ func scaleToCentipawns(score int32) int32 {
 	return (score + 64 + score>>31) >> 7
 }
 
-// registerMany registers a slice of weights, setting the correct name.
-func registerMany(n int, name string, out []Score) int {
-	for i := range out {
-		out[i] = Weights[n+i]
-		FeatureNames[n+i] = fmt.Sprint(name, ".", i)
-	}
-	return n + len(out)
-}
-
-// registerone registers one weight, setting the correct name.
-func registerOne(n int, name string, out *Score) int {
-	*out = Weights[n]
-	FeatureNames[n] = name
-	return n + 1
-}
-
 func init() {
 	// Initialize weights.
 	initWeights()
-
-	n := 0
-	n = registerMany(n, "Figure", wFigure[:])
-	n = registerMany(n, "Mobility", wMobility[:])
-	n = registerMany(n, "Pawn", wPawn[:])
-	n = registerOne(n, "EndgamePawn", &wEndgamePawn)
-	n = registerMany(n, "PassedPawn", wPassedPawn[:])
-	n = registerMany(n, "PassedPawnKing", wPassedPawnKing[:])
-	n = registerMany(n, "FigureRank[Knight]", wFigureRank[Knight][:])
-	n = registerMany(n, "FigureFile[Knight]", wFigureFile[Knight][:])
-	n = registerMany(n, "FigureRank[Bishop]", wFigureRank[Bishop][:])
-	n = registerMany(n, "FigureFile[Bishop]", wFigureFile[Bishop][:])
-	n = registerMany(n, "FigureRank[Rook]", wFigureRank[Rook][:])
-	n = registerMany(n, "FigureFile[Rook]", wFigureFile[Rook][:])
-	n = registerMany(n, "FigureRank[King]", wFigureRank[King][:])
-	n = registerMany(n, "FigureFile[King]", wFigureFile[King][:])
-	n = registerMany(n, "KingAttack", wKingAttack[:])
-	n = registerOne(n, "BackwardPawn", &wBackwardPawn)
-	n = registerMany(n, "ConnectedPawn", wConnectedPawn[:])
-	n = registerOne(n, "DoublePawn", &wDoublePawn)
-	n = registerOne(n, "IsolatedPawn", &wIsolatedPawn)
-	n = registerOne(n, "PawnThreat", &wPawnThreat)
-	n = registerOne(n, "KingShelter", &wKingShelter)
-	n = registerOne(n, "BishopPair", &wBishopPair)
-	n = registerOne(n, "RookOnOpenFile", &wRookOnOpenFile)
-	n = registerOne(n, "RookOnHalfOpenFile", &wRookOnHalfOpenFile)
-	n = registerMany(n, "QueenKingTropism", wQueenKingTropism[:])
-
-	if n != len(Weights) {
-		panic(fmt.Sprintf("not all weights used, used %d out of %d", n, len(Weights)))
-	}
 
 	// Initialize futility figure bonus.
 	for i, w := range wFigure {
