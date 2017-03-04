@@ -111,9 +111,12 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 // evaluate evaluates position for a single side.
 func evaluate(pos *Position, us Color) Accum {
 	var accum Accum
+	them := us.Opposite()
 	all := pos.ByColor[White] | pos.ByColor[Black]
-	danger := PawnThreats(pos, us.Opposite())
+	danger := PawnThreats(pos, them)
 	ourPawns := pos.ByPiece(us, Pawn)
+	theirPawns := pos.ByPiece(them, Pawn)
+	theirKingArea := KingArea(pos, them)
 
 	groupByBoard(fNoFigure, BbEmpty, &accum)
 	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &accum)
@@ -128,21 +131,31 @@ func evaluate(pos *Position, us Color) Accum {
 	groupByBoard(fMinorsPawnsAttack, Minors(pos, us)&danger, &accum)
 	groupByBoard(fMajorsPawnsAttack, Majors(pos, us)&danger, &accum)
 
+	numAttackers := 0
+
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
+		mobility &^= danger | ourPawns
 		groupByFileSq(fKnightFile, us, sq, &accum)
 		groupByRankSq(fKnightRank, us, sq, &accum)
-		groupByBoard(fKnightAttack, mobility&^danger&^ourPawns, &accum)
+		groupByBoard(fKnightAttack, mobility, &accum)
+		if mobility&theirKingArea&^theirPawns != 0 {
+			numAttackers++
+		}
 	}
 	// Bishop
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
+		mobility &^= danger | ourPawns
 		groupByFileSq(fBishopFile, us, sq, &accum)
 		groupByRankSq(fBishopRank, us, sq, &accum)
-		groupByBoard(fBishopAttack, mobility&^danger&^ourPawns, &accum)
+		groupByBoard(fBishopAttack, mobility, &accum)
+		if mobility&theirKingArea&^theirPawns != 0 {
+			numAttackers++
+		}
 	}
 	// Rook
 	openFiles := OpenFiles(pos, us)
@@ -150,21 +163,30 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
+		mobility &^= danger | ourPawns
 		groupByFileSq(fRookFile, us, sq, &accum)
 		groupByRankSq(fRookRank, us, sq, &accum)
-		groupByBoard(fRookAttack, mobility&^danger&^ourPawns, &accum)
+		groupByBoard(fRookAttack, mobility, &accum)
 		groupByBool(fRookOnOpenFile, openFiles.Has(sq), &accum)
 		groupByBool(fRookOnSemiOpenFile, semiOpenFiles.Has(sq), &accum)
+		if mobility&theirKingArea&^theirPawns != 0 {
+			numAttackers++
+		}
 	}
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
+		mobility &^= danger | ourPawns
 		groupByFileSq(fQueenFile, us, sq, &accum)
 		groupByRankSq(fQueenRank, us, sq, &accum)
-		groupByBoard(fQueenAttack, mobility&^danger&^ourPawns, &accum)
+		groupByBoard(fQueenAttack, mobility, &accum)
+		if mobility&theirKingArea&^theirPawns != 0 {
+			numAttackers++
+		}
 	}
 
+	groupByCount(fKingAttackers, numAttackers, 4, &accum)
 	return accum
 }
 

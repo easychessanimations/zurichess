@@ -30,6 +30,14 @@ func groupByBool(feature featureType, b bool, accum *Accum) {
 	}
 }
 
+func groupByCount(feature featureType, n int, limit int, accum *Accum) {
+	if n >= limit {
+		n = limit - 1
+	}
+	start := getFeatureStart(feature, limit)
+	accum.add(Weights[start+n])
+}
+
 func groupByFileSq(feature featureType, us Color, sq Square, accum *Accum) {
 	start := getFeatureStart(feature, 8)
 	accum.add(Weights[start+sq.POV(us).File()])
