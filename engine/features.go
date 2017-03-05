@@ -49,7 +49,8 @@ const (
 	fKingShelterNear            featureType = 171
 	fKingShelterFar             featureType = 172
 	fKingShelterFront           featureType = 173
-	fPassedPawnRank             featureType = 174
+	fKingPassedPawnTropism      featureType = 174
+	fPassedPawnRank             featureType = 182
 )
 
 func getFeatureStart(feature featureType, num int) int {

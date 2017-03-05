@@ -97,10 +97,10 @@ func evaluatePawns(pos *Position, us Color, accum *Accum) {
 func evaluateShelter(pos *Position, us Color, accum *Accum) {
 	// King's position and mobility.
 	bb := pos.ByPiece(us, King)
-	sq := bb.AsSquare()
-	mobility := KingMobility(sq)
-	groupByFileSq(fKingFile, us, sq, accum)
-	groupByRankSq(fKingRank, us, sq, accum)
+	kingSq := bb.AsSquare()
+	mobility := KingMobility(kingSq)
+	groupByFileSq(fKingFile, us, kingSq, accum)
+	groupByRankSq(fKingRank, us, kingSq, accum)
 	groupByBoard(fKingAttack, mobility, accum)
 
 	// King's shelter.
@@ -109,6 +109,16 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 	groupByBoard(fKingShelterNear, ekw|Forward(us, ekw)&ourPawns, accum)
 	groupByBoard(fKingShelterFar, ForwardSpan(us, ekw)&ourPawns, accum)
 	groupByBoard(fKingShelterFront, ForwardSpan(us, bb)&ourPawns, accum)
+
+	// King passed pawn tropism.
+	dist := int32(8)
+	for bb := PassedPawns(pos, us); bb != BbEmpty; {
+		sq := bb.Pop()
+		if sq.POV(us).Rank() >= 4 {
+			dist = min(dist, distance[sq][kingSq])
+		}
+	}
+	groupByCount(fKingPassedPawnTropism, int(dist), 8, accum)
 }
 
 // evaluate evaluates position for a single side.
