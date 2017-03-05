@@ -119,6 +119,15 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 		}
 	}
 	groupByCount(fKingPassedPawnTropism, int(dist), 8, accum)
+
+	dist = 8
+	for bb := PassedPawns(pos, us.Opposite()); bb != BbEmpty; {
+		sq := bb.Pop()
+		if sq.POV(us.Opposite()).Rank() >= 4 {
+			dist = min(dist, distance[sq][kingSq])
+		}
+	}
+	groupByCount(fKingEnemyPassedPawnTropism, int(dist), 8, accum)
 }
 
 // evaluate evaluates position for a single side.
