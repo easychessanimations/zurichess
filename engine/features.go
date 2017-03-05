@@ -44,8 +44,10 @@ const (
 	fKingFile           featureType = 152
 	fKingRank           featureType = 160
 	fKingAttack         featureType = 168
-	fKingShelter        featureType = 169
-	fPassedPawnRank     featureType = 170
+	fKingShelterNear    featureType = 169
+	fKingShelterFar     featureType = 170
+	fKingShelterFront   featureType = 171
+	fPassedPawnRank     featureType = 172
 )
 
 func getFeatureStart(feature featureType, num int) int {

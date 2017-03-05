@@ -96,16 +96,19 @@ func evaluatePawns(pos *Position, us Color, accum *Accum) {
 
 func evaluateShelter(pos *Position, us Color, accum *Accum) {
 	// King's position and mobility.
-	sq := pos.ByPiece(us, King).AsSquare()
+	bb := pos.ByPiece(us, King)
+	sq := bb.AsSquare()
 	mobility := KingMobility(sq)
 	groupByFileSq(fKingFile, us, sq, accum)
 	groupByRankSq(fKingRank, us, sq, accum)
 	groupByBoard(fKingAttack, mobility, accum)
 
 	// King's shelter.
+	ekw := East(bb) | bb | West(bb)
 	ourPawns := pos.ByPiece(us, Pawn)
-	ring := mobility | Forward(us, mobility)
-	groupByBoard(fKingShelter, ring&ourPawns, accum)
+	groupByBoard(fKingShelterNear, ekw|Forward(us, ekw)&ourPawns, accum)
+	groupByBoard(fKingShelterFar, ForwardSpan(us, ekw)&ourPawns, accum)
+	groupByBoard(fKingShelterFront, ForwardSpan(us, bb)&ourPawns, accum)
 }
 
 // evaluate evaluates position for a single side.

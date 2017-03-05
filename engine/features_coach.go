@@ -55,8 +55,10 @@ const (
 	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
 
 	// Shelter
-	fKingShelter   featureType = "KingShelter"
-	fKingAttackers featureType = "KingAttackers"
+	fKingAttackers    featureType = "KingAttackers"
+	fKingShelterNear  featureType = "KingShelterNear"
+	fKingShelterFront featureType = "KingShelterFront"
+	fKingShelterFar   featureType = "KingShelterFar"
 )
 
 var (
