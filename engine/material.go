@@ -40,15 +40,10 @@ var (
 	futilityFigureBonus [FigureArraySize]int32
 )
 
-// scratchpad stores various information about evaluation of a single side.
-type scratchpad struct {
-}
-
 // Eval contains necessary information for evaluation.
 type Eval struct {
 	Accum    Accum
 	position *Position
-	pad      [ColorArraySize]scratchpad
 }
 
 // Feed returns the score phased between midgame and endgame score.
