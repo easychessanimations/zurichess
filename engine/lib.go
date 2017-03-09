@@ -8,9 +8,21 @@ import (
 	. "bitbucket.org/zurichess/zurichess/board"
 )
 
-func groupByBoard(feature featureType, bb Bitboard, accum *Accum) {
+func groupByCount(feature featureType, n int32, accum *Accum) {
 	start := getFeatureStart(feature, 1)
-	accum.addN(Weights[start], bb.Count())
+	accum.addN(Weights[start], n)
+}
+
+func groupByBucket(feature featureType, n int, limit int, accum *Accum) {
+	if n >= limit {
+		n = limit - 1
+	}
+	start := getFeatureStart(feature, limit)
+	accum.add(Weights[start+n])
+}
+
+func groupByBoard(feature featureType, bb Bitboard, accum *Accum) {
+	groupByCount(feature, bb.Count(), accum)
 }
 
 func groupBySquare(feature featureType, us Color, bb Bitboard, accum *Accum) {
@@ -24,28 +36,16 @@ func groupBySquare(feature featureType, us Color, bb Bitboard, accum *Accum) {
 func groupByBool(feature featureType, b bool, accum *Accum) {
 	start := getFeatureStart(feature, 1)
 	if b {
-		accum.addN(Weights[start], 1)
-	} else {
-		accum.addN(Weights[start], 0)
+		accum.add(Weights[start])
 	}
-}
-
-func groupByCount(feature featureType, n int, limit int, accum *Accum) {
-	if n >= limit {
-		n = limit - 1
-	}
-	start := getFeatureStart(feature, limit)
-	accum.add(Weights[start+n])
 }
 
 func groupByFileSq(feature featureType, us Color, sq Square, accum *Accum) {
-	start := getFeatureStart(feature, 8)
-	accum.add(Weights[start+sq.POV(us).File()])
+	groupByBucket(feature, sq.POV(us).File(), 8, accum)
 }
 
 func groupByRankSq(feature featureType, us Color, sq Square, accum *Accum) {
-	start := getFeatureStart(feature, 8)
-	accum.add(Weights[start+sq.POV(us).Rank()])
+	groupByBucket(feature, sq.POV(us).Rank(), 8, accum)
 }
 
 func groupByRank(feature featureType, us Color, bb Bitboard, accum *Accum) {
