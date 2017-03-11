@@ -228,9 +228,6 @@ func scaleToCentipawns(score int32) int32 {
 }
 
 func init() {
-	// Initialize weights.
-	initWeights()
-
 	// Initialize futility figure bonus.
 	if len(Weights) != 0 {
 		for i, w := range Weights[:FigureArraySize] {

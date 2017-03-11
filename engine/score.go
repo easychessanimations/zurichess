@@ -35,6 +35,3 @@ func (a *Accum) deduct(o Accum) {
 	a.M -= o.M
 	a.E -= o.E
 }
-
-func initWeights() {
-}

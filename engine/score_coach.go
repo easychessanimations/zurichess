@@ -56,6 +56,3 @@ func (a *Accum) deduct(o Accum) {
 		a.Values[i] -= o.Values[i]
 	}
 }
-
-func initWeights() {
-}
