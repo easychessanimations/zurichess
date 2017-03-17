@@ -53,7 +53,7 @@ func pawnsHash(pos *Position) uint64 {
 	h := murmurSeed[pos.Us()]
 	h = murmurMix(h, uint64(pos.ByPiece2(White, Pawn, King)))
 	h = murmurMix(h, uint64(pos.ByPiece2(Black, Pawn, King)))
-	h = murmurMix(h, uint64(pos.ByFigure[Pawn]))
+	h = murmurMix(h, uint64(pos.ByFigure(Pawn)))
 	return h
 }
 

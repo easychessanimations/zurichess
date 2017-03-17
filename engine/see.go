@@ -49,8 +49,8 @@ func see(pos *Position, m Move) int32 {
 	bb18 := bb & (BbRank1 | BbRank8)
 
 	var occ [ColorArraySize]Bitboard
-	occ[White] = pos.ByColor[White]
-	occ[Black] = pos.ByColor[Black]
+	occ[White] = pos.ByColor(White)
+	occ[Black] = pos.ByColor(Black)
 
 	// Occupancy tables as if moves are executed.
 	occ[us] &^= m.From().Bitboard()
@@ -76,12 +76,12 @@ func see(pos *Position, m Move) int32 {
 
 		// Pawn attacks.
 		pawn = Backward(us, West(bb27)|East(bb27))
-		if att = pawn & ours & pos.ByFigure[Pawn]; att != 0 {
+		if att = pawn & ours & pos.ByFigure(Pawn); att != 0 {
 			fig = Pawn
 			goto makeMove
 		}
 
-		if att = KnightMobility(sq) & ours & pos.ByFigure[Knight]; att != 0 {
+		if att = KnightMobility(sq) & ours & pos.ByFigure(Knight); att != 0 {
 			fig = Knight
 			goto makeMove
 		}
@@ -92,30 +92,30 @@ func see(pos *Position, m Move) int32 {
 		}
 
 		bishop = BishopMobility(sq, all)
-		if att = bishop & ours & pos.ByFigure[Bishop]; att != 0 {
+		if att = bishop & ours & pos.ByFigure(Bishop); att != 0 {
 			fig = Bishop
 			goto makeMove
 		}
 
 		rook = RookMobility(sq, all)
-		if att = rook & ours & pos.ByFigure[Rook]; att != 0 {
+		if att = rook & ours & pos.ByFigure(Rook); att != 0 {
 			fig = Rook
 			goto makeMove
 		}
 
 		// Pawn promotions are considered queens minus the pawn.
 		pawn = Backward(us, West(bb18)|East(bb18))
-		if att = pawn & ours & pos.ByFigure[Pawn]; att != 0 {
+		if att = pawn & ours & pos.ByFigure(Pawn); att != 0 {
 			fig, mt = Queen, Promotion
 			goto makeMove
 		}
 
-		if att = (rook | bishop) & ours & pos.ByFigure[Queen]; att != 0 {
+		if att = (rook | bishop) & ours & pos.ByFigure(Queen); att != 0 {
 			fig = Queen
 			goto makeMove
 		}
 
-		if att = KingMobility(sq) & ours & pos.ByFigure[King]; att != 0 {
+		if att = KingMobility(sq) & ours & pos.ByFigure(King); att != 0 {
 			fig = King
 			goto makeMove
 		}

@@ -129,7 +129,7 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 func evaluate(pos *Position, us Color) Accum {
 	var accum Accum
 	them := us.Opposite()
-	all := pos.ByColor[White] | pos.ByColor[Black]
+	all := pos.ByColor(White) | pos.ByColor(Black)
 	danger := PawnThreats(pos, them)
 	ourPawns := pos.ByPiece(us, Pawn)
 	theirPawns := pos.ByPiece(them, Pawn)

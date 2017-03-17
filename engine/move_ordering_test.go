@@ -23,7 +23,7 @@ func TestOrdersViolentMovesByMVVLVA(t *testing.T) {
 
 		limit := int16(0x7fff)
 		for move := st.PopMove(); move != NullMove; move = st.PopMove() {
-			if curr := mvvlva(st.history, move); curr > limit {
+			if curr := mvvlva(move); curr > limit {
 				t.Errorf("moves not sorted: %v", move)
 			} else {
 				limit = curr
