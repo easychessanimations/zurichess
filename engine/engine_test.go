@@ -168,7 +168,9 @@ func BenchmarkGame(b *testing.B) {
 			tc := NewFixedDepthTimeControl(pos, 4)
 			tc.Start(false)
 			_, pv := eng.Play(tc)
-			eng.DoMove(pv[0])
+			if len(pv) > 0 {
+				eng.DoMove(pv[0])
+			}
 		}
 	}
 }
