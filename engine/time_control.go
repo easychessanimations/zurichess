@@ -75,7 +75,7 @@ func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 		BInc:       0,
 		Depth:      64,
 		MovesToGo:  defaultMovesToGo,
-		sideToMove: pos.SideToMove,
+		sideToMove: pos.Us(),
 		predicted:  predicted,
 		branch:     branch,
 	}
