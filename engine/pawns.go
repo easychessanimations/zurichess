@@ -22,7 +22,7 @@ type pawnsEntry struct {
 }
 
 // pawnsTable implements a fixed size cache.
-type pawnsTable [1 << 11]pawnsEntry
+type pawnsTable [1 << 13]pawnsEntry
 
 // put puts a new entry in the cache.
 func (c *pawnsTable) put(lock uint64, white, black Accum) {
