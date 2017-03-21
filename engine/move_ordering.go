@@ -28,13 +28,7 @@ var mvvlvaBonus = [...]int16{0, 10, 40, 45, 68, 145, 256}
 
 // mvvlva computes Most Valuable Victim / Least Valuable Aggressor
 // https://chessprogramming.wikispaces.com/MVV-LVA
-func mvvlva(h *historyTable, m Move) int16 {
-	if m.IsQuiet() {
-		// Sort quiet moves by how well they performed.
-		// Start at a very low score (-20000) so it doesn't overlap good/bad captures range.
-		return int16(-20000 + h.get(m))
-	}
-
+func mvvlva(m Move) int16 {
 	a := m.Target().Figure()
 	v := m.Capture().Figure()
 	return mvvlvaBonus[v]*64 - mvvlvaBonus[a]
@@ -90,6 +84,7 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 }
 
 // generateMoves generates all moves.
+// kind must be one of Violent or Quiet.
 func (st *stack) generateMoves(kind int) {
 	ms := &st.moves[st.position.Ply]
 	if len(ms.moves) != 0 || len(ms.order) != 0 {
@@ -99,9 +94,17 @@ func (st *stack) generateMoves(kind int) {
 		return
 	}
 	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
-	for _, m := range ms.moves {
-		ms.order = append(ms.order, mvvlva(st.history, m))
+	if kind == Violent {
+		for _, m := range ms.moves {
+			ms.order = append(ms.order, mvvlva(m))
+		}
+	} else {
+		for _, m := range ms.moves {
+			h := st.history.get(m)
+			ms.order = append(ms.order, int16(h))
+		}
 	}
+
 	st.sort()
 }
 
