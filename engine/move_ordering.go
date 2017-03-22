@@ -34,10 +34,15 @@ func mvvlva(m Move) int16 {
 	return mvvlvaBonus[v]*64 - mvvlvaBonus[a]
 }
 
+type orderedMove struct {
+	move Move  // move
+	key  int16 // sort key
+}
+
 // movesStack is a stack of moves.
 type moveStack struct {
-	moves []Move  // list of moves
-	order []int16 // weight of each move for comparison
+	moves []orderedMove // list of moves with an order key
+	buf   []Move        // a buffer of moves
 
 	kind   int     // violent or all
 	state  int     // current generation state
@@ -64,8 +69,7 @@ func (st *stack) Reset(pos *Position) {
 func (st *stack) get() *moveStack {
 	for len(st.moves) <= st.position.Ply {
 		st.moves = append(st.moves, moveStack{
-			moves: make([]Move, 0, 16),
-			order: make([]int16, 0, 16),
+			moves: make([]orderedMove, 0, 16),
 		})
 	}
 	return &st.moves[st.position.Ply]
@@ -75,7 +79,6 @@ func (st *stack) get() *moveStack {
 func (st *stack) GenerateMoves(kind int, hash Move) {
 	ms := st.get()
 	ms.moves = ms.moves[:0] // clear the array, but keep the backing memory
-	ms.order = ms.order[:0]
 	ms.kind = kind
 	ms.state = msHash
 	ms.hash = hash
@@ -87,24 +90,25 @@ func (st *stack) GenerateMoves(kind int, hash Move) {
 // kind must be one of Violent or Quiet.
 func (st *stack) generateMoves(kind int) {
 	ms := &st.moves[st.position.Ply]
-	if len(ms.moves) != 0 || len(ms.order) != 0 {
+	if len(ms.moves) != 0 {
 		panic("expected no moves")
 	}
 	if ms.kind&kind == 0 {
 		return
 	}
-	st.position.GenerateMoves(ms.kind&kind, &ms.moves)
+
+	ms.buf = ms.buf[:0]
+	st.position.GenerateMoves(ms.kind&kind, &ms.buf)
 	if kind == Violent {
-		for _, m := range ms.moves {
-			ms.order = append(ms.order, mvvlva(m))
+		for _, m := range ms.buf {
+			ms.moves = append(ms.moves, orderedMove{m, mvvlva(m)})
 		}
 	} else {
-		for _, m := range ms.moves {
+		for _, m := range ms.buf {
 			h := st.history.get(m)
-			ms.order = append(ms.order, int16(h))
+			ms.moves = append(ms.moves, orderedMove{m, int16(h)})
 		}
 	}
-
 	st.sort()
 }
 
@@ -114,14 +118,12 @@ var shellSortGaps = [...]int{132, 57, 23, 10, 4, 1}
 func (st *stack) sort() {
 	ms := &st.moves[st.position.Ply]
 	for _, gap := range shellSortGaps {
-		for i := gap; i < len(ms.order); i++ {
-			j := i
-			to, tm := ms.order[j], ms.moves[j]
-			for ; j >= gap && ms.order[j-gap] > to; j -= gap {
-				ms.order[j] = ms.order[j-gap]
+		for i := gap; i < len(ms.moves); i++ {
+			j, t := i, ms.moves[i]
+			for ; j >= gap && ms.moves[j-gap].key > t.key; j -= gap {
 				ms.moves[j] = ms.moves[j-gap]
 			}
-			ms.order[j], ms.moves[j] = to, tm
+			ms.moves[j] = t
 		}
 	}
 }
@@ -134,9 +136,8 @@ func (st *stack) popFront() Move {
 	}
 
 	last := len(ms.moves) - 1
-	move := ms.moves[last]
+	move := ms.moves[last].move
 	ms.moves = ms.moves[:last]
-	ms.order = ms.order[:last]
 	return move
 }
 
@@ -183,16 +184,13 @@ func (st *stack) PopMove() Move {
 			cm := st.counter[st.counterIndex()]
 			if cm != ms.killer[0] && cm != ms.killer[1] && cm != NullMove {
 				ms.killer[2] = cm
-				ms.moves = append(ms.moves, cm)
-				ms.order = append(ms.order, -2)
+				ms.moves = append(ms.moves, orderedMove{cm, -2})
 			}
 			if m := ms.killer[1]; m != NullMove {
-				ms.moves = append(ms.moves, m)
-				ms.order = append(ms.order, -1)
+				ms.moves = append(ms.moves, orderedMove{m, -1})
 			}
 			if m := ms.killer[0]; m != NullMove {
-				ms.moves = append(ms.moves, m)
-				ms.order = append(ms.order, 0)
+				ms.moves = append(ms.moves, orderedMove{m, 0})
 			}
 
 		case msReturnKiller:

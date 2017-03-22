@@ -65,7 +65,7 @@ func TestReturnsMoves(t *testing.T) {
 		st.GenerateMoves(Violent|Quiet, moves[1234567891%len(moves)])
 		for m := st.PopMove(); m != NullMove; m = st.PopMove() {
 			if seen[m]&2 != 0 {
-				t.Errorf("move %v is duplicate", m)
+				t.Errorf("move %v is duplicate: %s", m, fen)
 			}
 			seen[m] |= 2
 		}
