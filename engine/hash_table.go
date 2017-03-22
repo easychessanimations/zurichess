@@ -111,7 +111,7 @@ func (ht *HashTable) put(pos *Position, entry hashEntry) {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)
 	entry.lock = lock
 
-	if e := &ht.table[key0]; e.lock == lock || e.kind == 0 || e.depth+1 >= entry.depth {
+	if e := &ht.table[key0]; e.lock == lock || e.kind == 0 || e.depth >= entry.depth {
 		ht.table[key0] = entry
 	} else {
 		ht.table[key1] = entry
