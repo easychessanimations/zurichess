@@ -102,7 +102,7 @@ func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
 	hi := uint32(lock >> 32)
 	lo := uint32(lock)
 	h0 := lo & mask
-	h1 := h0 ^ (lo >> 29)
+	h1 := h0 ^ 1
 	return hi, h0, h1
 }
 
