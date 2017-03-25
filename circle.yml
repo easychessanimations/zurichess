@@ -1,19 +1,25 @@
-dependencies:
+machine:
+  environment:
+    GOPATH: "$HOME/gocode"
+    ROOTPATH: "$HOME/gocode/src/bitbucket.org/zurichess/zurichess"
+
+checkout:
+  post:
+    - rm -rf $GOPATH/src
+    - mkdir -p $GOPATH/src/bitbucket.org/zurichess
+    - ln -s $HOME/$CIRCLE_PROJECT_REPONAME $ROOTPATH
+
+compile:   
   override:
-    - go get -t -d -v ./...
-    - go build -v ./...
-    - go build -v -o ./zurichess/zurichess ./zurichess
+    - cd $ROOTPATH && go build -v ./...
+    - cd $ROOTPATH && go install -v ./zurichess
 
 test:
+  pre:
+    - cd $ROOTPATH && go vet ./...
   override:
-    - go test -v -race ./...
+    - cd $ROOTPATH && go test -v -race ./...
 
 general:
   artifacts:
-    - "zurichess/zurichess"
-
-machine:
-  environment:
-    GOROOT: ""
-    PATH: "/usr/local/go/bin:/usr/local/go_workspace/bin:~/.go_workspace/bin:${PATH}"
-    GOPATH: "${HOME}/.go_workspace:/usr/local/go_workspace:${HOME}/.go_project"
+    - "$ROOTPATH/bin/zurichess"
