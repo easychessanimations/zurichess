@@ -106,6 +106,12 @@ func split(lock uint64, mask uint32) (uint32, uint32, uint32) {
 	return hi, h0, h1
 }
 
+// prefetch prefetches the hash entry into lower caches.
+func (ht *HashTable) prefetch(pos *Position) {
+	_, key0, _ := split(pos.Zobrist(), ht.mask)
+	prefetch(&ht.table[key0&^1])
+}
+
 // put puts a new entry in the database.
 func (ht *HashTable) put(pos *Position, entry hashEntry) {
 	lock, key0, key1 := split(pos.Zobrist(), ht.mask)

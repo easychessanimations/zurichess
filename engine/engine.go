@@ -202,6 +202,7 @@ func (eng *Engine) SetPosition(pos *Position) {
 // DoMove executes a move.
 func (eng *Engine) DoMove(move Move) {
 	eng.Position.DoMove(move)
+	GlobalHashTable.prefetch(eng.Position)
 }
 
 // UndoMove undoes the last move.
