@@ -55,6 +55,7 @@ const (
 	fKingEnemyPassedPawnTropism featureType = "KingEnemyPassedPawnTropism"
 
 	// Other stuff.
+	fAttackedMinors     featureType = "AttackedMinors"
 	fRookOnOpenFile     featureType = "RookOnOpenFile"
 	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
 

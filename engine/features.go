@@ -37,21 +37,22 @@ const (
 	fQueenFile                  featureType = 65
 	fQueenRank                  featureType = 73
 	fQueenAttack                featureType = 81
-	fKingAttackers              featureType = 82
-	fPawnSquare                 featureType = 86
-	fBackwardPawns              featureType = 150
-	fConnectedPawns             featureType = 151
-	fDoubledPawns               featureType = 152
-	fIsolatedPawns              featureType = 153
-	fKingFile                   featureType = 154
-	fKingRank                   featureType = 162
-	fKingAttack                 featureType = 170
-	fKingShelterNear            featureType = 171
-	fKingShelterFar             featureType = 172
-	fKingShelterFront           featureType = 173
-	fKingPassedPawnTropism      featureType = 174
-	fKingEnemyPassedPawnTropism featureType = 182
-	fPassedPawnRank             featureType = 190
+	fAttackedMinors             featureType = 82
+	fKingAttackers              featureType = 83
+	fPawnSquare                 featureType = 87
+	fBackwardPawns              featureType = 151
+	fConnectedPawns             featureType = 152
+	fDoubledPawns               featureType = 153
+	fIsolatedPawns              featureType = 154
+	fKingFile                   featureType = 155
+	fKingRank                   featureType = 163
+	fKingAttack                 featureType = 171
+	fKingShelterNear            featureType = 172
+	fKingShelterFar             featureType = 173
+	fKingShelterFront           featureType = 174
+	fKingPassedPawnTropism      featureType = 175
+	fKingEnemyPassedPawnTropism featureType = 183
+	fPassedPawnRank             featureType = 191
 )
 
 func getFeatureStart(feature featureType, num int) int {

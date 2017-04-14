@@ -151,11 +151,13 @@ func evaluate(pos *Position, us Color) Accum {
 	groupByBoard(fMajorsPawnsPotentialAttack, Majors(pos, us)&Backward(us, danger), &accum)
 
 	numAttackers := 0
+	attacks := PawnThreats(pos, us)
 
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
+		attacks |= mobility
 		mobility &^= danger | ourPawns
 		groupByFileSq(fKnightFile, us, sq, &accum)
 		groupByRankSq(fKnightRank, us, sq, &accum)
@@ -168,6 +170,7 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
+		attacks |= mobility
 		mobility &^= danger | ourPawns
 		groupByFileSq(fBishopFile, us, sq, &accum)
 		groupByRankSq(fBishopRank, us, sq, &accum)
@@ -182,6 +185,7 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
+		attacks |= mobility
 		mobility &^= danger | ourPawns
 		groupByFileSq(fRookFile, us, sq, &accum)
 		groupByRankSq(fRookRank, us, sq, &accum)
@@ -196,6 +200,7 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
+		attacks |= mobility
 		mobility &^= danger | ourPawns
 		groupByFileSq(fQueenFile, us, sq, &accum)
 		groupByRankSq(fQueenRank, us, sq, &accum)
@@ -205,6 +210,7 @@ func evaluate(pos *Position, us Color) Accum {
 		}
 	}
 
+	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)
 	groupByBucket(fKingAttackers, numAttackers, 4, &accum)
 	return accum
 }
@@ -215,7 +221,7 @@ func Phase(pos *Position) int32 {
 	total := int32(4*1 + 4*1 + 4*3 + 2*6)
 	curr := total
 	curr -= pos.ByFigure(Knight).Count() * 1
-	curr -= pos.ByFigure(Bishop).Count()  * 1
+	curr -= pos.ByFigure(Bishop).Count() * 1
 	curr -= pos.ByFigure(Rook).Count() * 3
 	curr -= pos.ByFigure(Queen).Count() * 6
 	return (curr*256 + total/2) / total
