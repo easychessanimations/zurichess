@@ -56,6 +56,7 @@ const (
 
 	// Other stuff.
 	fAttackedMinors     featureType = "AttackedMinors"
+	fBishopPair         featureType = "BishopPair"
 	fRookOnOpenFile     featureType = "RookOnOpenFile"
 	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
 

@@ -211,6 +211,7 @@ func evaluate(pos *Position, us Color) Accum {
 	}
 
 	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)
+	groupByBool(fBishopPair, pos.ByPiece(us, Bishop).CountMax2() == 2, &accum)
 	groupByBucket(fKingAttackers, numAttackers, 4, &accum)
 	return accum
 }
