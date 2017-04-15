@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	buildVersion = "jura"
+	buildVersion = "luzern"
 	buildTime    = "(just now)"
 
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")

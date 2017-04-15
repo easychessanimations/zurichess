@@ -7,11 +7,27 @@ in alphabetical order.
 ??.???.????
 
 
+An overview of the most important changes is:
+
+* Split engine package into board package providing board functionality,
+and engine package providing search functionality.
+* ~16% faster search:
+    * Prefetching hash entry on AMD64.
+    * Using popcnt with the Go1.9 compiler.
+    * Removing some duplicate IsPseudoLegal calls.
+    * Tracking pieces on the table, don't rely on bitboard for Position.Get().
+* Improve evaluation:
+    * Evaluate defended minors.
+    * Evaluate pawn attacks an potential pawn attacks.
+* Usual code clean ups, speed ups and bug fixes.
 
 ## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (stable)
 17.Jan.2017
 
 `git clone -b release.jura https://bitbucket.org/zurichess/zurichess.git`
+
+The theme of this release is code simplifications and tweakings.
+Elo is about 2753 on CCRL 40/40 and 2587 on CEGT 40/20.
 
 An overview of the most important changes is:
 
