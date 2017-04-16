@@ -157,8 +157,8 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq)
-		attacks |= mobility
 		mobility &^= danger | ourPawns
+		attacks |= mobility
 		groupByFileSq(fKnightFile, us, sq, &accum)
 		groupByRankSq(fKnightRank, us, sq, &accum)
 		groupByBoard(fKnightAttack, mobility, &accum)
@@ -185,8 +185,8 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all)
-		attacks |= mobility
 		mobility &^= danger | ourPawns
+		attacks |= mobility
 		groupByFileSq(fRookFile, us, sq, &accum)
 		groupByRankSq(fRookRank, us, sq, &accum)
 		groupByBoard(fRookAttack, mobility, &accum)
@@ -200,8 +200,8 @@ func evaluate(pos *Position, us Color) Accum {
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all)
-		attacks |= mobility
 		mobility &^= danger | ourPawns
+		attacks |= mobility
 		groupByFileSq(fQueenFile, us, sq, &accum)
 		groupByRankSq(fQueenRank, us, sq, &accum)
 		groupByBoard(fQueenAttack, mobility, &accum)
