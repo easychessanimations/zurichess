@@ -229,7 +229,7 @@ func (st *stack) IsKiller(m Move) bool {
 
 // SaveKiller saves a killer move, m.
 func (st *stack) SaveKiller(m Move) {
-	ms := &st.moves[st.position.Ply]
+	ms := st.get()
 	if !m.IsViolent() {
 		st.counter[st.counterIndex()] = m
 		// Move the newly found killer first.

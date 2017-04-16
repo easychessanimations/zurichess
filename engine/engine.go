@@ -494,6 +494,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		hash = NullMove
 	}
 	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
+		if score >= β && hash != NullMove {
+			eng.stack.SaveKiller(hash)
+		}
 		return score
 	}
 
