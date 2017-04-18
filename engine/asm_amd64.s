@@ -5,7 +5,7 @@
 #include "funcdata.h"
 
 TEXT ·prefetch(SB), $0-8
-       MOVQ       addr+0(FP), AX
+       MOVQ       e+0(FP), AX
        PREFETCHNTA (AX)
        RET
 
