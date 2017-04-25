@@ -55,7 +55,7 @@ type stack struct {
 	position *Position
 	moves    []moveStack
 	history  *historyTable
-	counter  *[1 << 11]Move // counter moves table
+	counter  [1 << 11]Move // counter moves table
 }
 
 // Reset clear the stack for a new position.

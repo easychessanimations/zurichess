@@ -180,10 +180,7 @@ func NewEngine(pos *Position, log Logger, options Options) *Engine {
 		Log:     log,
 		pvTable: newPvTable(),
 		history: history,
-		stack: stack{
-			history: history,
-			counter: new([1 << 11]Move),
-		},
+		stack:   stack{history: history},
 	}
 	eng.SetPosition(pos)
 	return eng
