@@ -116,14 +116,14 @@ func (st *stack) generateMoves(kind int) {
 var shellSortGaps = [...]int{132, 57, 23, 10, 4, 1}
 
 func (st *stack) sort() {
-	ms := &st.moves[st.position.Ply]
+	moves := st.moves[st.position.Ply].moves
 	for _, gap := range shellSortGaps {
-		for i := gap; i < len(ms.moves); i++ {
-			j, t := i, ms.moves[i]
-			for ; j >= gap && ms.moves[j-gap].key > t.key; j -= gap {
-				ms.moves[j] = ms.moves[j-gap]
+		for i := gap; i < len(moves); i++ {
+			j, t := i, moves[i]
+			for ; j >= gap && moves[j-gap].key > t.key; j -= gap {
+				moves[j] = moves[j-gap]
 			}
-			ms.moves[j] = t
+			moves[j] = t
 		}
 	}
 }
