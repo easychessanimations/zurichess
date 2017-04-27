@@ -363,16 +363,17 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	return localα
 }
 
-// tryMove makes a move and descends on the search tree.
+// tryMove descends on the search tree. This function
+// is called from searchTree after the move is executed
+// and it will undo the move.
 //
 // α, β represent lower and upper bounds.
 // depth is the remaining depth (decreasing)
 // lmr is how much to reduce a late move. Implies non-null move.
 // nullWindow indicates whether to scout first. Implies non-null move.
-// move is the move to execute. Can be NullMove.
 //
 // Returns the score from the deeper search.
-func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool, move Move) int32 {
+func (eng *Engine) tryMove(α, β, depth, lmr int32, nullWindow bool) int32 {
 	depth--
 
 	score := α + 1
@@ -509,7 +510,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		(entry.kind&hasStatic == 0 || int32(entry.static) >= β) {
 		eng.DoMove(NullMove)
 		reduction := 1 + depth/3
-		score := eng.tryMove(β-1, β, depth-reduction, 0, false, NullMove)
+		score := eng.tryMove(β-1, β, depth-reduction, 0, false)
 		if score >= β && score < KnownWinScore {
 			return score
 		}
@@ -606,7 +607,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			continue
 		}
 
-		score := eng.tryMove(max(α, localα), β, newDepth, lmr, nullWindow, move)
+		score := eng.tryMove(max(α, localα), β, newDepth, lmr, nullWindow)
 
 		if score >= β {
 			// Fail high, cut node.
