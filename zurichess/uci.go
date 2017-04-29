@@ -25,8 +25,8 @@ var (
 )
 
 const (
-	maxMultiPV    = 16
-	maxSkillLevel = 20
+	maxMultiPV       = 16
+	maxHandicapLevel = 20
 )
 
 // uciLogger outputs search in uci format.
@@ -80,7 +80,7 @@ func (ul *uciLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {
 
 func (ul *uciLogger) CurrMove(depth int, move Move, num int) {
 	if depth > 15 && time.Now().Sub(ul.start) > 5*time.Second {
-		fmt.Fprintf(ul.buf, "info depth %d currmove %v currmovenumber %d\n", depth, move, num)
+		fmt.Fprintf(ul.buf, "info depth %d currmove %v currmovenumber %d\n", depth, move.UCI(), num)
 		ul.flush()
 	}
 }
@@ -176,7 +176,7 @@ func (uci *UCI) uci(line string) error {
 	fmt.Printf("option name Hash type spin default %v min 1 max 65536\n", DefaultHashTableSizeMB)
 	fmt.Printf("option name MultiPV type spin default %d min 1 max %d\n", uci.Engine.Options.MultiPV, maxMultiPV)
 	fmt.Printf("option name Ponder type check default true\n")
-	fmt.Printf("option name Skill Level type spin default %d min 0 max %d\n", uci.Engine.Options.SkillLevel, maxSkillLevel)
+	fmt.Printf("option name Handicap Level type spin default %d min 0 max %d\n", uci.Engine.Options.HandicapLevel, maxHandicapLevel)
 	fmt.Printf("option name UCI_AnalyseMode type check default false\n")
 	fmt.Println("uciok")
 	return nil
@@ -399,13 +399,13 @@ func (uci *UCI) setoption(line string) error {
 			return fmt.Errorf("MultiPV must be between 1 and %d", maxMultiPV)
 		}
 		return nil
-	case "Skill Level":
-		if skill, err := strconv.ParseInt(option[3], 10, 64); err != nil {
+	case "Handicap Level":
+		if handicap, err := strconv.ParseInt(option[3], 10, 64); err != nil {
 			return err
-		} else if 0 <= skill && skill <= maxSkillLevel {
-			uci.Engine.Options.SkillLevel = int(skill)
+		} else if 0 <= handicap && handicap <= maxHandicapLevel {
+			uci.Engine.Options.HandicapLevel = int(handicap)
 		} else {
-			return fmt.Errorf("Skill Level must be between 0 and %d", maxSkillLevel)
+			return fmt.Errorf("Handicap Level must be between 0 and %d", maxHandicapLevel)
 		}
 		return nil
 	default:

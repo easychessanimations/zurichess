@@ -65,9 +65,9 @@ const (
 
 // Options keeps engine's options.
 type Options struct {
-	AnalyseMode bool // true to display info strings
-	MultiPV     int
-	SkillLevel  int
+	AnalyseMode   bool // true to display info strings
+	MultiPV       int
+	HandicapLevel int
 }
 
 // Stats stores statistics about the search.
@@ -684,12 +684,12 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	}
 
 	multiPV := eng.Options.MultiPV
-	searchMultiPV := (eng.Options.SkillLevel+4)/5 + 1
+	searchMultiPV := (eng.Options.HandicapLevel+4)/5 + 1
 	if multiPV < searchMultiPV {
 		multiPV = searchMultiPV
 	}
 
-	pvs := make([]pv, 0, eng.Options.MultiPV)
+	pvs := make([]pv, 0, multiPV)
 	eng.ignoreRootMoves = eng.ignoreRootMoves[:0]
 	for p := 0; p < multiPV; p++ {
 		estimated = eng.search(depth, estimated)
@@ -729,16 +729,16 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	}
 
 	// For best play return the PV with highest score.
-	if eng.Options.SkillLevel == 0 || len(pvs) <= 1 {
+	if eng.Options.HandicapLevel == 0 || len(pvs) <= 1 {
 		return pvs[0].score, pvs[0].moves
 	}
 
 	// PVs are sorted by score. Pick one PV at random
 	// and if the score is not too far off, return it.
-	s := int32(eng.Options.SkillLevel)
+	s := int32(eng.Options.HandicapLevel)
 	d := s*s/2 + s*10 + 5
 	n := rand.Intn(len(pvs))
-	if rand.Intn(eng.Options.SkillLevel) == 0 {
+	if rand.Intn(eng.Options.HandicapLevel) == 0 {
 		if n1 := rand.Intn(len(pvs)); n1 > n {
 			n1 = n
 		}
