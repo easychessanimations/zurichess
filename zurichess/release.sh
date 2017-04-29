@@ -15,6 +15,7 @@ function make {
 
 export GOARM=7
 
+make  darwin amd64 ""
 make   linux amd64 ""
 make   linux   386 ""
 make   linux   arm ""
