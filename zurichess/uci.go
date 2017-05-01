@@ -410,6 +410,8 @@ func (uci *UCI) setoption(line string) error {
 			return fmt.Errorf("Handicap Level must be between 0 and %d", maxHandicapLevel)
 		}
 		return nil
+	case "Ponder":
+		return nil
 	default:
 		return fmt.Errorf("unhandled option %s", option[1])
 	}
