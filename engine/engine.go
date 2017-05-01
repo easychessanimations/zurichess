@@ -125,6 +125,13 @@ func historyHash(m Move) uint32 {
 	return (h + (h << 17)) >> 20
 }
 
+// newSearch updates the stats before a new search.
+func (ht *historyTable) newSearch() {
+	for i := range ht {
+		ht[i].stat /= 8
+	}
+}
+
 // get returns the stats for a move, m.
 // If the move is not in the table, returns 0.
 func (ht *historyTable) get(m Move) int32 {
@@ -767,6 +774,7 @@ func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 	eng.stopped = false
 	eng.checkpoint = checkpointStep
 	eng.stack.Reset(eng.Position)
+	eng.history.newSearch()
 
 	for depth := int32(0); depth < 64; depth++ {
 		if !tc.NextDepth(depth) {
