@@ -208,8 +208,10 @@ func (uci *UCI) position(line string) error {
 		pos, err = PositionFromFEN(FENStartPos)
 		i++
 	case "fen":
-		pos, err = PositionFromFEN(strings.Join(args[1:7], " "))
-		i += 7
+		for i < len(args) && args[i] != "moves" {
+			i++
+		}
+		pos, err = PositionFromFEN(strings.Join(args[1:i], " "))
 	default:
 		err = fmt.Errorf("unknown position command: %s", args[0])
 	}
