@@ -11,7 +11,7 @@ import "sync"
 type featureType string
 
 const (
-	// Figure.
+	// Value of each figure.
 	fNoFigure featureType = "NoFigure"
 	fPawn     featureType = "Pawn"
 	fKnight   featureType = "Knight"
@@ -20,7 +20,9 @@ const (
 	fQueen    featureType = "Queen"
 	fKing     featureType = "King"
 
-	// PSqT
+	// PSqT for each figure from white's POV.
+	// For pawns evaluate each square, but other figures
+	// we only evaluate the coordinates.
 	fPawnSquare featureType = "PawnSquare"
 	fKnightFile featureType = "KnightFile"
 	fKnightRank featureType = "KnightRank"
@@ -33,38 +35,47 @@ const (
 	fKingFile   featureType = "KingFile"
 	fKingRank   featureType = "KingRank"
 
-	// Mobility.
+	// Mobility of each figure.
 	fKnightAttack featureType = "KnightAttack"
 	fBishopAttack featureType = "BishopAttack"
 	fRookAttack   featureType = "RookAttack"
 	fQueenAttack  featureType = "QueenAttack"
 	fKingAttack   featureType = "KingAttack"
 
-	// Pawn structur.
-	fBackwardPawns              featureType = "BackwardPawns"
-	fConnectedPawns             featureType = "ConnectedPawns"
-	fDoubledPawns               featureType = "DoubledPawns"
-	fIsolatedPawns              featureType = "IsolatedPawns"
-	fPassedPawnRank             featureType = "PassedPawnRank"
-	fPawnMobility               featureType = "PawnMobility"
-	fMinorsPawnsAttack          featureType = "MinorsPawnsAttack"
-	fMajorsPawnsAttack          featureType = "MajorsPawnsAttack"
+	// Pawn structure.
+	fBackwardPawns  featureType = "BackwardPawns"
+	fConnectedPawns featureType = "ConnectedPawns"
+	fDoubledPawns   featureType = "DoubledPawns"
+	fIsolatedPawns  featureType = "IsolatedPawns"
+	fPassedPawnRank featureType = "PassedPawnRank"
+	fPawnMobility   featureType = "PawnMobility"
+	// Minors and majors attacked by pawns.
+	fMinorsPawnsAttack featureType = "MinorsPawnsAttack"
+	fMajorsPawnsAttack featureType = "MajorsPawnsAttack"
+	// Minors and majors attacked after a pawn push.
 	fMinorsPawnsPotentialAttack featureType = "MinorsPawnsPotentialAttack"
 	fMajorsPawnsPotentialAttack featureType = "MajorsPawnsPotentialAttack"
-	fKingPassedPawnTropism      featureType = "KingPassedPawnTropism"
+	// How close is the king from a friendly passed pawn.
+	fKingPassedPawnTropism featureType = "KingPassedPawnTropism"
+	// How close is the king from an enemy passed pawn.
 	fKingEnemyPassedPawnTropism featureType = "KingEnemyPassedPawnTropism"
 
-	// Other stuff.
-	fAttackedMinors     featureType = "AttackedMinors"
-	fBishopPair         featureType = "BishopPair"
+	// Attacked minors.
+	fAttackedMinors featureType = "AttackedMinors"
+	// Bishop pair.
+	fBishopPair featureType = "BishopPair"
+	// Rook on open and semi-open files.
 	fRookOnOpenFile     featureType = "RookOnOpenFile"
 	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
 
-	// Shelter
-	fKingAttackers    featureType = "KingAttackers"
-	fKingShelterNear  featureType = "KingShelterNear"
+	// King safety.
+	fKingAttackers featureType = "KingAttackers"
+	// Pawn in king's area.
+	fKingShelterNear featureType = "KingShelterNear"
+	// Pawn in front of the king, on the same file.
 	fKingShelterFront featureType = "KingShelterFront"
-	fKingShelterFar   featureType = "KingShelterFar"
+	// Pawn in front of the king, including adjacent files.
+	fKingShelterFar featureType = "KingShelterFar"
 )
 
 var (

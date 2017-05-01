@@ -1,10 +1,10 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2017 The Zurichess Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 // material.go implements position evaluation.
 //
-// Zurichess' evaluation is a very simple neural network with no hidden layers,
+// Zurichess' evaluation is a simple neural network with no hidden layers,
 // and one output node y = W_m * x * (1-p) + W_e * x * p where W_m are
 // middle game weights, W_e are endgame weights, x is input, p is phase between
 // middle game and end game, and y is the score.
@@ -12,6 +12,8 @@
 // extracted from the position. These features are symmetrical wrt colors.
 // The network is trained using the Texel's Tuning Method
 // https://chessprogramming.wikispaces.com/Texel%27s+Tuning+Method.
+// Tuning is done by bitbucket.org/zurichess/tuner tool which uses
+// tensorflow.org machine learning framework.
 
 package engine
 
@@ -143,7 +145,8 @@ func evaluate(pos *Position, us Color) Accum {
 	groupByBoard(fQueen, pos.ByPiece(us, Queen), &accum)
 	groupByBoard(fKing, BbEmpty, &accum)
 
-	// Pawns
+	// Evaluate various pawn attacks and potential pawn attacks
+	// on the enemy pieces.
 	groupByBoard(fPawnMobility, ourPawns&^Backward(us, all), &accum)
 	groupByBoard(fMinorsPawnsAttack, Minors(pos, us)&danger, &accum)
 	groupByBoard(fMajorsPawnsAttack, Majors(pos, us)&danger, &accum)
@@ -156,8 +159,7 @@ func evaluate(pos *Position, us Color) Accum {
 	// Knight
 	for bb := pos.ByPiece(us, Knight); bb > 0; {
 		sq := bb.Pop()
-		mobility := KnightMobility(sq)
-		mobility &^= danger | ourPawns
+		mobility := KnightMobility(sq) &^ (danger | ourPawns)
 		attacks |= mobility
 		groupByFileSq(fKnightFile, us, sq, &accum)
 		groupByRankSq(fKnightRank, us, sq, &accum)
@@ -167,6 +169,7 @@ func evaluate(pos *Position, us Color) Accum {
 		}
 	}
 	// Bishop
+	// TODO Fix bishop's attack.
 	for bb := pos.ByPiece(us, Bishop); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
@@ -184,8 +187,7 @@ func evaluate(pos *Position, us Color) Accum {
 	semiOpenFiles := SemiOpenFiles(pos, us)
 	for bb := pos.ByPiece(us, Rook); bb > 0; {
 		sq := bb.Pop()
-		mobility := RookMobility(sq, all)
-		mobility &^= danger | ourPawns
+		mobility := RookMobility(sq, all) &^ (danger | ourPawns)
 		attacks |= mobility
 		groupByFileSq(fRookFile, us, sq, &accum)
 		groupByRankSq(fRookRank, us, sq, &accum)
@@ -199,8 +201,7 @@ func evaluate(pos *Position, us Color) Accum {
 	// Queen
 	for bb := pos.ByPiece(us, Queen); bb > 0; {
 		sq := bb.Pop()
-		mobility := QueenMobility(sq, all)
-		mobility &^= danger | ourPawns
+		mobility := QueenMobility(sq, all) &^ (danger | ourPawns)
 		attacks |= mobility
 		groupByFileSq(fQueenFile, us, sq, &accum)
 		groupByRankSq(fQueenRank, us, sq, &accum)
@@ -212,6 +213,11 @@ func evaluate(pos *Position, us Color) Accum {
 
 	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)
 	groupByBool(fBishopPair, pos.ByPiece(us, Bishop).CountMax2() == 2, &accum)
+
+	// Kink's safety is very primitive:
+	// - king's shelter is evaluated by evaluateShelter.
+	// - the following counts the number of attackers.
+	// TODO: Queen tropism which was dropped during the last refactoring.
 	groupByBucket(fKingAttackers, numAttackers, 4, &accum)
 	return accum
 }

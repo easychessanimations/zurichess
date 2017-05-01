@@ -493,6 +493,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
 		if score >= β && hash != NullMove {
+			// If this is CUT node, update the killer like in the regular move loop.
 			eng.stack.SaveKiller(hash)
 		}
 		return score
@@ -528,7 +529,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
+	// Principal variation search: search with a null window if there is already a good move.
 	bestMove, localα := NullMove, int32(-InfinityScore)
+	// True to search the move with a null window. Updated after the first move.
+	nullWindow := false
 
 	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
@@ -544,11 +548,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		allowLeafsPruning = true
 		static = eng.cachedScore(&entry)
 	}
-
-	// Principal variation search: search with a null window if there is already a good move.
-	nullWindow := false // updated once alpha is improved
-	// Late move reduction: search best moves with full depth, reduce remaining moves.
-	allowLateMove := !sideIsChecked && depth > lmrDepthLimit
 
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
@@ -589,9 +588,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			critical = true
 		}
 
-		// Reduce late quiet moves and bad captures.
+		// Late move reduction: search best moves with full depth, reduce remaining moves.
 		lmr := int32(0)
-		if allowLateMove && !critical {
+		if !sideIsChecked && depth > lmrDepthLimit && !critical {
 			// Reduce quiet moves and bad captures more at high depths and after many quiet moves.
 			// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
 			if move.IsQuiet() {
