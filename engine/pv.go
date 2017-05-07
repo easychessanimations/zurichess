@@ -17,8 +17,6 @@ type pvEntry struct {
 	// lock is used to handled hash conflicts.
 	// Normally set to position's Zobrist key.
 	lock uint64
-	// When was the move added.
-	birth uint32
 	// move on pricipal variation for this position.
 	move Move
 }
@@ -32,21 +30,15 @@ type pvEntry struct {
 //
 // During alpha-beta search entries that are on principal variation,
 // are exact nodes, i.e. their score lies exactly between alpha and beta.
-type pvTable struct {
-	table []pvEntry
-	timer uint32
-}
+type pvTable []pvEntry
 
 // newPvTable returns a new pvTable.
 func newPvTable() pvTable {
-	return pvTable{
-		table: make([]pvEntry, pvTableSize),
-		timer: 0,
-	}
+	return pvTable(make([]pvEntry, pvTableSize))
 }
 
 // Put inserts a new entry.  Ignores NullMoves.
-func (pv *pvTable) Put(pos *Position, move Move) {
+func (pv pvTable) Put(pos *Position, move Move) {
 	if move == NullMove {
 		return
 	}
@@ -56,51 +48,24 @@ func (pv *pvTable) Put(pos *Position, move Move) {
 	// current position, then that one is replaced.
 	// Otherwise, the older is replaced.
 
-	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
-	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
 	zobrist := pos.Zobrist()
-
-	var entry *pvEntry
-	if entry1.lock == zobrist {
-		entry = entry1
-	} else if entry2.lock == zobrist {
-		entry = entry2
-	} else if entry1.birth <= entry2.birth {
-		entry = entry1
-	} else {
-		entry = entry2
-	}
-
-	pv.timer++
-	*entry = pvEntry{
-		lock:  pos.Zobrist(),
-		move:  move,
-		birth: pv.timer,
+	pv[zobrist&pvTableMask] = pvEntry{
+		lock: zobrist,
+		move: move,
 	}
 }
 
 // TODO: Lookup move in transposition table if none is available.
-func (pv *pvTable) get(pos *Position) Move {
-	entry1 := &pv.table[uint32(pos.Zobrist())&pvTableMask]
-	entry2 := &pv.table[uint32(pos.Zobrist()>>32)&pvTableMask]
+func (pv pvTable) get(pos *Position) Move {
 	zobrist := pos.Zobrist()
-
-	var entry *pvEntry
-	if entry1.lock == zobrist {
-		entry = entry1
+	if entry := &pv[zobrist&pvTableMask]; entry.lock == zobrist {
+		return entry.move
 	}
-	if entry2.lock == zobrist {
-		entry = entry2
-	}
-	if entry == nil {
-		return NullMove
-	}
-
-	return entry.move
+	return NullMove
 }
 
 // Get returns the principal variation.
-func (pv *pvTable) Get(pos *Position) []Move {
+func (pv pvTable) Get(pos *Position) []Move {
 	seen := make(map[uint64]bool)
 	var moves []Move
 
