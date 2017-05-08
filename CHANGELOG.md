@@ -3,9 +3,8 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (development)
-??.???.????
-
+## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (stable)
+08.May.2017
 
 An overview of the most important changes is:
 
@@ -19,9 +18,10 @@ and engine package providing search functionality.
 * Improve evaluation:
     * Evaluate defended minors.
     * Evaluate pawn attacks an potential pawn attacks.
+* Tweak history, killers and counters.
 * Usual code clean ups, speed ups and bug fixes.
 
-## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura) (stable)
+## zurichess [jura](https://en.wikipedia.org/wiki/Canton_of_Jura)
 17.Jan.2017
 
 `git clone -b release.jura https://bitbucket.org/zurichess/zurichess.git`
