@@ -79,7 +79,7 @@ func (ul *uciLogger) PrintPV(stats Stats, multiPV int, score int32, pv []Move) {
 }
 
 func (ul *uciLogger) CurrMove(depth int, move Move, num int) {
-	if depth > 15 && time.Now().Sub(ul.start) > 5*time.Second {
+	if depth > 15 && time.Now().Sub(ul.start) > 10*time.Second {
 		fmt.Fprintf(ul.buf, "info depth %d currmove %v currmovenumber %d\n", depth, move.UCI(), num)
 		ul.flush()
 	}
