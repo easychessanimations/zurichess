@@ -209,6 +209,9 @@ func evaluate(pos *Position, us Color) Accum {
 		if mobility&theirKingArea&^theirPawns != 0 {
 			numAttackers++
 		}
+
+		dist := distance[sq][pos.ByPiece(them, King).AsSquare()]
+		groupByCount(fKingQueenTropism, dist, &accum)
 	}
 
 	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)

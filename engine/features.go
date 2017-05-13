@@ -34,26 +34,27 @@ const (
 	fRookAttack                 featureType = 62
 	fRookOnOpenFile             featureType = 63
 	fRookOnSemiOpenFile         featureType = 64
-	fQueenFile                  featureType = 65
-	fQueenRank                  featureType = 73
-	fQueenAttack                featureType = 81
-	fAttackedMinors             featureType = 82
-	fBishopPair                 featureType = 83
-	fKingAttackers              featureType = 84
-	fPawnSquare                 featureType = 88
-	fBackwardPawns              featureType = 152
-	fConnectedPawns             featureType = 153
-	fDoubledPawns               featureType = 154
-	fIsolatedPawns              featureType = 155
-	fKingFile                   featureType = 156
-	fKingRank                   featureType = 164
-	fKingAttack                 featureType = 172
-	fKingShelterNear            featureType = 173
-	fKingShelterFar             featureType = 174
-	fKingShelterFront           featureType = 175
-	fKingPassedPawnTropism      featureType = 176
-	fKingEnemyPassedPawnTropism featureType = 184
-	fPassedPawnRank             featureType = 192
+	fAttackedMinors             featureType = 65
+	fBishopPair                 featureType = 66
+	fKingAttackers              featureType = 67
+	fPawnSquare                 featureType = 71
+	fBackwardPawns              featureType = 135
+	fConnectedPawns             featureType = 136
+	fDoubledPawns               featureType = 137
+	fIsolatedPawns              featureType = 138
+	fKingFile                   featureType = 139
+	fKingRank                   featureType = 147
+	fKingAttack                 featureType = 155
+	fKingShelterNear            featureType = 156
+	fKingShelterFar             featureType = 157
+	fKingShelterFront           featureType = 158
+	fKingPassedPawnTropism      featureType = 159
+	fKingEnemyPassedPawnTropism featureType = 167
+	fQueenFile                  featureType = 175
+	fQueenRank                  featureType = 183
+	fQueenAttack                featureType = 191
+	fKingQueenTropism           featureType = 192
+	fPassedPawnRank             featureType = 193
 )
 
 func getFeatureStart(feature featureType, num int) int {

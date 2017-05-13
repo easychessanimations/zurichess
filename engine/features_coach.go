@@ -67,6 +67,7 @@ const (
 	// Rook on open and semi-open files.
 	fRookOnOpenFile     featureType = "RookOnOpenFile"
 	fRookOnSemiOpenFile featureType = "RookOnSemiOpenFile"
+	fKingQueenTropism   featureType = "KingQueenTropism"
 
 	// King safety.
 	fKingAttackers featureType = "KingAttackers"
