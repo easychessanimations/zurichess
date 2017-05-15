@@ -3,6 +3,14 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+## zurichess [neuchatel](https://en.wikipedia.org/wiki/Canton_of_Neuch%C3%A2tel) (devel)
+??.???.????
+
+An overview of the most important changes is:
+
+* Improve evaluation:
+    * Add king-queen tropism.
+
 ## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (stable)
 08.May.2017
 
