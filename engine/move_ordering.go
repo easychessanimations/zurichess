@@ -173,7 +173,7 @@ func (st *stack) PopMove() Move {
 				} else {
 					ms.state = msGenKiller
 				}
-			} else if m != ms.hash && m != NullMove {
+			} else if m != ms.hash {
 				return m
 			}
 
