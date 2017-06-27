@@ -64,9 +64,6 @@ func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 	// Branch more when there are more pieces. With fewer pieces
 	// there is less mobility and hash table kicks in more often.
 	branch := 32
-	for np := (MinorsAndMajors(pos, White) | MinorsAndMajors(pos, Black)).Count(); np > 0; np /= 3 {
-		branch += 8
-	}
 
 	return &TimeControl{
 		WTime:      infinite,
