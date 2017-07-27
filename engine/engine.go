@@ -581,7 +581,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			// Prune bad captures moves that performed bad historically.
 			if isFutile(pos, static, α, depth*futilityMargin, move) ||
 				history < -10 && move.IsQuiet() ||
-				history < -10 && seeSign(pos, move) {
+				see(pos, move) < -futilityMargin {
 				dropped = true
 				continue
 			}
