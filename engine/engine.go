@@ -602,9 +602,14 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
 			if move.IsQuiet() {
 				lmr = 2 + min(depth, numMoves)/6
-			} else if seeSign(pos, move) {
-				lmr = 1 + min(depth, numMoves)/6
-			}
+			} else {
+                                see := see(pos, move)
+                                if see < -futilityMargin {
+                                        lmr = 2 + min(depth, numMoves)/6
+                                } else if see < 0 {
+                                        lmr = 1 + min(depth, numMoves)/6
+                                }
+                        }
 		}
 
 		// Skip illegal moves that leave the king in check.
