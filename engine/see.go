@@ -10,7 +10,7 @@ import . "bitbucket.org/zurichess/zurichess/board"
 
 // piece bonuses when calulating the see.
 // The values are fixed to approximatively the figure bonus in mid game.
-var seeBonus = [FigureArraySize]int32{0, 55, 325, 341, 454, 1110, 20000}
+var seeBonus = [FigureArraySize]int32{0, 100, 357, 377, 712, 12534, 20000}
 
 func seeScore(m Move) int32 {
 	score := seeBonus[m.Capture().Figure()]
