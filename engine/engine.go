@@ -1,4 +1,4 @@
-// Copyright 2014-2016 The Zurichess Authors. All rights reserved.
+// Copyright 2014-2017 The Zurichess Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -602,14 +602,11 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			// Large numMoves means it's likely not a CUT node.  Large depth means reductions are less risky.
 			if move.IsQuiet() {
 				lmr = 2 + min(depth, numMoves)/6
-			} else {
-                                see := see(pos, move)
-                                if see < -futilityMargin {
-                                        lmr = 2 + min(depth, numMoves)/6
-                                } else if see < 0 {
-                                        lmr = 1 + min(depth, numMoves)/6
-                                }
-                        }
+			} else if see := see(pos, move); see < -futilityMargin {
+				lmr = 2 + min(depth, numMoves)/6
+			} else if see < 0 {
+				lmr = 1 + min(depth, numMoves)/6
+			}
 		}
 
 		// Skip illegal moves that leave the king in check.
