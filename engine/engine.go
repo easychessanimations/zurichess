@@ -499,6 +499,11 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		hash = NullMove
 	}
 	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
+		if pvNode {
+			// Update the pv table, otherwise we risk not having a node at root
+			// if the pv entry was overwritten.
+			eng.pvTable.Put(pos, hash)
+		}
 		if score >= β && hash != NullMove {
 			// If this is CUT node, update the killer like in the regular move loop.
 			eng.stack.SaveKiller(hash)
