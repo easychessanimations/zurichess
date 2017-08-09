@@ -234,6 +234,7 @@ func Phase(pos *Position) int32 {
 	curr -= pos.ByFigure(Bishop).Count() * 1
 	curr -= pos.ByFigure(Rook).Count() * 3
 	curr -= pos.ByFigure(Queen).Count() * 6
+	curr = max(curr, 0)
 	return (curr*256 + total/2) / total
 }
 
