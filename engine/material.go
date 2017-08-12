@@ -44,34 +44,35 @@ var (
 
 // Eval contains necessary information for evaluation.
 type Eval struct {
-	Accum    Accum
+	// The scores.
+	// - Accum[NoColor] is the combined score
+	// - Accum[White] is White's score
+	// - Accum[Black] is Black's score
+	Accum [ColorArraySize]Accum
+	// Position evaluated.
+	position *Position
 }
 
-// Feed returns the score phased between midgame and endgame score.
-func (e *Eval) Feed(phase int32) int32 {
-	return (e.Accum.M*(256-phase) + e.Accum.E*phase) / 256
-}
-
-// Evaluate evaluates position from White's POV.
-// The returned s fits into a int16.
-func Evaluate(pos *Position) int32 {
-	e := EvaluatePosition(pos)
-	score := e.Feed(Phase(pos))
+// GetCentipawnsScore returns the current position evalution
+// in centipawns.
+func (e Eval) GetCentipawnsScore() int32 {
+	phase := Phase(e.position)
+	score := (e.Accum[NoColor].M*(256-phase) + e.Accum[NoColor].E*phase) / 256
 	return scaleToCentipawns(score)
 }
 
-// EvaluatePosition evaluates position exported to be used by the tuner.
-func EvaluatePosition(pos *Position) Eval {
-	w := evaluate(pos, White)
-	b := evaluate(pos, Black)
+// Evaluate evaluates the position pos.
+func Evaluate(pos *Position) Eval {
+	e := Eval{position: pos}
 
 	wps, bps := pawnsAndShelterCache.load(pos)
-	w.merge(wps)
-	b.merge(bps)
+	e.Accum[White] = evaluate(pos, White)
+	e.Accum[White].merge(wps)
+	e.Accum[Black] = evaluate(pos, Black)
+	e.Accum[Black].merge(bps)
 
-	e := Eval{}
-	e.Accum.merge(w)
-	e.Accum.deduct(b)
+	e.Accum[NoColor].merge(e.Accum[White])
+	e.Accum[NoColor].deduct(e.Accum[Black])
 	return e
 }
 

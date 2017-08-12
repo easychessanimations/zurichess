@@ -14,7 +14,7 @@ import (
 func TestScoreRange(t *testing.T) {
 	for _, fen := range TestFENs {
 		pos, _ := PositionFromFEN(fen)
-		score := Evaluate(pos)
+		score := Evaluate(pos).GetCentipawnsScore()
 		if KnownLossScore >= score || score >= KnownWinScore {
 			t.Errorf("expected %d in interval (%d, %d) for %s",
 				score, KnownLossScore, KnownWinScore, fen)

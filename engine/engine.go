@@ -216,7 +216,7 @@ func (eng *Engine) UndoMove() {
 
 // Score evaluates current position from current player's POV.
 func (eng *Engine) Score() int32 {
-	return Evaluate(eng.Position) * eng.Position.Us().Multiplier()
+	return Evaluate(eng.Position).GetCentipawnsScore() * eng.Position.Us().Multiplier()
 }
 
 // cachedScore implements a cache on top of Score.
