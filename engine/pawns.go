@@ -8,12 +8,6 @@ package engine
 
 import . "bitbucket.org/zurichess/zurichess/board"
 
-var murmurSeed = [ColorArraySize]uint64{
-	0x77a166129ab66e91,
-	0x4f4863d5038ea3a3,
-	0xe14ec7e648a4068b,
-}
-
 // pawnsTable is a cache entry.
 type pawnsEntry struct {
 	lock  uint64
@@ -55,13 +49,4 @@ func pawnsHash(pos *Position) uint64 {
 	h = murmurMix(h, uint64(pos.ByPiece2(Black, Pawn, King)))
 	h = murmurMix(h, uint64(pos.ByFigure(Pawn)))
 	return h
-}
-
-// murmuxMix function mixes two integers k&h.
-//
-// murmurMix is based on MurmurHash2 https://sites.google.com/site/murmurhash/ which is on public domain.
-func murmurMix(k, h uint64) uint64 {
-	h ^= k
-	h *= uint64(0xc6a4a7935bd1e995)
-	return h ^ (h >> uint(51))
 }

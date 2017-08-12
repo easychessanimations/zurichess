@@ -10,6 +10,12 @@ import . "bitbucket.org/zurichess/zurichess/board"
 // to reach from one square to another on an empty board.
 var distance [SquareArraySize][SquareArraySize]int32
 
+var murmurSeed = [ColorArraySize]uint64{
+	0x77a166129ab66e91,
+	0x4f4863d5038ea3a3,
+	0xe14ec7e648a4068b,
+}
+
 // max returns maximum of a and b.
 func max(a, b int32) int32 {
 	if a >= b {
@@ -24,6 +30,15 @@ func min(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+// murmuxMix function mixes two integers k&h.
+//
+// murmurMix is based on MurmurHash2 https://sites.google.com/site/murmurhash/ which is on public domain.
+func murmurMix(k, h uint64) uint64 {
+	h ^= k
+	h *= uint64(0xc6a4a7935bd1e995)
+	return h ^ (h >> uint(51))
 }
 
 func init() {
