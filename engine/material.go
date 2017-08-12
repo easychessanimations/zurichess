@@ -36,7 +36,7 @@ const (
 
 var (
 	// Evaluation caches.
-	pawnsAndShelterCache = &pawnsTable{}
+	pawnsAndShelterCache pawnsTable
 
 	// Figure bonuses to use when computing the futility margin.
 	futilityFigureBonus [FigureArraySize]int32
