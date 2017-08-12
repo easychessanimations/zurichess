@@ -45,7 +45,6 @@ var (
 // Eval contains necessary information for evaluation.
 type Eval struct {
 	Accum    Accum
-	position *Position
 }
 
 // Feed returns the score phased between midgame and endgame score.
@@ -70,7 +69,7 @@ func EvaluatePosition(pos *Position) Eval {
 	w.merge(wps)
 	b.merge(bps)
 
-	e := Eval{position: pos}
+	e := Eval{}
 	e.Accum.merge(w)
 	e.Accum.deduct(b)
 	return e
