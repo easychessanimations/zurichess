@@ -65,10 +65,11 @@ func (e Eval) GetCentipawnsScore() int32 {
 func Evaluate(pos *Position) Eval {
 	e := Eval{position: pos}
 
-	wps, bps := pawnsAndShelterCache.load(pos)
 	e.Accum[White] = evaluate(pos, White)
-	e.Accum[White].merge(wps)
 	e.Accum[Black] = evaluate(pos, Black)
+
+	wps, bps := pawnsAndShelterCache.load(pos)
+	e.Accum[White].merge(wps)
 	e.Accum[Black].merge(bps)
 
 	e.Accum[NoColor].merge(e.Accum[White])
