@@ -89,6 +89,7 @@ func evaluatePawns(pos *Position, us Color, accum *Accum) {
 	groupByBoard(fConnectedPawns, ConnectedPawns(pos, us), accum)
 	groupByBoard(fDoubledPawns, DoubledPawns(pos, us), accum)
 	groupByBoard(fIsolatedPawns, IsolatedPawns(pos, us), accum)
+	groupByBoard(fRammedPawns, RammedPawns(pos, us), accum)
 	groupByRank(fPassedPawnRank, us, PassedPawns(pos, us), accum)
 }
 

@@ -47,6 +47,7 @@ const (
 	fConnectedPawns featureType = "ConnectedPawns"
 	fDoubledPawns   featureType = "DoubledPawns"
 	fIsolatedPawns  featureType = "IsolatedPawns"
+	fRammedPawns    featureType = "RammedPawns"
 	fPassedPawnRank featureType = "PassedPawnRank"
 	fPawnMobility   featureType = "PawnMobility"
 	// Minors and majors attacked by pawns.
