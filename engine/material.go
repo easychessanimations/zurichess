@@ -110,23 +110,19 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 	groupByBoard(fKingShelterFront, ForwardSpan(us, bb)&ourPawns, accum)
 
 	// King passed pawn tropism.
-	dist := int32(8)
 	for bb := PassedPawns(pos, us); bb != BbEmpty; {
-		sq := bb.Pop()
-		if sq.POV(us).Rank() >= 4 {
-			dist = min(dist, distance[sq][kingSq])
+		if sq := bb.Pop(); sq.POV(us).Rank() >= 4 {
+			dist := distance[sq][kingSq]
+			groupByBucket(fKingPassedPawnTropism, int(dist), 8, accum)
 		}
 	}
-	groupByBucket(fKingPassedPawnTropism, int(dist), 8, accum)
 
-	dist = 8
 	for bb := PassedPawns(pos, us.Opposite()); bb != BbEmpty; {
-		sq := bb.Pop()
-		if sq.POV(us.Opposite()).Rank() >= 4 {
-			dist = min(dist, distance[sq][kingSq])
+		if sq := bb.Pop(); sq.POV(us.Opposite()).Rank() >= 4 {
+			dist := distance[sq][kingSq]
+			groupByBucket(fKingEnemyPassedPawnTropism, int(dist), 8, accum)
 		}
 	}
-	groupByBucket(fKingEnemyPassedPawnTropism, int(dist), 8, accum)
 }
 
 // evaluate evaluates position for a single side.
