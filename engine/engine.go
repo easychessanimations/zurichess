@@ -543,8 +543,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 	// Principal variation search: search with a null window if there is already a good move.
 	bestMove, localα := NullMove, int32(-InfinityScore)
-	// True to search the move with a null window. Updated after the first move.
-	nullWindow := false
 
 	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
@@ -621,7 +619,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			continue
 		}
 
-		score := eng.tryMove(max(α, localα), β, newDepth, lmr, nullWindow)
+		score := eng.tryMove(max(α, localα), β, newDepth, lmr, numMoves > 1)
 
 		if score >= β {
 			// Fail high, cut node.
@@ -631,7 +629,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			return score
 		}
 		if score > localα {
-			nullWindow = true
 			bestMove, localα = move, score
 		}
 		eng.history.add(move, -1)
