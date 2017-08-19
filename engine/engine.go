@@ -58,8 +58,8 @@ const (
 	lmrDepthLimit       int32 = 3 // do not do LMR below and including this limit
 	futilityDepthLimit  int32 = 4 // maximum depth to do futility pruning.
 
-	initialAspirationWindow = 21  // ~a quarter of a pawn
-	futilityMargin          = 150 // ~one and a halfpawn
+	initialAspirationWindow = 13 // ~a quarter of a pawn
+	futilityMargin          = 75 // ~one and a halfpawn
 	checkpointStep          = 10000
 )
 
