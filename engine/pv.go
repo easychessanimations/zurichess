@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	pvTableSize = 1 << 13
+	pvTableSize = 1 << 14
 	pvTableMask = pvTableSize - 1
 )
 
