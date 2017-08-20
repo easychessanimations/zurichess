@@ -81,6 +81,9 @@ const (
 )
 
 var (
+        // Placeholder for the weights array when running in coach mode.
+        Weights []Score
+
 	FeaturesMap     = make(map[featureType]*FeatureInfo)
 	featuresMapLock sync.Mutex
 )
