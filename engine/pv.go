@@ -39,19 +39,12 @@ func newPvTable() pvTable {
 
 // Put inserts a new entry.  Ignores NullMoves.
 func (pv pvTable) Put(pos *Position, move Move) {
-	if move == NullMove {
-		return
-	}
-
-	// Based on pos.Zobrist() two entries are looked up.
-	// If any of the two entries in the table matches
-	// current position, then that one is replaced.
-	// Otherwise, the older is replaced.
-
-	zobrist := pos.Zobrist()
-	pv[zobrist&pvTableMask] = pvEntry{
-		lock: zobrist,
-		move: move,
+	if move != NullMove {
+		zobrist := pos.Zobrist()
+		pv[zobrist&pvTableMask] = pvEntry{
+			lock: zobrist,
+			move: move,
+		}
 	}
 }
 
