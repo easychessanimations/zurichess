@@ -55,7 +55,7 @@ import (
 
 const (
 	checkDepthExtension int32 = 1 // how much to extend search in case of checks
-	lmrDepthLimit       int32 = 3 // do not do LMR below and including this limit
+	lmrDepthLimit       int32 = 4 // do not do LMR below and including this limit
 	futilityDepthLimit  int32 = 4 // maximum depth to do futility pruning.
 
 	initialAspirationWindow = 13 // ~a quarter of a pawn
@@ -551,7 +551,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	static := int32(0)
 	allowLeafsPruning := false
 	if depth <= futilityDepthLimit && // enable when close to the frontier
-		(depth < futilityDepthLimit || hash == NullMove) &&
 		!sideIsChecked && // disable in check
 		!pvNode && // disable in pv nodes
 		KnownLossScore < α && β < KnownWinScore { // disable when searching for a mate
