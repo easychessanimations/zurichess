@@ -622,7 +622,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 
 		if score >= β {
 			// Fail high, cut node.
-			eng.history.add(move, 15)
+			eng.history.add(move, 5+5*depth)
 			eng.stack.SaveKiller(move)
 			eng.updateHash(failedHigh|(entry.kind&hasStatic), depth, score, move, int32(entry.static))
 			return score
