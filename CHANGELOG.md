@@ -9,7 +9,21 @@ in alphabetical order.
 An overview of the most important changes is:
 
 * Improve evaluation:
-    * Add king-queen tropism.
+    * Evaluate king-queen tropism.
+    * Evaluate rammed pawns on 2nd and 3rd rank.
+* Improve search:
+    * Implement SEE based LMR.
+    * Implement SEE based leaf pruning.
+    * Tweak limits for FP and LMR.
+    * Time control tweaks and simplificats.
+    * History heuristic accounts for the depth of the move.
+* Some small additions to public API
+    * PawnPromotionSquare returns the promotion square of a pawn.
+    * RammedPawns returns rammed pawns on 2nd and 3rd rank for white and 6th and 6th rank for black.
+* Fix a late end game bug in which PV did not have a root move.
+* Score was halved to be a bit more realistic.
+* Reduce the number of illegal moves generated when in check.
+* Usual code clean ups, speed ups and bug fixes.
 
 ## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (stable)
 08.May.2017
