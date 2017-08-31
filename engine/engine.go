@@ -460,14 +460,12 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	}
 
 	// Verify that this is not already an endgame.
-	if score, done := eng.endPosition(); done {
-		if ply != 0 || score != 0 {
-			// At root we ignore draws because some GUIs don't properly detect
-			// theoretical draws. E.g. cutechess doesn't detect that kings and
-			// bishops when all bishops are on the same color. If the position
-			// is a theoretical draw, keep searching for a move.
-			return score
-		}
+	if score, done := eng.endPosition(); done && (ply != 0 || score != 0) {
+		// At root we ignore draws because some GUIs don't properly detect
+		// theoretical draws. E.g. cutechess doesn't detect that kings and
+		// bishops when all bishops are on the same color. If the position
+		// is a theoretical draw, keep searching for a move.
+		return score
 	}
 
 	// Mate pruning: If an ancestor already has a mate in ply moves then
@@ -479,14 +477,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	// Stop searching when the maximum search depth is reached.
 	// Depth can be < 0 due to aggressive LMR.
 	if depth <= 0 {
-		// If this is already won / lost and quiescence cannot change
-		// that because it only looks at violent moves.
-		if α >= KnownWinScore {
-			return α
-		}
-		if β <= KnownLossScore {
-			return β
-		}
 		return eng.searchQuiescence(α, β)
 	}
 
