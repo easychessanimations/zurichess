@@ -541,9 +541,6 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		}
 	}
 
-	// Principal variation search: search with a null window if there is already a good move.
-	bestMove, localα := NullMove, int32(-InfinityScore)
-
 	// Futility and history pruning at frontier nodes.
 	// Based on Deep Futility Pruning http://home.hccnet.nl/h.g.muller/deepfut.html
 	// Based on History Leaf Pruning https://chessprogramming.wikispaces.com/History+Leaf+Pruning
@@ -558,6 +555,8 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		static = eng.cachedScore(&entry)
 	}
 
+	// Principal variation search: search with a null window if there is already a good move.
+	bestMove, localα := NullMove, int32(-InfinityScore)
 	// dropped true if not all moves were searched.
 	// Mate cannot be declared unless all moves were tested.
 	dropped := false
