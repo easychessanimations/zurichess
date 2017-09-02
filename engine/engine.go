@@ -333,7 +333,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	static := eng.cachedScore(&entry)
 	if static >= β {
 		// Stand pat if the static score is already a cut-off.
-		eng.updateHash(failedHigh|hasStatic, 0, static, NullMove, static)
+		eng.updateHash(failedHigh|hasStatic, 0, static, entry.move, static)
 		return static
 	}
 
@@ -341,8 +341,8 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 	us := pos.Us()
 	inCheck := pos.IsChecked(us)
 	localα := max(α, static)
+	bestMove := entry.move
 
-	var bestMove Move
 	eng.stack.GenerateMoves(Violent, NullMove)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		// Prune futile moves that would anyway result in a stand-pat at that next depth.
