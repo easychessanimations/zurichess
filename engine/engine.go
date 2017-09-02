@@ -35,15 +35,19 @@
 //   * Hash move heuristic
 //   * Captures sorted by MVVLVA - https://chessprogramming.wikispaces.com/MVV-LVA
 //   * Killer moves - https://chessprogramming.wikispaces.com/Killer+Move
+//   * History Heuristic - https://chessprogramming.wikispaces.com/History+Heuristic
+//   * Countermove Heuristic - https://chessprogramming.wikispaces.com/Countermove+Heuristic
 //
-// Evaluation (material.go) function is quite basic and consists of:
+// Evaluation (material.go) consists of
 //
-//   * Material and mobility
-//   * Piece square tables for pawns and king. Other figures did not improve the eval.
-//   * King shelter (only in mid game)
+//   * Material and mobility.
+//   * Piece square tables.
+//   * King pawn shield - https://chessprogramming.wikispaces.com/King+Safety
 //   * King safery ala Toga style - https://chessprogramming.wikispaces.com/King+Safety#Attacking%20King%20Zone
-//   * Pawn structure: connected, isolated, double, passed. Evaluation is cached (see cache.go).
-//   * Phased eval between mid game and end game.
+//   * Pawn structure: connected, isolated, double, passed, rammed. Evaluation is cached (see cache.go).
+//   * Attacks on minors and majors.
+//   * Rooks on open and semiopenfiles - https://chessprogramming.wikispaces.com/Rook+on+Open+File
+//   * Tapered evaluation - https://chessprogramming.wikispaces.com/Tapered+Eval
 //
 package engine
 
@@ -58,15 +62,15 @@ const (
 	lmrDepthLimit       int32 = 4 // do not do LMR below and including this limit
 	futilityDepthLimit  int32 = 4 // maximum depth to do futility pruning.
 
-	initialAspirationWindow = 13 // ~a quarter of a pawn
-	futilityMargin          = 75 // ~one and a halfpawn
+	initialAspirationWindow = 13
+	futilityMargin          = 75
 	checkpointStep          = 10000
 )
 
 // Options keeps engine's options.
 type Options struct {
 	AnalyseMode   bool // true to display info strings
-	MultiPV       int
+	MultiPV       int  // number of principal variation lines to compute
 	HandicapLevel int
 }
 
@@ -167,8 +171,8 @@ type Engine struct {
 	ignoreRootMoves []Move        // moves to ignore at root
 
 	timeControl *TimeControl
-	stopped     bool
-	checkpoint  uint64
+	stopped     bool   // true if timeControl stopped the clock
+	checkpoint  uint64 // when to check the time
 }
 
 // NewEngine creates a new engine to search for pos.
@@ -328,7 +332,7 @@ func (eng *Engine) searchQuiescence(α, β int32) int32 {
 
 	static := eng.cachedScore(&entry)
 	if static >= β {
-		// Stand pat if static score is already a cut-off.
+		// Stand pat if the static score is already a cut-off.
 		eng.updateHash(failedHigh|hasStatic, 0, static, NullMove, static)
 		return static
 	}
@@ -495,7 +499,7 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 			eng.pvTable.Put(pos, hash)
 		}
 		if score >= β && hash != NullMove {
-			// If this is CUT node, update the killer like in the regular move loop.
+			// If this is a CUT node, update the killer like in the regular move loop.
 			eng.stack.SaveKiller(hash)
 		}
 		return score
@@ -736,11 +740,6 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	s := int32(eng.Options.HandicapLevel)
 	d := s*s/2 + s*10 + 5
 	n := rand.Intn(len(pvs))
-	if rand.Intn(eng.Options.HandicapLevel) == 0 {
-		if n1 := rand.Intn(len(pvs)); n1 > n {
-			n1 = n
-		}
-	}
 	for pvs[n].score+d < pvs[0].score {
 		n--
 	}
@@ -790,7 +789,7 @@ func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 	return score, moves
 }
 
-// isFutile return true if m cannot raise current static
+// isFutile return true if m cannot raise the current static
 // evaluation above α. This is just an heuristic and mistakes
 // can happen.
 func isFutile(pos *Position, static, α, margin int32, m Move) bool {

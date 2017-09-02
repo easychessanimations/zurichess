@@ -57,11 +57,10 @@ func (pv pvTable) get(pos *Position) Move {
 	return NullMove
 }
 
-// Get returns the principal variation.
+// Get returns the principal variation from pos.
 func (pv pvTable) Get(pos *Position) []Move {
 	seen := make(map[uint64]bool)
 	var moves []Move
-
 	// Extract the moves by following the position.
 	next := pv.get(pos)
 	for next != NullMove && !seen[pos.Zobrist()] {
@@ -70,10 +69,13 @@ func (pv pvTable) Get(pos *Position) []Move {
 		pos.DoMove(next)
 		next = pv.get(pos)
 	}
-
 	// Undo all moves, so we get back to the initial state.
 	for range moves {
 		pos.UndoMove()
+	}
+	// Add the last repeated move.
+	if next != NullMove {
+		moves = append(moves, next)
 	}
 	return moves
 }
