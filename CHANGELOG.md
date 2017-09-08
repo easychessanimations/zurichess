@@ -3,8 +3,8 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
-## zurichess [neuchatel](https://en.wikipedia.org/wiki/Canton_of_Neuch%C3%A2tel) (devel)
-??.???.????
+## zurichess [neuchatel](https://en.wikipedia.org/wiki/Canton_of_Neuch%C3%A2tel) (stable)
+07.Sep.2017
 
 An overview of the most important changes is:
 
@@ -25,7 +25,7 @@ An overview of the most important changes is:
 * Reduce the number of illegal moves generated when in check.
 * Usual code clean ups, speed ups and bug fixes.
 
-## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne) (stable)
+## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne)
 08.May.2017
 
 An overview of the most important changes is:
