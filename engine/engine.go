@@ -169,6 +169,7 @@ type Engine struct {
 	pvTable         pvTable       // principal variation table
 	history         *historyTable // keeps history of moves
 	ignoreRootMoves []Move        // moves to ignore at root
+	onlyRootMoves   []Move        // search only these root moves
 
 	timeControl *TimeControl
 	stopped     bool   // true if timeControl stopped the clock
@@ -294,7 +295,7 @@ func (eng *Engine) updateHash(flags hashFlags, depth, score int32, move Move, st
 	if flags&exact != 0 {
 		eng.pvTable.Put(eng.Position, move)
 	}
-	if eng.ply() == 0 && len(eng.ignoreRootMoves) != 0 {
+	if eng.ply() == 0 && (len(eng.ignoreRootMoves) != 0 || len(eng.onlyRootMoves) != 0) {
 		// At root if there are moves to ignore (e.g. because of multipv)
 		// then this is an incomplete search, so don't update the hash.
 		return
@@ -422,7 +423,12 @@ func (eng *Engine) isIgnoredRootMove(move Move) bool {
 			return true
 		}
 	}
-	return false
+	for _, m := range eng.onlyRootMoves {
+		if m == move {
+			return false
+		}
+	}
+	return len(eng.onlyRootMoves) != 0
 }
 
 // searchTree implements searchTree framework.
@@ -492,7 +498,9 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 		entry = hashEntry{}
 		hash = NullMove
 	}
-	if score := int32(entry.score); depth <= int32(entry.depth) && isInBounds(entry.kind, α, β, score) {
+	if score := int32(entry.score); depth <= int32(entry.depth) &&
+		isInBounds(entry.kind, α, β, score) &&
+		(ply != 0 || !eng.isIgnoredRootMove(hash)) {
 		if pvNode {
 			// Update the pv table, otherwise we risk not having a node at root
 			// if the pv entry was overwritten.
@@ -559,10 +567,10 @@ func (eng *Engine) searchTree(α, β, depth int32) int32 {
 	eng.stack.GenerateMoves(Violent|Quiet, hash)
 	for move := eng.stack.PopMove(); move != NullMove; move = eng.stack.PopMove() {
 		if ply == 0 {
+			if eng.isIgnoredRootMove(move) {
+				continue
+			}
 			eng.Log.CurrMove(int(depth), move, int(numMoves+1))
-		}
-		if eng.isIgnoredRootMove(move) {
-			continue
 		}
 
 		givesCheck := pos.GivesCheck(move)
@@ -746,17 +754,24 @@ func (eng *Engine) searchMultiPV(depth, estimated int32) (int32, []Move) {
 	return pvs[n].score, pvs[n].moves
 }
 
-// Play evaluates current position.
+// Play evaluates current position. See PlayMoves for the returned values.
+func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
+	return eng.PlayMoves(tc, nil)
+}
+
+// PlayMoves evaluates current position searching only moves specifid by rootMoves.
 //
 // Returns the principal variation, that is
 //      moves[0] is the best move found and
 //      moves[1] is the pondering move.
 //
+// If rootMoves is nil searches all root moves.
+//
 // Returns a nil pv if no move was found because the game is already finished.
 // Returns empty pv array if it's valid position, but no pv was found (e.g. search depth is 0).
 //
 // Time control, tc, should already be started.
-func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
+func (eng *Engine) PlayMoves(tc *TimeControl, rootMoves []Move) (score int32, moves []Move) {
 	eng.Log.BeginSearch()
 	eng.Stats = Stats{Depth: -1}
 
@@ -766,6 +781,7 @@ func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 	eng.checkpoint = checkpointStep
 	eng.stack.Reset(eng.Position)
 	eng.history.newSearch()
+	eng.onlyRootMoves = rootMoves
 
 	for depth := int32(0); depth < 64; depth++ {
 		if !tc.NextDepth(depth) {

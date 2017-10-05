@@ -9,7 +9,9 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -20,9 +22,7 @@ import (
 	. "bitbucket.org/zurichess/zurichess/engine"
 )
 
-var (
-	errQuit = fmt.Errorf("quit")
-)
+var errQuit = errors.New("quit")
 
 const (
 	maxMultiPV       = 16
@@ -111,6 +111,8 @@ type UCI struct {
 	ponder chan struct{}
 	// predicted position hash after 2 moves.
 	predicted uint64
+	// root moves to search; empty to search all of them.
+	rootMoves []Move
 }
 
 func NewUCI() *UCI {
@@ -237,15 +239,39 @@ func (uci *UCI) position(line string) error {
 	return nil
 }
 
+var validGoCommands = map[string]bool{
+	"searchmoves": true,
+	"ponder":      true,
+	"wtime":       true,
+	"btime":       true,
+	"binc":        true,
+	"movestogo":   true,
+	"depth":       true,
+	"nodes":       true,
+	"mate":        true,
+	"movetime":    true,
+	"infinite":    true,
+}
+
 func (uci *UCI) go_(line string) error {
 	// TODO: Handle panic for `go depth`
 	predicted := uci.predicted == uci.Engine.Position.Zobrist()
 	uci.timeControl = NewTimeControl(uci.Engine.Position, predicted)
+	uci.rootMoves = uci.rootMoves[:0]
 	ponder := false
 
 	args := strings.Fields(line)[1:]
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
+		case "searchmoves":
+			for j := i + 1; j < len(args) && !validGoCommands[args[j]]; j++ {
+				if m, err := uci.Engine.Position.UCIToMove(args[j]); err != nil {
+					return err
+				} else {
+					i++
+					uci.rootMoves = append(uci.rootMoves, m)
+				}
+			}
 		case "ponder":
 			ponder = true
 		case "infinite":
@@ -282,6 +308,11 @@ func (uci *UCI) go_(line string) error {
 			i++
 			d, _ := strconv.Atoi(args[i])
 			uci.timeControl.Depth = int32(d)
+		case "nodes", "mate":
+			log.Println(args[i], "not implemented. Ignoring")
+			i++
+		default:
+			return fmt.Errorf("invalid go command %s", args[i])
 		}
 	}
 
@@ -323,7 +354,7 @@ func (uci *UCI) stop(line string) error {
 // play starts the negine.
 // Should run in its own separate goroutine.
 func (uci *UCI) play() {
-	_, moves := uci.Engine.Play(uci.timeControl)
+	_, moves := uci.Engine.PlayMoves(uci.timeControl, uci.rootMoves)
 
 	if len(moves) >= 2 {
 		uci.Engine.Position.DoMove(moves[0])
