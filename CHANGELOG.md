@@ -3,8 +3,15 @@
 Versions are named after [Swiss Cantons](http://en.wikipedia.org/wiki/Cantons_of_Switzerland)
 in alphabetical order.
 
+## zurichess [nidwalden](https://en.wikipedia.org/wiki/Nidwalden) (development)
+
+An overview of the most important changes is:
+* Implemented `go searchmoves` UCI command.
+
 ## zurichess [neuchatel](https://en.wikipedia.org/wiki/Canton_of_Neuch%C3%A2tel) (stable)
 07.Sep.2017
+
+The Elo rating is about 2804 on CCRL 40/40 and about 2720 on CEGT 40/20.
 
 An overview of the most important changes is:
 
@@ -28,6 +35,8 @@ An overview of the most important changes is:
 ## zurichess [luzern](https://en.wikipedia.org/wiki/Canton_of_Lucerne)
 08.May.2017
 
+The Elo rating is about 2693 on CCRL 40/40 and about 2657 on CEGT 40/20.
+
 An overview of the most important changes is:
 
 * Split engine package into board package providing board functionality,
@@ -49,7 +58,7 @@ and engine package providing search functionality.
 `git clone -b release.jura https://bitbucket.org/zurichess/zurichess.git`
 
 The theme of this release is code simplifications and tweakings.
-Elo is about 2753 on CCRL 40/40 and 2587 on CEGT 40/20.
+The Elo rating is about 2764 on CCRL 40/40 and 2598 on CEGT 40/20.
 
 An overview of the most important changes is:
 
@@ -72,7 +81,7 @@ An overview of the most important changes is:
 `git clone -b release.graubuenden https://bitbucket.org/zurichess/zurichess.git`
 
 The theme of this release is tweaking and improving the static evaluation.
-Elo is about 2691 on CCRL 40/40 and 2541 on CEGT 40/4.
+Elo is about 2689 on CCRL 40/40 and 2541 on CEGT 40/4.
 
 An overview of the most important changes is:
 
@@ -110,7 +119,7 @@ No playing strength tests or improvements were done other than fixing the crash 
 `git clone -b release.glarus https://bitbucket.org/zurichess/zurichess.git`
 
 The theme of this release is king safety and leaf pruning.
-Elo is about 2554 on CCRL 40/40 and 2402 on CEGT 40/4.
+Elo is about 2556 on CCRL 40/40 and 2402 on CEGT 40/4.
 
 * Improve futility conditions. Geneva's futility is a bit too aggressive and causes lots of tactical mistakes.
 * Add History Leaf Pruning similar to https://chessprogramming.wikispaces.com/History+Leaf+Pruning.
