@@ -84,7 +84,7 @@ func evaluatePawnsAndShelter(pos *Position, us Color) (accum Accum) {
 }
 
 func evaluatePawns(pos *Position, us Color, accum *Accum) {
-	groupBySquare(fPawnSquare, us, pos.ByPiece(us, Pawn), accum)
+	groupBySquare(fPawnSquare, us, Pawns(pos, us), accum)
 	groupByBoard(fBackwardPawns, BackwardPawns(pos, us), accum)
 	groupByBoard(fConnectedPawns, ConnectedPawns(pos, us), accum)
 	groupByBoard(fDoubledPawns, DoubledPawns(pos, us), accum)
@@ -95,7 +95,7 @@ func evaluatePawns(pos *Position, us Color, accum *Accum) {
 
 func evaluateShelter(pos *Position, us Color, accum *Accum) {
 	// King's position and mobility.
-	bb := pos.ByPiece(us, King)
+	bb := Kings(pos, us)
 	kingSq := bb.AsSquare()
 	mobility := KingMobility(kingSq)
 	groupByFileSq(fKingFile, us, kingSq, accum)
@@ -104,7 +104,7 @@ func evaluateShelter(pos *Position, us Color, accum *Accum) {
 
 	// King's shelter.
 	ekw := East(bb) | bb | West(bb)
-	ourPawns := pos.ByPiece(us, Pawn)
+	ourPawns := Pawns(pos, us)
 	groupByBoard(fKingShelterNear, ekw|Forward(us, ekw)&ourPawns, accum)
 	groupByBoard(fKingShelterFar, ForwardSpan(us, ekw)&ourPawns, accum)
 	groupByBoard(fKingShelterFront, ForwardSpan(us, bb)&ourPawns, accum)
@@ -131,16 +131,16 @@ func evaluate(pos *Position, us Color) Accum {
 	them := us.Opposite()
 	all := pos.ByColor(White) | pos.ByColor(Black)
 	danger := PawnThreats(pos, them)
-	ourPawns := pos.ByPiece(us, Pawn)
+	ourPawns := Pawns(pos, us)
 	theirPawns := pos.ByPiece(them, Pawn)
 	theirKingArea := KingArea(pos, them)
 
 	groupByBoard(fNoFigure, BbEmpty, &accum)
-	groupByBoard(fPawn, pos.ByPiece(us, Pawn), &accum)
-	groupByBoard(fKnight, pos.ByPiece(us, Knight), &accum)
-	groupByBoard(fBishop, pos.ByPiece(us, Bishop), &accum)
-	groupByBoard(fRook, pos.ByPiece(us, Rook), &accum)
-	groupByBoard(fQueen, pos.ByPiece(us, Queen), &accum)
+	groupByBoard(fPawn, Pawns(pos, us), &accum)
+	groupByBoard(fKnight, Knights(pos, us), &accum)
+	groupByBoard(fBishop, Bishops(pos, us), &accum)
+	groupByBoard(fRook, Rooks(pos, us), &accum)
+	groupByBoard(fQueen, Queens(pos, us), &accum)
 	groupByBoard(fKing, BbEmpty, &accum)
 
 	// Evaluate various pawn attacks and potential pawn attacks
@@ -155,7 +155,7 @@ func evaluate(pos *Position, us Color) Accum {
 	attacks := PawnThreats(pos, us)
 
 	// Knight
-	for bb := pos.ByPiece(us, Knight); bb > 0; {
+	for bb := Knights(pos, us); bb > 0; {
 		sq := bb.Pop()
 		mobility := KnightMobility(sq) &^ (danger | ourPawns)
 		attacks |= mobility
@@ -168,7 +168,7 @@ func evaluate(pos *Position, us Color) Accum {
 	}
 	// Bishop
 	// TODO Fix bishop's attack.
-	for bb := pos.ByPiece(us, Bishop); bb > 0; {
+	for bb := Bishops(pos, us); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
 		attacks |= mobility
@@ -183,7 +183,7 @@ func evaluate(pos *Position, us Color) Accum {
 	// Rook
 	openFiles := OpenFiles(pos, us)
 	semiOpenFiles := SemiOpenFiles(pos, us)
-	for bb := pos.ByPiece(us, Rook); bb > 0; {
+	for bb := Rooks(pos, us); bb > 0; {
 		sq := bb.Pop()
 		mobility := RookMobility(sq, all) &^ (danger | ourPawns)
 		attacks |= mobility
@@ -197,7 +197,7 @@ func evaluate(pos *Position, us Color) Accum {
 		}
 	}
 	// Queen
-	for bb := pos.ByPiece(us, Queen); bb > 0; {
+	for bb := Queens(pos, us); bb > 0; {
 		sq := bb.Pop()
 		mobility := QueenMobility(sq, all) &^ (danger | ourPawns)
 		attacks |= mobility
@@ -208,12 +208,12 @@ func evaluate(pos *Position, us Color) Accum {
 			numAttackers++
 		}
 
-		dist := distance[sq][pos.ByPiece(them, King).AsSquare()]
+		dist := distance[sq][Kings(pos, them).AsSquare()]
 		groupByCount(fKingQueenTropism, dist, &accum)
 	}
 
 	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)
-	groupByBool(fBishopPair, pos.ByPiece(us, Bishop).CountMax2() == 2, &accum)
+	groupByBool(fBishopPair, Bishops(pos, us).CountMax2() == 2, &accum)
 
 	// Kink's safety is very primitive:
 	// - king's shelter is evaluated by evaluateShelter.
