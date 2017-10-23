@@ -61,10 +61,6 @@ type TimeControl struct {
 // NewTimeControl returns a new time control with no time limit,
 // no depth limit, zero time increment and zero moves to go.
 func NewTimeControl(pos *Position, predicted bool) *TimeControl {
-	// Branch more when there are more pieces. With fewer pieces
-	// there is less mobility and hash table kicks in more often.
-	branch := 32
-
 	return &TimeControl{
 		WTime:      infinite,
 		WInc:       0,
@@ -74,7 +70,7 @@ func NewTimeControl(pos *Position, predicted bool) *TimeControl {
 		MovesToGo:  defaultMovesToGo,
 		sideToMove: pos.Us(),
 		predicted:  predicted,
-		branch:     branch,
+		branch:     32,
 	}
 }
 
