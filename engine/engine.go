@@ -239,10 +239,10 @@ func (eng *Engine) cachedScore(e *hashEntry) int32 {
 func (eng *Engine) endPosition() (int32, bool) {
 	pos := eng.Position // shortcut
 	// Trivial cases when kings are missing.
-	if Kings(pos, White) == 0 && Kings(pos, Black) == 0 {
-		return 0, true
-	}
 	if Kings(pos, White) == 0 {
+		if Kings(pos, Black) == 0 {
+			return 0, true // both kings are missing
+		}
 		return pos.Us().Multiplier() * (MatedScore + eng.ply()), true
 	}
 	if Kings(pos, Black) == 0 {
