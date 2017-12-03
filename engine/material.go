@@ -168,11 +168,13 @@ func evaluate(pos *Position, us Color) Accum {
 	}
 	// Bishop
 	// TODO Fix bishop's attack.
+	numBishops := 0
 	for bb := Bishops(pos, us); bb > 0; {
 		sq := bb.Pop()
 		mobility := BishopMobility(sq, all)
 		attacks |= mobility
 		mobility &^= danger | ourPawns
+		numBishops++
 		groupByFileSq(fBishopFile, us, sq, &accum)
 		groupByRankSq(fBishopRank, us, sq, &accum)
 		groupByBoard(fBishopAttack, mobility, &accum)
@@ -213,7 +215,7 @@ func evaluate(pos *Position, us Color) Accum {
 	}
 
 	groupByBoard(fAttackedMinors, attacks&Minors(pos, them), &accum)
-	groupByBool(fBishopPair, Bishops(pos, us).CountMax2() == 2, &accum)
+	groupByBool(fBishopPair, numBishops == 2, &accum)
 
 	// Kink's safety is very primitive:
 	// - king's shelter is evaluated by evaluateShelter.
