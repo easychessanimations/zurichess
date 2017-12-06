@@ -67,6 +67,10 @@ const (
 	checkpointStep          = 10000
 )
 
+var (
+	initialized = false
+)
+
 // Options keeps engine's options.
 type Options struct {
 	AnalyseMode   bool // true to display info strings
@@ -776,6 +780,10 @@ func (eng *Engine) Play(tc *TimeControl) (score int32, moves []Move) {
 //
 // Time control, tc, should already be started.
 func (eng *Engine) PlayMoves(tc *TimeControl, rootMoves []Move) (score int32, moves []Move) {
+	if !initialized {
+		initEngine()
+	}
+
 	eng.Log.BeginSearch()
 	eng.Stats = Stats{Depth: -1}
 
@@ -820,4 +828,23 @@ func isFutile(pos *Position, static, α, margin int32, m Move) bool {
 	}
 	δ := futilityFigureBonus[m.Capture().Figure()]
 	return static+δ+margin < α
+}
+
+func initEngine() {
+	var fens = [FigureArraySize]string{
+		Pawn:   "rnbqkbnr/ppp1pppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR w - - 0 1",
+		Knight: "r1bqkbnr/pppppppp/8/8/3N4/8/PPPPPPPP/R1BQKBNR w - - 0 1",
+		Bishop: "rn1qkbnr/pppppppp/8/8/3B4/8/PPPPPPPP/RN1QKBNR w - - 0 1",
+		Rook:   "rnbqkbn1/pppppppp/8/8/3R4/8/PPPPPPPP/RNBQKBN1 w - - 0 1",
+		Queen:  "rnb1kbnr/pppppppp/8/8/3Q4/8/PPPPPPPP/RNB1KBNR w - - 0 1",
+	}
+
+	for f, fen := range fens {
+		if fen != "" {
+			pos, _ := PositionFromFEN(fen)
+			futilityFigureBonus[f] = Evaluate(pos).GetCentipawnsScore()
+		}
+	}
+
+	initialized = true
 }

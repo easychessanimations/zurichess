@@ -243,12 +243,3 @@ func scaleToCentipawns(score int32) int32 {
 	// Divides by 128 and rounds to the nearest integer.
 	return (score + 128 + score>>31) >> 8
 }
-
-func init() {
-	// Initialize futility figure bonus.
-	if len(Weights) != 0 {
-		for i, w := range Weights[:FigureArraySize] {
-			futilityFigureBonus[i] = scaleToCentipawns(max(w.M, w.E))
-		}
-	}
-}
