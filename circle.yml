@@ -1,25 +1,19 @@
-machine:
-  environment:
-    GOPATH: "$HOME/gocode"
-    ROOTPATH: "$HOME/gocode/src/bitbucket.org/zurichess/zurichess"
-
-checkout:
-  post:
-    - rm -rf $GOPATH/src
-    - mkdir -p $GOPATH/src/bitbucket.org/zurichess
-    - ln -s $HOME/$CIRCLE_PROJECT_REPONAME $ROOTPATH
-
-compile:   
-  override:
-    - cd $ROOTPATH && go build -v ./...
-    - cd $ROOTPATH && go install -v ./zurichess
-
-test:
-  pre:
-    - cd $ROOTPATH && go vet ./...
-  override:
-    - cd $ROOTPATH && go test -v -race ./...
-
-general:
-  artifacts:
-    - "$ROOTPATH/bin/zurichess"
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.11
+        environment:
+          GO111MODULE: "on"
+    working_directory: /go/src/bitbucket.org/zurichess/zurichess
+    steps:
+      - checkout
+      - run:
+          name: Build
+          command: go build ./...
+      - run:
+          name: Test
+          command: go test ./...
+      - run:
+          name: Vet
+          command: go vet ./...
