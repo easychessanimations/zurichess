@@ -7,7 +7,7 @@ package engine
 import (
 	"testing"
 
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 	. "bitbucket.org/zurichess/zurichess/internal/testdata"
 )
 

@@ -8,7 +8,7 @@
 
 package engine
 
-import . "bitbucket.org/zurichess/zurichess/board"
+import . "bitbucket.org/zurichess/board"
 
 const (
 	// Move generation states.

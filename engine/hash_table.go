@@ -9,7 +9,7 @@ package engine
 import (
 	"unsafe" // for sizeof
 
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 )
 
 var (

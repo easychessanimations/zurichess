@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 	. "bitbucket.org/zurichess/zurichess/engine"
 )
 

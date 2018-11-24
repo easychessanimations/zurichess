@@ -6,7 +6,7 @@
 
 package engine
 
-import . "bitbucket.org/zurichess/zurichess/board"
+import . "bitbucket.org/zurichess/board"
 
 // pawnsTable is a cache entry.
 type pawnsEntry struct {

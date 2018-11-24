@@ -18,7 +18,7 @@
 package engine
 
 import (
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 )
 
 const (

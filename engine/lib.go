@@ -5,7 +5,7 @@
 package engine
 
 import (
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 )
 
 func groupByCount(feature featureType, n int32, accum *Accum) {

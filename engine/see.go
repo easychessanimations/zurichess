@@ -6,7 +6,7 @@
 
 package engine
 
-import . "bitbucket.org/zurichess/zurichess/board"
+import . "bitbucket.org/zurichess/board"
 
 // piece bonuses when calulating the see.
 // The values are fixed to approximatively the figure bonus in mid game.

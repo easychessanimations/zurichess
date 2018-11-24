@@ -54,7 +54,7 @@ package engine
 import (
 	"math/rand"
 
-	. "bitbucket.org/zurichess/zurichess/board"
+	. "bitbucket.org/zurichess/board"
 )
 
 const (

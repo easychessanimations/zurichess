@@ -4,7 +4,7 @@
 
 package engine
 
-import . "bitbucket.org/zurichess/zurichess/board"
+import . "bitbucket.org/zurichess/board"
 
 // distance stores the number of king steps required
 // to reach from one square to another on an empty board.
