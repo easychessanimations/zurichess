@@ -2,3 +2,5 @@
 *.pgn
 *.pgn~
 zurichess-*
+
+*.exe
