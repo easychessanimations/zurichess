@@ -146,7 +146,11 @@ func (uci *UCI) Execute(line string) error {
 		return uci.isready(line)
 	case "quit":
 		return errQuit
+	case "x":
+		return errQuit
 	case "stop":
+		return uci.stop(line)
+	case "s":
 		return uci.stop(line)
 	case "uci":
 		return uci.uci(line)
